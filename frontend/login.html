@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Login - Land Record Digitization System</title>
+<link rel="stylesheet" href="styles.css" />
+<style>
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .login-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    max-width: 450px;
+    width: 90%;
+    padding: 40px;
+  }
+
+  .login-header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
+  .login-header .brand-mark {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+
+  .login-header h1 {
+    font-size: 24px;
+    margin: 0 0 8px 0;
+    color: #1a202c;
+  }
+
+  .login-header p {
+    margin: 0;
+    color: #718096;
+    font-size: 14px;
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #2d3748;
+    font-size: 14px;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+
+  .form-group select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .toggle-form {
+    text-align: center;
+    margin-top: 20px;
+    color: #718096;
+    font-size: 14px;
+  }
+
+  .toggle-form a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .toggle-form a:hover {
+    text-decoration: underline;
+  }
+
+  .alert {
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-size: 14px;
+  }
+
+  .alert-error {
+    background: #fee;
+    color: #c53030;
+    border: 1px solid #fc8181;
+  }
+
+  .alert-success {
+    background: #f0fff4;
+    color: #2f855a;
+    border: 1px solid #68d391;
+  }
+
+  .forgot-password {
+    text-align: right;
+    margin-top: 8px;
+  }
+
+  .forgot-password a {
+    color: #667eea;
+    text-decoration: none;
+    font-size: 13px;
+  }
+
+  .forgot-password a:hover {
+    text-decoration: underline;
+  }
+
+  #signupForm {
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="login-container">
+  <div class="login-header">
+    <div class="brand-mark">भू</div>
+    <h1>Land Record System</h1>
+    <p>Department of Land Resources · Ministry of Rural Development</p>
+  </div>
+
+  <div id="alertBox"></div>
+
+  <!-- Login Form -->
+  <form id="loginForm">
+    <div class="form-group">
+      <label for="loginEmail">Email Address</label>
+      <input type="email" id="loginEmail" required placeholder="Enter your email" />
+    </div>
+
+    <div class="form-group">
+      <label for="loginPassword">Password</label>
+      <input type="password" id="loginPassword" required placeholder="Enter your password" />
+    </div>
+
+    <div class="forgot-password">
+      <a href="#" id="forgotPasswordLink">Forgot password?</a>
+    </div>
+
+    <div class="form-group" style="margin-top: 24px;">
+      <button type="submit" class="btn-primary" id="loginBtn">Sign In</button>
+    </div>
+
+    <div class="toggle-form">
+      Don't have an account? <a id="showSignup">Sign up</a>
+    </div>
+  </form>
+
+  <!-- Signup Form -->
+  <form id="signupForm">
+    <div class="form-group">
+      <label for="signupName">Full Name</label>
+      <input type="text" id="signupName" required placeholder="Enter your full name" />
+    </div>
+
+    <div class="form-group">
+      <label for="signupEmail">Email Address</label>
+      <input type="email" id="signupEmail" required placeholder="Enter your email" />
+    </div>
+
+    <div class="form-group">
+      <label for="signupPassword">Password</label>
+      <input type="password" id="signupPassword" required placeholder="Create a password (min 6 characters)" minlength="6" />
+    </div>
+
+    <div class="form-group">
+      <label for="signupRole">Role</label>
+      <select id="signupRole" required>
+        <option value="">Select your role</option>
+        <option value="operator">Operator - Upload & correct documents</option>
+        <option value="verifier">Verifier - Review & approve records</option>
+        <option value="admin">Admin - Full access including export</option>
+        <option value="auditor">Auditor - Read-only audit access</option>
+      </select>
+    </div>
+
+    <div class="form-group" style="margin-top: 24px;">
+      <button type="submit" class="btn-primary" id="signupBtn">Create Account</button>
+    </div>
+
+    <div class="toggle-form">
+      Already have an account? <a id="showLogin">Sign in</a>
+    </div>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script>
+  // Wait for Supabase to load
+  function initAuth() {
+    if (typeof window.supabase === 'undefined') {
+      console.log('Waiting for Supabase to load...');
+      setTimeout(initAuth, 100);
+      return;
+    }
+
+    console.log('Supabase loaded successfully');
+    setupAuthHandlers();
+  }
+
+  function setupAuthHandlers() {
+  const loginForm = document.getElementById('loginForm');
+  const signupForm = document.getElementById('signupForm');
+  const alertBox = document.getElementById('alertBox');
+
+  // Toggle between login and signup
+  document.getElementById('showSignup').addEventListener('click', (e) => {
+    e.preventDefault();
+    loginForm.style.display = 'none';
+    signupForm.style.display = 'block';
+    alertBox.innerHTML = '';
+  });
+
+  document.getElementById('showLogin').addEventListener('click', (e) => {
+    e.preventDefault();
+    signupForm.style.display = 'none';
+    loginForm.style.display = 'block';
+    alertBox.innerHTML = '';
+  });
+
+  // Show alert
+  function showAlert(message, type = 'error') {
+    alertBox.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+    setTimeout(() => {
+      alertBox.innerHTML = '';
+    }, 5000);
+  }
+
+  // Check if already logged in
+  async function checkAuth() {
+    try {
+      const session = await SupabaseAuth.getSession();
+      if (session) {
+        window.location.href = 'index.html';
+      }
+    } catch (error) {
+      console.error('Auth check error:', error);
+    }
+  }
+
+  // Login handler
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    const loginBtn = document.getElementById('loginBtn');
+
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Signing in...';
+
+    try {
+      const { user, session } = await SupabaseAuth.signIn(email, password);
+
+      // Store session info
+      localStorage.setItem('supabase_user', JSON.stringify(user));
+      localStorage.setItem('user_email', email);
+      localStorage.setItem('user_role', user.user_metadata?.role || 'operator');
+
+      showAlert('Login successful! Redirecting...', 'success');
+      setTimeout(() => {
+        window.location.href = 'index.html';
+      }, 1000);
+
+    } catch (error) {
+      showAlert(error.message || 'Login failed. Please check your credentials.');
+      loginBtn.disabled = false;
+      loginBtn.textContent = 'Sign In';
+    }
+  });
+
+  // Signup handler
+  signupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById('signupName').value;
+    const email = document.getElementById('signupEmail').value;
+    const password = document.getElementById('signupPassword').value;
+    const role = document.getElementById('signupRole').value;
+    const signupBtn = document.getElementById('signupBtn');
+
+    if (!role) {
+      showAlert('Please select a role');
+      return;
+    }
+
+    signupBtn.disabled = true;
+    signupBtn.textContent = 'Creating account...';
+
+    try {
+      await SupabaseAuth.signUp(email, password, {
+        full_name: name,
+        role: role
+      });
+
+      showAlert('Account created successfully! Please check your email to verify your account.', 'success');
+
+      // Switch to login form after 3 seconds
+      setTimeout(() => {
+        signupForm.style.display = 'none';
+        loginForm.style.display = 'block';
+        signupForm.reset();
+      }, 3000);
+
+    } catch (error) {
+      showAlert(error.message || 'Signup failed. Please try again.');
+    } finally {
+      signupBtn.disabled = false;
+      signupBtn.textContent = 'Create Account';
+    }
+  });
+
+  // Forgot password handler
+  document.getElementById('forgotPasswordLink').addEventListener('click', async (e) => {
+    e.preventDefault();
+
+    const email = document.getElementById('loginEmail').value;
+
+    if (!email) {
+      showAlert('Please enter your email address first');
+      return;
+    }
+
+    try {
+      await SupabaseAuth.resetPassword(email);
+      showAlert('Password reset email sent! Please check your inbox.', 'success');
+    } catch (error) {
+      showAlert(error.message || 'Failed to send reset email');
+    }
+  });
+
+  // Check auth on load
+  checkAuth();
+  }
+
+  // Start initialization when page loads
+  initAuth();
+</script>
+
+</body>
+</html>

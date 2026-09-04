@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Land Record Digitization &amp; Validation System</title>
+<link rel="stylesheet" href="styles.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">भू</div>
+    <div class="brand-text">
+      <h1>Intelligent Land Record Digitization &amp; Validation System</h1>
+      <p>Ministry of Rural Development &middot; Department of Land Resources &middot; SIH 2026 &middot; PS 26018</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <label class="role-select">
+      <span>Signed in as</span>
+      <select id="userSelect" aria-label="Active user"></select>
+    </label>
+    <div class="role-chip" id="roleChip">&mdash;</div>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist">
+  <button class="tab active" data-tab="ingest" role="tab">Ingest</button>
+  <button class="tab" data-tab="queue" role="tab">Verification Queue <span class="tab-count" id="queueCount">0</span></button>
+  <button class="tab" data-tab="workspace" role="tab">Verification Workspace</button>
+  <button class="tab" data-tab="dashboard" role="tab">Dashboard</button>
+  <button class="tab" data-tab="learning" role="tab">Learning</button>
+  <button class="tab" data-tab="audit" role="tab">Audit Trail</button>
+</nav>
+
+<main>
+
+<!-- ================= INGEST ================= -->
+<section class="panel-view active" id="view-ingest">
+  <div class="grid-2">
+    <div class="card">
+      <h2>Upload land records</h2>
+      <p class="muted">Scanned PDFs, images, or digital record extracts. Multilingual (Hindi / English) documents are supported.</p>
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="fileInput" multiple accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.bmp,.webp,.txt" hidden />
+        <div class="dropzone-inner">
+          <div class="dz-icon">↑</div>
+          <p class="dz-title">Drop documents here</p>
+          <p class="muted small">or <button class="link-btn" id="browseBtn" type="button">browse files</button></p>
+        </div>
+      </div>
+      <div class="row gap">
+        <button class="btn primary" id="uploadBtn" disabled>Process documents</button>
+        <button class="btn" id="seedBtn">Load sample corpus</button>
+      </div>
+      <ul class="filelist" id="fileList"></ul>
+      <div id="uploadStatus"></div>
+    </div>
+
+    <div class="card">
+      <h2>Extraction capability</h2>
+      <p class="muted">The pipeline reports what it can actually do on this machine rather than assuming an engine is present.</p>
+      <ul class="caplist" id="capList"></ul>
+      <div class="pipeline">
+        <h3>Processing pipeline</h3>
+        <ol class="steps">
+          <li><b>Quality assessment</b><span>Sharpness, contrast, skew, ink coverage</span></li>
+          <li><b>Text extraction</b><span>Native PDF layer &rarr; OCR &rarr; honest degraded mode</span></li>
+          <li><b>Field classification</b><span>17 land-record fields, bilingual label matching</span></li>
+          <li><b>Validation</b><span>10 rule families, LGD cross-check, duplicate detection</span></li>
+          <li><b>Routing</b><span>Auto-approve, human review, or block</span></li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="lastRunCard" hidden>
+    <h2>Last processing run</h2>
+    <div class="table-wrap"><table class="data-table" id="lastRunTable"></table></div>
+  </div>
+</section>
+
+<!-- ================= QUEUE ================= -->
+<section class="panel-view" id="view-queue">
+  <div class="card">
+    <div class="card-head">
+      <h2>Verification queue</h2>
+      <div class="row gap">
+        <input class="input" type="search" id="searchInput" placeholder="Search owner, khasra, village…" />
+        <select class="input" id="statusFilter">
+          <option value="all">All statuses</option>
+          <option value="needs_review">Needs review</option>
+          <option value="blocked">Blocked</option>
+          <option value="auto_approved">Auto-approved</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <button class="btn" id="exportCsvBtn">Export CSV</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table" id="queueTable">
+        <thead><tr>
+          <th>ID</th><th>Document</th><th>Owner</th><th>Khasra</th><th>District</th>
+          <th>Engine</th><th>Trust</th><th>Issues</th><th>Status</th><th></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="muted small" id="queueEmpty" hidden>No documents yet. Load the sample corpus from the Ingest tab.</p>
+  </div>
+</section>
+
+<!-- ================= WORKSPACE ================= -->
+<section class="panel-view" id="view-workspace">
+  <div id="wsEmpty" class="card empty-state">
+    <p>Select a document from the verification queue to begin.</p>
+  </div>
+
+  <div id="wsBody" hidden>
+    <div class="ws-head card">
+      <div>
+        <h2 id="wsTitle">&mdash;</h2>
+        <p class="muted small" id="wsMeta">&mdash;</p>
+      </div>
+      <div class="ws-actions">
+        <div class="trust-badge" id="wsTrust"><span class="tb-value">0</span><span class="tb-label">trust</span></div>
+        <button class="btn success" id="approveBtn">Approve record</button>
+        <button class="btn danger" id="rejectBtn">Reject</button>
+      </div>
+    </div>
+
+    <div class="grid-ws">
+      <div class="card preview-card">
+        <div class="card-head"><h3>Source document</h3>
+          <button class="btn tiny" id="toggleTextBtn">Show extracted text</button>
+        </div>
+        <div class="preview-holder">
+          <img id="previewImg" alt="Document preview" />
+          <pre id="previewText" hidden></pre>
+        </div>
+        <div class="quality-strip" id="qualityStrip"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>Extracted fields</h3>
+          <span class="muted small">Click a value to correct it</span>
+        </div>
+        <div id="fieldList" class="field-list"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Validation findings</h3>
+      <div id="issueList" class="issue-list"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DASHBOARD ================= -->
+<section class="panel-view" id="view-dashboard">
+  <div class="kpi-row" id="kpiRow"></div>
+  <div class="grid-2">
+    <div class="card"><h3>Documents by status</h3><div id="chartStatus" class="chart"></div></div>
+    <div class="card"><h3>District-wise progress</h3><div id="chartDistrict" class="chart"></div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><h3>Most frequent validation errors</h3><div id="chartIssues" class="chart"></div></div>
+    <div class="card"><h3>Extraction engine mix</h3><div id="chartEngine" class="chart"></div></div>
+  </div>
+  <div class="card">
+    <h3>Per-field extraction quality</h3>
+    <p class="muted small">Precision is measured only on fields a human has actually reviewed, so it stays honest instead of scoring itself.</p>
+    <div class="table-wrap"><table class="data-table" id="fieldQualityTable"></table></div>
+  </div>
+</section>
+
+<!-- ================= LEARNING ================= -->
+<section class="panel-view" id="view-learning">
+  <div class="card">
+    <div class="card-head">
+      <h2>AI-driven learning</h2>
+      <button class="btn primary" id="retrainBtn">Retrain from corrections</button>
+    </div>
+    <p class="muted">Every human correction is a training signal. The system mines three things from them: character confusions, value aliases, and per-field confidence calibration. Rules only activate once enough evidence has accumulated, so a single typo never reshapes the model.</p>
+    <div class="kpi-row" id="learnKpis"></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><h3>Learned character confusions</h3><div id="confusionList" class="mini-list"></div></div>
+    <div class="card"><h3>Learned value aliases</h3><div id="aliasList" class="mini-list"></div></div>
+  </div>
+  <div class="card"><h3>Confidence calibration</h3><div id="calibList" class="mini-list"></div></div>
+  <div class="card"><h3>Recent correction signals</h3><div class="table-wrap"><table class="data-table" id="correctionTable"></table></div></div>
+</section>
+
+<!-- ================= AUDIT ================= -->
+<section class="panel-view" id="view-audit">
+  <div class="card">
+    <h2>Audit trail</h2>
+    <p class="muted">Every ingestion, correction, approval and rejection is recorded with actor, role and timestamp. Land records are legal instruments, so the trail is append-only.</p>
+    <div class="table-wrap"><table class="data-table" id="auditTable"></table></div>
+  </div>
+</section>
+
+</main>
+
+<div class="toast-host" id="toastHost"></div>
+
+<!-- Reject modal -->
+<div class="modal-backdrop" id="rejectModal" hidden>
+  <div class="modal card">
+    <h3>Reject this record</h3>
+    <p class="muted small">A reason is mandatory and is written to the audit trail.</p>
+    <textarea id="rejectReason" class="input" rows="3" placeholder="e.g. Khasra number illegible, physical record required"></textarea>
+    <div class="row gap end">
+      <button class="btn" id="rejectCancel">Cancel</button>
+      <button class="btn danger" id="rejectConfirm">Confirm rejection</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

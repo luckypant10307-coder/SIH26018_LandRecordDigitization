@@ -1,0 +1,282 @@
+"""
+AI-driven learning loop.
+Intelligent Land Record Digitization and Validation System - SIH 2026, PS 26018.
+
+The problem statement asks for an "AI-driven learning mechanism that improves
+extraction accuracy over time". This module implements that loop in the form
+that is actually defensible for a government deployment: supervised learning
+from verifier corrections, applied as transparent, inspectable adjustments
+rather than an opaque model update.
+
+Three learned artefacts are derived from the corrections table:
+
+  1. CHARACTER CONFUSION MAP
+     Aligns the machine value against the human-corrected value and counts
+     which characters were misread. Frequent confusions become candidate
+     auto-corrections for numeric fields.
+
+  2. VALUE ALIASES
+     When the same wrong string is corrected to the same right string enough
+     times (e.g. 'Lucknov' -> 'Lucknow'), that mapping is promoted to an alias
+     and applied on ingestion.
+
+  3. CONFIDENCE RECALIBRATION
+     Compares stated confidence against observed correctness per field, and
+     produces a per-field multiplier. A field that is wrong more often than its
+     confidence claims gets deflated, which pushes it into the review queue
+     earlier. This is the single highest-value part of the loop: it makes the
+     system's self-doubt accurate.
+
+Everything here is derived on demand from the audit-backed corrections table,
+so the learning is fully explainable: for every applied correction we can name
+the verifier decisions that produced it.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+from collections import Counter, defaultdict
+from difflib import SequenceMatcher
+from typing import Dict, List, Optional, Tuple
+
+from field_extractor import FIELD_BY_KEY, normalise
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(_HERE, "..", "storage", "learned_model.json")
+
+# Promotion thresholds. Deliberately conservative: an auto-correction that
+# fires wrongly in land records is worse than one that never fires.
+MIN_ALIAS_SUPPORT = 3          # identical correction seen this many times
+MIN_CONFUSION_SUPPORT = 4      # character confusion seen this many times
+MIN_CALIBRATION_SAMPLE = 8     # reviewed fields needed before recalibrating
+
+
+# --------------------------------------------------------------------------
+# 1. Character confusion mining
+# --------------------------------------------------------------------------
+
+def _align_confusions(wrong: str, right: str) -> List[Tuple[str, str]]:
+    """
+    Character-level substitutions that turn `wrong` into `right`.
+    Only 1:1 replacements are recorded; insertions and deletions are ignored
+    because they are usually segmentation faults, not confusions.
+    """
+    pairs: List[Tuple[str, str]] = []
+    matcher = SequenceMatcher(None, wrong, right, autojunk=False)
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag != "replace":
+            continue
+        if (i2 - i1) != (j2 - j1):
+            continue
+        for a, b in zip(wrong[i1:i2], right[j1:j2]):
+            if a != b:
+                pairs.append((a, b))
+    return pairs
+
+
+def mine_confusions(corrections: List[dict]) -> List[dict]:
+    counter: Counter = Counter()
+    contexts: Dict[Tuple[str, str], set] = defaultdict(set)
+
+    for row in corrections:
+        ai, human = row.get("ai_value"), row.get("human_value")
+        if not ai or not human or ai == human:
+            continue
+        spec = FIELD_BY_KEY.get(row.get("field_key", ""))
+        for a, b in _align_confusions(str(ai), str(human)):
+            counter[(a, b)] += 1
+            if spec:
+                contexts[(a, b)].add(spec.kind)
+
+    out = []
+    for (a, b), count in counter.most_common():
+        if count < MIN_CONFUSION_SUPPORT:
+            continue
+        kinds = sorted(contexts[(a, b)])
+        out.append({
+            "from": a, "to": b, "support": count, "field_kinds": kinds,
+            # Only auto-apply inside numeric fields, where the alphabet is
+            # closed and a substitution is provably safe.
+            "auto_apply": bool(kinds) and all(k == "number" for k in kinds)
+                          and b.isdigit(),
+        })
+    return out
+
+
+# --------------------------------------------------------------------------
+# 2. Value alias mining
+# --------------------------------------------------------------------------
+
+def _alias_key(field_key: str, value: str) -> str:
+    return f"{field_key}::{re.sub(r'[^a-z0-9\u0900-\u097f]', '', normalise(value).lower())}"
+
+
+def mine_aliases(corrections: List[dict]) -> List[dict]:
+    votes: Dict[str, Counter] = defaultdict(Counter)
+    display: Dict[str, Tuple[str, str]] = {}
+
+    for row in corrections:
+        ai, human = row.get("ai_value"), row.get("human_value")
+        field_key = row.get("field_key")
+        if not ai or not human or ai == human or not field_key:
+            continue
+        # Aliases only make sense for closed-vocabulary text fields.
+        spec = FIELD_BY_KEY.get(field_key)
+        if not spec or spec.kind not in ("text", "class"):
+            continue
+        key = _alias_key(field_key, str(ai))
+        votes[key][str(human)] += 1
+        display[key] = (field_key, str(ai))
+
+    out = []
+    for key, counter in votes.items():
+        winner, support = counter.most_common(1)[0]
+        if support < MIN_ALIAS_SUPPORT:
+            continue
+        field_key, wrong = display[key]
+        total = sum(counter.values())
+        out.append({
+            "field_key": field_key,
+            "wrong_value": wrong,
+            "corrected_value": winner,
+            "support": support,
+            "agreement": round(support / total, 3),
+            "auto_apply": support >= MIN_ALIAS_SUPPORT and (support / total) >= 0.8,
+        })
+    return sorted(out, key=lambda r: -r["support"])
+
+
+# --------------------------------------------------------------------------
+# 3. Confidence recalibration
+# --------------------------------------------------------------------------
+
+def calibrate(field_stats: List[dict]) -> List[dict]:
+    """
+    `field_stats` comes from Database.stats()['field_accuracy'] and carries
+    reviewed / corrected counts plus the mean stated confidence.
+
+    We compare stated confidence with observed precision. The multiplier moves
+    stated confidence toward reality, damped so a small sample cannot swing it.
+    """
+    out = []
+    for row in field_stats:
+        reviewed = row.get("reviewed") or 0
+        if reviewed < MIN_CALIBRATION_SAMPLE:
+            continue
+        observed = row.get("precision")
+        stated = row.get("avg_conf")
+        if observed is None or not stated:
+            continue
+
+        raw_ratio = observed / stated if stated > 0 else 1.0
+        # Damping: trust the observation proportionally to sample size,
+        # saturating around 40 reviews.
+        weight = min(1.0, reviewed / 40.0)
+        multiplier = 1.0 + (raw_ratio - 1.0) * weight
+        multiplier = max(0.5, min(1.15, multiplier))
+
+        out.append({
+            "field_key": row["field_key"],
+            "display": row.get("display") or row["field_key"],
+            "reviewed": reviewed,
+            "stated_confidence": round(stated, 4),
+            "observed_precision": round(observed, 4),
+            "multiplier": round(multiplier, 4),
+            "direction": "deflate" if multiplier < 0.98 else
+                         ("inflate" if multiplier > 1.02 else "stable"),
+        })
+    return sorted(out, key=lambda r: r["multiplier"])
+
+
+# --------------------------------------------------------------------------
+# Model assembly / application
+# --------------------------------------------------------------------------
+
+def build_model(corrections: List[dict], field_stats: List[dict]) -> dict:
+    confusions = mine_confusions(corrections)
+    aliases = mine_aliases(corrections)
+    calibration = calibrate(field_stats)
+    return {
+        "version": 1,
+        "samples": len(corrections),
+        "confusions": confusions,
+        "aliases": aliases,
+        "calibration": calibration,
+        "active_rules": (sum(1 for c in confusions if c["auto_apply"])
+                         + sum(1 for a in aliases if a["auto_apply"])
+                         + len(calibration)),
+    }
+
+
+def save_model(model: dict, path: str = MODEL_PATH) -> None:
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(model, fh, ensure_ascii=False, indent=2)
+
+
+def load_model(path: str = MODEL_PATH) -> dict:
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            return json.load(fh)
+    except Exception:
+        return {"version": 0, "samples": 0, "confusions": [], "aliases": [],
+                "calibration": [], "active_rules": 0}
+
+
+def apply_model(fields: List, model: Optional[dict] = None) -> List[dict]:
+    """
+    Apply learned aliases and recalibration to freshly extracted fields.
+    Mutates confidence and value in place and returns a list of the
+    adjustments made, so the UI can show exactly what the learning loop did.
+    """
+    model = model or load_model()
+    if not model.get("active_rules"):
+        return []
+
+    alias_index = {
+        _alias_key(a["field_key"], a["wrong_value"]): a
+        for a in model.get("aliases", []) if a.get("auto_apply")
+    }
+    calib_index = {c["field_key"]: c for c in model.get("calibration", [])}
+    applied: List[dict] = []
+
+    for f in fields:
+        if getattr(f, "value", None):
+            alias = alias_index.get(_alias_key(f.key, f.value))
+            if alias and alias["corrected_value"] != f.value:
+                old = f.value
+                f.value = alias["corrected_value"]
+                f.notes.append(
+                    f"Learned correction applied: '{old}' -> '{f.value}' "
+                    f"(from {alias['support']} verifier corrections).")
+                applied.append({"field_key": f.key, "type": "alias",
+                                "from": old, "to": f.value,
+                                "support": alias["support"]})
+
+        calib = calib_index.get(f.key)
+        if calib and f.confidence > 0:
+            before = f.confidence
+            f.confidence = max(0.0, min(1.0, f.confidence * calib["multiplier"]))
+            if abs(f.confidence - before) >= 0.02:
+                f.notes.append(
+                    f"Confidence recalibrated {before:.2f} -> {f.confidence:.2f} "
+                    f"using {calib['reviewed']} past reviews of this field.")
+                applied.append({"field_key": f.key, "type": "calibration",
+                                "from": round(before, 4),
+                                "to": round(f.confidence, 4),
+                                "multiplier": calib["multiplier"]})
+    return applied
+
+
+def retrain(db) -> dict:
+    """
+    Rebuild and persist the learned model from everything the verifiers have
+    corrected so far. Cheap enough to run after every batch.
+    """
+    corrections = db.learning_signals(limit=100000)
+    stats = db.stats()
+    model = build_model(corrections, stats.get("field_accuracy", []))
+    save_model(model)
+    return model

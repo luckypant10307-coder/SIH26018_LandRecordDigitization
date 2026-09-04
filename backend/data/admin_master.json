@@ -1,0 +1,90 @@
+{
+  "_comment": "Administrative master extract used for cross-database verification. In production this is replaced by the Local Government Directory (LGD) API and the state DILRMP village master. The shape is kept identical so only the transport layer changes.",
+  "source": "Bundled demo extract (LGD-compatible shape)",
+  "version": "2026.1-demo",
+  "states": {
+    "Uttar Pradesh": {
+      "lgd_code": "09",
+      "districts": {
+        "Lucknow": { "lgd_code": "0162", "tehsils": ["Sadar", "Malihabad", "Mohanlalganj", "Bakshi Ka Talab", "Sarojini Nagar"] },
+        "Kanpur Nagar": { "lgd_code": "0146", "tehsils": ["Sadar", "Bilhaur", "Ghatampur", "Narwal"] },
+        "Varanasi": { "lgd_code": "0179", "tehsils": ["Sadar", "Pindra", "Rajatalab"] },
+        "Prayagraj": { "lgd_code": "0175", "tehsils": ["Sadar", "Soraon", "Phulpur", "Handia", "Meja", "Karchhana", "Bara", "Koraon"] },
+        "Gorakhpur": { "lgd_code": "0156", "tehsils": ["Sadar", "Bansgaon", "Chauri Chaura", "Campierganj", "Gola", "Khajni", "Sahjanwa"] },
+        "Meerut": { "lgd_code": "0165", "tehsils": ["Sadar", "Mawana", "Sardhana"] },
+        "Agra": { "lgd_code": "0132", "tehsils": ["Sadar", "Etmadpur", "Kiraoli", "Fatehabad", "Bah", "Kheragarh"] },
+        "Ghaziabad": { "lgd_code": "0153", "tehsils": ["Sadar", "Modinagar", "Loni"] },
+        "Ayodhya": { "lgd_code": "0139", "tehsils": ["Sadar", "Bikapur", "Milkipur", "Rudauli", "Sohawal"] },
+        "Jhansi": { "lgd_code": "0159", "tehsils": ["Sadar", "Mauranipur", "Garautha", "Moth"] }
+      }
+    },
+    "Madhya Pradesh": {
+      "lgd_code": "23",
+      "districts": {
+        "Bhopal": { "lgd_code": "0421", "tehsils": ["Huzur", "Berasia", "Kolar"] },
+        "Indore": { "lgd_code": "0434", "tehsils": ["Indore", "Depalpur", "Sanwer", "Mhow"] },
+        "Gwalior": { "lgd_code": "0429", "tehsils": ["Gwalior", "Dabra", "Bhitarwar"] },
+        "Jabalpur": { "lgd_code": "0437", "tehsils": ["Jabalpur", "Sihora", "Patan", "Kundam"] },
+        "Ujjain": { "lgd_code": "0459", "tehsils": ["Ujjain", "Badnagar", "Ghattia", "Mahidpur", "Tarana"] },
+        "Rewa": { "lgd_code": "0452", "tehsils": ["Huzur", "Sirmour", "Mauganj", "Teonthar"] }
+      }
+    },
+    "Maharashtra": {
+      "lgd_code": "27",
+      "districts": {
+        "Pune": { "lgd_code": "0521", "tehsils": ["Haveli", "Mulshi", "Baramati", "Junnar", "Khed", "Shirur", "Daund", "Indapur"] },
+        "Nagpur": { "lgd_code": "0512", "tehsils": ["Nagpur Urban", "Nagpur Rural", "Kamptee", "Hingna", "Katol", "Savner"] },
+        "Nashik": { "lgd_code": "0514", "tehsils": ["Nashik", "Sinnar", "Igatpuri", "Dindori", "Niphad", "Malegaon"] },
+        "Thane": { "lgd_code": "0519", "tehsils": ["Thane", "Kalyan", "Bhiwandi", "Murbad", "Shahapur", "Ambarnath"] },
+        "Aurangabad": { "lgd_code": "0501", "tehsils": ["Aurangabad", "Paithan", "Gangapur", "Vaijapur", "Sillod"] }
+      }
+    },
+    "Rajasthan": {
+      "lgd_code": "08",
+      "districts": {
+        "Jaipur": { "lgd_code": "0119", "tehsils": ["Sanganer", "Amber", "Chomu", "Bassi", "Chaksu", "Phagi"] },
+        "Jodhpur": { "lgd_code": "0121", "tehsils": ["Jodhpur", "Bilara", "Osian", "Phalodi", "Shergarh"] },
+        "Udaipur": { "lgd_code": "0130", "tehsils": ["Girwa", "Mavli", "Vallabhnagar", "Salumbar", "Kherwara"] },
+        "Kota": { "lgd_code": "0124", "tehsils": ["Ladpura", "Digod", "Pipalda", "Ramganjmandi", "Sangod"] },
+        "Ajmer": { "lgd_code": "0102", "tehsils": ["Ajmer", "Kishangarh", "Beawar", "Nasirabad", "Kekri"] }
+      }
+    },
+    "Bihar": {
+      "lgd_code": "10",
+      "districts": {
+        "Patna": { "lgd_code": "0223", "tehsils": ["Patna Sadar", "Danapur", "Barh", "Masaurhi", "Paliganj", "Fatuha"] },
+        "Gaya": { "lgd_code": "0212", "tehsils": ["Gaya Sadar", "Tekari", "Sherghati", "Neemchak Bathani"] },
+        "Muzaffarpur": { "lgd_code": "0221", "tehsils": ["Muzaffarpur Sadar", "Kanti", "Kurhani", "Sahebganj"] },
+        "Bhagalpur": { "lgd_code": "0206", "tehsils": ["Bhagalpur Sadar", "Naugachhia", "Kahalgaon", "Sultanganj"] },
+        "Darbhanga": { "lgd_code": "0209", "tehsils": ["Darbhanga Sadar", "Benipur", "Biraul"] }
+      }
+    },
+    "Karnataka": {
+      "lgd_code": "29",
+      "districts": {
+        "Bengaluru Urban": { "lgd_code": "0572", "tehsils": ["Bengaluru North", "Bengaluru South", "Bengaluru East", "Anekal"] },
+        "Mysuru": { "lgd_code": "0568", "tehsils": ["Mysuru", "Nanjangud", "T Narasipura", "Hunsur", "Periyapatna"] },
+        "Belagavi": { "lgd_code": "0556", "tehsils": ["Belagavi", "Bailhongal", "Chikodi", "Gokak", "Ramdurg"] },
+        "Kalaburagi": { "lgd_code": "0562", "tehsils": ["Kalaburagi", "Afzalpur", "Aland", "Chincholi", "Chitapur"] }
+      }
+    },
+    "Punjab": {
+      "lgd_code": "03",
+      "districts": {
+        "Ludhiana": { "lgd_code": "0043", "tehsils": ["Ludhiana East", "Ludhiana West", "Jagraon", "Khanna", "Samrala", "Payal"] },
+        "Amritsar": { "lgd_code": "0032", "tehsils": ["Amritsar-I", "Amritsar-II", "Ajnala", "Baba Bakala", "Majitha"] },
+        "Jalandhar": { "lgd_code": "0038", "tehsils": ["Jalandhar-I", "Jalandhar-II", "Nakodar", "Phillaur", "Shahkot"] },
+        "Patiala": { "lgd_code": "0048", "tehsils": ["Patiala", "Rajpura", "Nabha", "Samana", "Patran"] }
+      }
+    },
+    "Gujarat": {
+      "lgd_code": "24",
+      "districts": {
+        "Ahmedabad": { "lgd_code": "0474", "tehsils": ["Ahmedabad City", "Daskroi", "Sanand", "Dholka", "Bavla", "Viramgam"] },
+        "Surat": { "lgd_code": "0492", "tehsils": ["Surat City", "Choryasi", "Olpad", "Kamrej", "Bardoli", "Mandvi"] },
+        "Vadodara": { "lgd_code": "0494", "tehsils": ["Vadodara", "Padra", "Savli", "Karjan", "Dabhoi"] },
+        "Rajkot": { "lgd_code": "0489", "tehsils": ["Rajkot", "Gondal", "Jetpur", "Dhoraji", "Jasdan"] }
+      }
+    }
+  }
+}

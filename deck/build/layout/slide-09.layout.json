@@ -1,0 +1,210 @@
+{
+  "schema": "local.presentation.layout/v2",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/s09e00",
+    "id": "9",
+    "slide": 9,
+    "role": "image-media",
+    "recipeId": "image-left-story",
+    "recipeGroup": "image-story",
+    "contentLoad": "medium",
+    "structureKey": "left-image-right-story",
+    "recipeSource": "notion-ppt-slide-recipes",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "Notion Native PPTX",
+    "colors": {
+      "bg1": "#FFFFFF",
+      "bg2": "#F0EFED",
+      "lt1": "#FFFFFF",
+      "lt2": "#F9F8F7",
+      "tx1": "#2C2C2B",
+      "tx2": "#FFFFFF",
+      "dk1": "#2C2C2B",
+      "dk2": "#7D7A75",
+      "panel": "#F0EFED",
+      "rule": "#B8BCC4",
+      "accent": "#2783DE",
+      "accentSoft": "#E5F2FC",
+      "accentMuted": "#A9CEF5"
+    },
+    "typefaces": [
+      "Arial"
+    ]
+  },
+  "inheritedLayers": [],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s09e01",
+      "id": "1",
+      "name": "Media frame",
+      "semanticRole": "media-frame",
+      "bbox": [
+        72,
+        120,
+        468,
+        396
+      ],
+      "frame": {
+        "left": 72,
+        "top": 120,
+        "width": 468,
+        "height": 396
+      },
+      "geometry": "roundRect",
+      "resolvedFontSize": 0,
+      "fillColor": "#F9F8F7",
+      "lineColor": "#E6E5E3",
+      "lineWidth": 1
+    },
+    {
+      "order": 2,
+      "kind": "image",
+      "scope": "slide",
+      "aid": "im/s09e02",
+      "id": "2",
+      "name": "Story image",
+      "semanticRole": "media",
+      "bbox": [
+        72,
+        120,
+        468,
+        396
+      ],
+      "frame": {
+        "left": 72,
+        "top": 120,
+        "width": 468,
+        "height": 396
+      },
+      "imageFit": "contain"
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s09e03",
+      "id": "3",
+      "name": "Section label",
+      "semanticRole": "label",
+      "bbox": [
+        650,
+        120,
+        461,
+        26
+      ],
+      "frame": {
+        "left": 650,
+        "top": 120,
+        "width": 461,
+        "height": 26
+      },
+      "text": "LEARNING LOOP",
+      "textPreview": "LEARNING LOOP",
+      "resolvedFontSize": 14,
+      "resolvedTextStyle": {
+        "fontSize": 14,
+        "typeface": "Arial",
+        "color": "#7D7A75",
+        "bold": true
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s09e04",
+      "id": "4",
+      "semanticRole": "shape",
+      "bbox": [
+        650,
+        152,
+        44,
+        4
+      ],
+      "frame": {
+        "left": 650,
+        "top": 152,
+        "width": 44,
+        "height": 4
+      },
+      "geometry": "rect",
+      "resolvedFontSize": 0,
+      "fillColor": "#2783DE",
+      "lineColor": "#2783DE",
+      "lineWidth": 0
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s09e05",
+      "id": "5",
+      "semanticRole": "title",
+      "bbox": [
+        650,
+        170,
+        470,
+        124
+      ],
+      "frame": {
+        "left": 650,
+        "top": 170,
+        "width": 470,
+        "height": 124
+      },
+      "text": "Corrections become improvements",
+      "textPreview": "Corrections become improvements",
+      "resolvedFontSize": 40,
+      "resolvedTextStyle": {
+        "fontSize": 40,
+        "typeface": "Arial",
+        "color": "#2C2C2B",
+        "bold": true
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 6,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s09e06",
+      "id": "6",
+      "bbox": [
+        650,
+        316,
+        470,
+        210
+      ],
+      "frame": {
+        "left": 650,
+        "top": 316,
+        "width": 470,
+        "height": 210
+      },
+      "text": "Confusions, aliases and confidence calibration are mined from human corrections. Rules activate only past a support threshold, so one typo never reshapes the model.",
+      "textPreview": "Confusions, aliases and confidence calibration are mined from human corrections. Rules activate only past a support threshold, so one typo ...",
+      "resolvedFontSize": 21,
+      "resolvedTextStyle": {
+        "fontSize": 21,
+        "typeface": "Arial",
+        "color": "#7D7A75"
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    }
+  ]
+}

@@ -1,0 +1,1844 @@
+[
+  {
+    "slide": 1,
+    "role": "cover",
+    "recipeId": "cover-editorial",
+    "recipeGroup": "cover",
+    "contentLoad": "low",
+    "structureKey": "large-left-title-accent-rule",
+    "recipeSource": "notion-ppt-slide-recipes",
+    "elements": [
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          72,
+          110,
+          900,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Cover accent",
+        "semanticRole": "indicator",
+        "bbox": [
+          72,
+          330,
+          56,
+          5
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "title",
+        "bbox": [
+          72,
+          356,
+          1040,
+          168
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "subtitle",
+        "bbox": [
+          72,
+          538,
+          820,
+          78
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Footer",
+        "semanticRole": "source",
+        "bbox": [
+          848,
+          662,
+          360,
+          18
+        ]
+      }
+    ]
+  },
+  {
+    "slide": 2,
+    "role": "argument",
+    "recipeId": "big-claim",
+    "recipeGroup": "claim-led",
+    "contentLoad": "low",
+    "structureKey": "oversized-claim-side-support",
+    "recipeSource": "notion-ppt-slide-recipes",
+    "elements": [
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          72,
+          110,
+          900,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Claim accent",
+        "semanticRole": "indicator",
+        "bbox": [
+          72,
+          250,
+          56,
+          5
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "title",
+        "bbox": [
+          72,
+          276,
+          1080,
+          210
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          72,
+          556,
+          820,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "slide": 3,
+    "role": "evidence",
+    "recipeId": "evidence-panel",
+    "recipeGroup": "claim-evidence",
+    "contentLoad": "medium",
+    "structureKey": "left-claim-right-evidence",
+    "recipeSource": "notion-ppt-slide-recipes",
+    "elements": [
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          72,
+          72,
+          620,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Title accent",
+        "semanticRole": "indicator",
+        "bbox": [
+          72,
+          106,
+          44,
+          4
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Slide title",
+        "semanticRole": "title",
+        "bbox": [
+          72,
+          124,
+          1136,
+          92
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          72,
+          250,
+          520,
+          190
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          72,
+          452,
+          500,
+          64
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          650,
+          250,
+          300,
+          18
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          650,
+          276,
+          558,
+          60
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "rule",
+        "bbox": [
+          650,
+          340,
+          558,
+          0
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          650,
+          354,
+          300,
+          18
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          650,
+          380,
+          558,
+          60
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "rule",
+        "bbox": [
+          650,
+          444,
+          558,
+          0
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          650,
+          458,
+          300,
+          18
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          650,
+          484,
+          558,
+          60
+        ]
+      }
+    ]
+  },
+  {
+    "slide": 4,
+    "role": "process",
+    "recipeId": "process-steps",
+    "recipeGroup": "process",
+    "contentLoad": "medium",
+    "structureKey": "title-connected-steps",
+    "recipeSource": "notion-ppt-slide-recipes",
+    "elements": [
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          72,
+          72,
+          620,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Title accent",
+        "semanticRole": "indicator",
+        "bbox": [
+          72,
+          106,
+          44,
+          4
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Slide title",
+        "semanticRole": "title",
+        "bbox": [
+          72,
+          124,
+          1136,
+          92
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "rule",
+        "bbox": [
+          200,
+          362,
+          880,
+          0
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Process step 1 marker",
+        "semanticRole": "process-step",
+        "bbox": [
+          244,
+          336,
+          52,
+          52
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          244,
+          350,
+          52,
+          24
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          90,
+          410,
+          360,
+          34
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          90,
+          452,
+          360,
+          82
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Process step 2 marker",
+        "semanticRole": "process-step",
+        "bbox": [
+          614,
+          336,
+          52,
+          52
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          614,
+          350,
+          52,
+          24
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          460,
+          410,
+          360,
+          34
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          460,
+          452,
+          360,
+          82
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Process step 3 marker",
+        "semanticRole": "process-step",
+        "bbox": [
+          984,
+          336,
+          52,
+          52
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          984,
+          350,
+          52,
+          24
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          830,
+          410,
+          360,
+          34
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          830,
+          452,
+          360,
+          82
+        ]
+      }
+    ]
+  },
+  {
+    "slide": 5,
+    "role": "image-media",
+    "recipeId": "image-left-story",
+    "recipeGroup": "image-story",
+    "contentLoad": "medium",
+    "structureKey": "left-image-right-story",
+    "recipeSource": "notion-ppt-slide-recipes",
+    "elements": [
+      {
+        "type": "shape",
+        "name": "Media frame",
+        "semanticRole": "media-frame",
+        "bbox": [
+          72,
+          120,
+          468,
+          396
+        ]
+      },
+      {
+        "type": "image",
+        "name": "Story image",
+        "semanticRole": "media",
+        "bbox": [
+          72,
+          120,
+          468,
+          396
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          650,
+          120,
+          461,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "shape",
+        "bbox": [
+          650,
+          152,
+          44,
+          4
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "title",
+        "bbox": [
+          650,
+          170,
+          470,
+          124
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          650,
+          316,
+          470,
+          210
+        ]
+      }
+    ]
+  },
+  {
+    "slide": 6,
+    "role": "metric",
+    "recipeId": "metric-grid",
+    "recipeGroup": "metrics",
+    "contentLoad": "high",
+    "structureKey": "title-compact-metric-grid",
+    "recipeSource": "notion-ppt-slide-recipes",
+    "elements": [
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          72,
+          72,
+          620,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Title accent",
+        "semanticRole": "indicator",
+        "bbox": [
+          72,
+          106,
+          44,
+          4
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Slide title",
+        "semanticRole": "title",
+        "bbox": [
+          72,
+          124,
+          1136,
+          92
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "rule",
+        "bbox": [
+          450.6666666666667,
+          252,
+          0,
+          338
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "rule",
+        "bbox": [
+          829.3333333333334,
+          252,
+          0,
+          338
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "rule",
+        "bbox": [
+          72,
+          412,
+          1136,
+          0
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "metric",
+        "bbox": [
+          72,
+          262,
+          326.6666666666667,
+          76
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          72,
+          344,
+          326.6666666666667,
+          28
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          72,
+          374,
+          326.6666666666667,
+          30
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "metric",
+        "bbox": [
+          450.6666666666667,
+          262,
+          326.6666666666667,
+          76
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          450.6666666666667,
+          344,
+          326.6666666666667,
+          28
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          450.6666666666667,
+          374,
+          326.6666666666667,
+          30
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "metric",
+        "bbox": [
+          829.3333333333334,
+          262,
+          326.6666666666667,
+          76
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          829.3333333333334,
+          344,
+          326.6666666666667,
+          28
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          829.3333333333334,
+          374,
+          326.6666666666667,
+          30
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "metric",
+        "bbox": [
+          72,
+          430,
+          326.6666666666667,
+          76
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          72,
+          512,
+          326.6666666666667,
+          28
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          72,
+          542,
+          326.6666666666667,
+          30
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "metric",
+        "bbox": [
+          450.6666666666667,
+          430,
+          326.6666666666667,
+          76
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          450.6666666666667,
+          512,
+          326.6666666666667,
+          28
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          450.6666666666667,
+          542,
+          326.6666666666667,
+          30
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "metric",
+        "bbox": [
+          829.3333333333334,
+          430,
+          326.6666666666667,
+          76
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          829.3333333333334,
+          512,
+          326.6666666666667,
+          28
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          829.3333333333334,
+          542,
+          326.6666666666667,
+          30
+        ]
+      }
+    ]
+  },
+  {
+    "slide": 7,
+    "role": "chart",
+    "recipeId": "chart-led",
+    "recipeGroup": "chart-evidence",
+    "contentLoad": "medium",
+    "structureKey": "title-chart-takeaway",
+    "recipeSource": "notion-ppt-slide-recipes",
+    "elements": [
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          72,
+          72,
+          620,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Title accent",
+        "semanticRole": "indicator",
+        "bbox": [
+          72,
+          106,
+          44,
+          4
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Slide title",
+        "semanticRole": "title",
+        "bbox": [
+          72,
+          124,
+          1136,
+          92
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          72,
+          224,
+          1000,
+          34
+        ]
+      },
+      {
+        "type": "chart",
+        "name": "Chart",
+        "semanticRole": "chart",
+        "bbox": [
+          72,
+          296,
+          1136,
+          300
+        ]
+      }
+    ]
+  },
+  {
+    "slide": 8,
+    "role": "table",
+    "recipeId": "table-led",
+    "recipeGroup": "table-evidence",
+    "contentLoad": "high",
+    "structureKey": "title-table-takeaway",
+    "recipeSource": "notion-ppt-slide-recipes",
+    "elements": [
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          72,
+          72,
+          620,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Title accent",
+        "semanticRole": "indicator",
+        "bbox": [
+          72,
+          106,
+          44,
+          4
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Slide title",
+        "semanticRole": "title",
+        "bbox": [
+          72,
+          124,
+          1136,
+          92
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          72,
+          224,
+          1000,
+          34
+        ]
+      },
+      {
+        "type": "table",
+        "name": "Evidence table",
+        "semanticRole": "table",
+        "bbox": [
+          72,
+          280,
+          1136,
+          280
+        ]
+      }
+    ]
+  },
+  {
+    "slide": 9,
+    "role": "image-media",
+    "recipeId": "image-left-story",
+    "recipeGroup": "image-story",
+    "contentLoad": "medium",
+    "structureKey": "left-image-right-story",
+    "recipeSource": "notion-ppt-slide-recipes",
+    "elements": [
+      {
+        "type": "shape",
+        "name": "Media frame",
+        "semanticRole": "media-frame",
+        "bbox": [
+          72,
+          120,
+          468,
+          396
+        ]
+      },
+      {
+        "type": "image",
+        "name": "Story image",
+        "semanticRole": "media",
+        "bbox": [
+          72,
+          120,
+          468,
+          396
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          650,
+          120,
+          461,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "shape",
+        "bbox": [
+          650,
+          152,
+          44,
+          4
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "title",
+        "bbox": [
+          650,
+          170,
+          470,
+          124
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          650,
+          316,
+          470,
+          210
+        ]
+      }
+    ]
+  },
+  {
+    "slide": 10,
+    "role": "comparison",
+    "recipeId": "comparison",
+    "recipeGroup": "comparison",
+    "contentLoad": "medium",
+    "structureKey": "title-two-rounded-panels",
+    "recipeSource": "notion-ppt-slide-recipes",
+    "elements": [
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          72,
+          72,
+          620,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Title accent",
+        "semanticRole": "indicator",
+        "bbox": [
+          72,
+          106,
+          44,
+          4
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Slide title",
+        "semanticRole": "title",
+        "bbox": [
+          72,
+          124,
+          1136,
+          92
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "panel",
+        "bbox": [
+          72,
+          226,
+          548,
+          374
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "panel",
+        "bbox": [
+          660,
+          226,
+          548,
+          374
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "shape",
+        "bbox": [
+          116,
+          270,
+          40,
+          4
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "shape",
+        "bbox": [
+          704,
+          270,
+          40,
+          4
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          116,
+          318,
+          460,
+          42
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          116,
+          374,
+          460,
+          126
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          704,
+          318,
+          460,
+          42
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          704,
+          374,
+          460,
+          126
+        ]
+      }
+    ]
+  },
+  {
+    "slide": 11,
+    "role": "image-media",
+    "recipeId": "image-left-story",
+    "recipeGroup": "image-story",
+    "contentLoad": "medium",
+    "structureKey": "left-image-right-story",
+    "recipeSource": "notion-ppt-slide-recipes",
+    "elements": [
+      {
+        "type": "shape",
+        "name": "Media frame",
+        "semanticRole": "media-frame",
+        "bbox": [
+          72,
+          120,
+          468,
+          396
+        ]
+      },
+      {
+        "type": "image",
+        "name": "Story image",
+        "semanticRole": "media",
+        "bbox": [
+          72,
+          120,
+          468,
+          396
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          650,
+          120,
+          461,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "shape",
+        "bbox": [
+          650,
+          152,
+          44,
+          4
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "title",
+        "bbox": [
+          650,
+          170,
+          470,
+          124
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          650,
+          316,
+          470,
+          210
+        ]
+      }
+    ]
+  },
+  {
+    "slide": 12,
+    "role": "content",
+    "recipeId": "two-column",
+    "recipeGroup": "two-column",
+    "contentLoad": "medium",
+    "structureKey": "title-two-balanced-columns",
+    "recipeSource": "notion-ppt-slide-recipes",
+    "elements": [
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          72,
+          72,
+          620,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Title accent",
+        "semanticRole": "indicator",
+        "bbox": [
+          72,
+          106,
+          44,
+          4
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Slide title",
+        "semanticRole": "title",
+        "bbox": [
+          72,
+          124,
+          1136,
+          92
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          72,
+          236,
+          54,
+          30
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "rule",
+        "bbox": [
+          72,
+          292,
+          534,
+          0
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          72,
+          312,
+          534,
+          240
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          650,
+          236,
+          54,
+          30
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "rule",
+        "bbox": [
+          650,
+          292,
+          534,
+          0
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          650,
+          312,
+          534,
+          240
+        ]
+      }
+    ]
+  },
+  {
+    "slide": 13,
+    "role": "sequence",
+    "recipeId": "timeline-clean",
+    "recipeGroup": "timeline",
+    "contentLoad": "medium",
+    "structureKey": "title-clean-horizontal-timeline",
+    "recipeSource": "notion-ppt-slide-recipes",
+    "elements": [
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          72,
+          72,
+          620,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Title accent",
+        "semanticRole": "indicator",
+        "bbox": [
+          72,
+          106,
+          44,
+          4
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Slide title",
+        "semanticRole": "title",
+        "bbox": [
+          72,
+          124,
+          1136,
+          92
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Timeline axis",
+        "semanticRole": "rule",
+        "bbox": [
+          150,
+          392,
+          980,
+          0
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Timeline progress",
+        "semanticRole": "rule",
+        "bbox": [
+          150,
+          392,
+          245,
+          0
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Timeline marker 1",
+        "semanticRole": "timeline-marker",
+        "bbox": [
+          137,
+          379,
+          26,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          50,
+          326,
+          200,
+          24
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          30,
+          416,
+          240,
+          48
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Timeline marker 2",
+        "semanticRole": "timeline-marker",
+        "bbox": [
+          382,
+          379,
+          26,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          295,
+          326,
+          200,
+          24
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          275,
+          416,
+          240,
+          48
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Timeline marker 3",
+        "semanticRole": "timeline-marker",
+        "bbox": [
+          627,
+          379,
+          26,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          540,
+          326,
+          200,
+          24
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          520,
+          416,
+          240,
+          48
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Timeline marker 4",
+        "semanticRole": "timeline-marker",
+        "bbox": [
+          872,
+          379,
+          26,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          785,
+          326,
+          200,
+          24
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          765,
+          416,
+          240,
+          48
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Timeline marker 5",
+        "semanticRole": "timeline-marker",
+        "bbox": [
+          1117,
+          379,
+          26,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          1030,
+          326,
+          200,
+          24
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          1010,
+          416,
+          240,
+          48
+        ]
+      }
+    ]
+  },
+  {
+    "slide": 14,
+    "role": "summary",
+    "recipeId": "closing-takeaways",
+    "recipeGroup": "takeaways",
+    "contentLoad": "medium",
+    "structureKey": "title-numbered-takeaways",
+    "recipeSource": "notion-ppt-slide-recipes",
+    "elements": [
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          72,
+          72,
+          620,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Title accent",
+        "semanticRole": "indicator",
+        "bbox": [
+          72,
+          106,
+          44,
+          4
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Slide title",
+        "semanticRole": "title",
+        "bbox": [
+          72,
+          124,
+          1136,
+          92
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          72,
+          246,
+          72,
+          48
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          168,
+          244,
+          1040,
+          46
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "rule",
+        "bbox": [
+          72,
+          340,
+          1136,
+          0
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          72,
+          372,
+          72,
+          48
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          168,
+          370,
+          1040,
+          46
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "rule",
+        "bbox": [
+          72,
+          466,
+          1136,
+          0
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          72,
+          498,
+          72,
+          48
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          168,
+          496,
+          1040,
+          46
+        ]
+      }
+    ]
+  },
+  {
+    "slide": 15,
+    "role": "sources",
+    "recipeId": "source-summary",
+    "recipeGroup": "sources",
+    "contentLoad": "medium",
+    "structureKey": "title-grouped-sources",
+    "recipeSource": "notion-ppt-slide-recipes",
+    "elements": [
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          72,
+          72,
+          620,
+          26
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Title accent",
+        "semanticRole": "indicator",
+        "bbox": [
+          72,
+          106,
+          44,
+          4
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Slide title",
+        "semanticRole": "title",
+        "bbox": [
+          72,
+          124,
+          1136,
+          92
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          72,
+          256,
+          180,
+          18
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          264,
+          252,
+          520,
+          28
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          792,
+          252,
+          416,
+          28
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "rule",
+        "bbox": [
+          72,
+          294,
+          1136,
+          0
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          72,
+          320,
+          180,
+          18
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          264,
+          316,
+          520,
+          28
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          792,
+          316,
+          416,
+          28
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "rule",
+        "bbox": [
+          72,
+          358,
+          1136,
+          0
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          72,
+          384,
+          180,
+          18
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          264,
+          380,
+          520,
+          28
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          792,
+          380,
+          416,
+          28
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "rule",
+        "bbox": [
+          72,
+          422,
+          1136,
+          0
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          72,
+          448,
+          180,
+          18
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          264,
+          444,
+          520,
+          28
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          792,
+          444,
+          416,
+          28
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "rule",
+        "bbox": [
+          72,
+          486,
+          1136,
+          0
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          72,
+          512,
+          180,
+          18
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          264,
+          508,
+          520,
+          28
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          792,
+          508,
+          416,
+          28
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "rule",
+        "bbox": [
+          72,
+          550,
+          1136,
+          0
+        ]
+      },
+      {
+        "type": "shape",
+        "name": "Section label",
+        "semanticRole": "label",
+        "bbox": [
+          72,
+          576,
+          180,
+          18
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          264,
+          572,
+          520,
+          28
+        ]
+      },
+      {
+        "type": "shape",
+        "bbox": [
+          792,
+          572,
+          416,
+          28
+        ]
+      },
+      {
+        "type": "shape",
+        "semanticRole": "rule",
+        "bbox": [
+          72,
+          614,
+          1136,
+          0
+        ]
+      }
+    ]
+  }
+]

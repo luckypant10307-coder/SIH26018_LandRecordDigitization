@@ -1,0 +1,511 @@
+{
+  "schema": "local.presentation.layout/v2",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/s04e00",
+    "id": "4",
+    "slide": 4,
+    "role": "process",
+    "recipeId": "process-steps",
+    "recipeGroup": "process",
+    "contentLoad": "medium",
+    "structureKey": "title-connected-steps",
+    "recipeSource": "notion-ppt-slide-recipes",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "Notion Native PPTX",
+    "colors": {
+      "bg1": "#FFFFFF",
+      "bg2": "#F0EFED",
+      "lt1": "#FFFFFF",
+      "lt2": "#F9F8F7",
+      "tx1": "#2C2C2B",
+      "tx2": "#FFFFFF",
+      "dk1": "#2C2C2B",
+      "dk2": "#7D7A75",
+      "panel": "#F0EFED",
+      "rule": "#B8BCC4",
+      "accent": "#2783DE",
+      "accentSoft": "#E5F2FC",
+      "accentMuted": "#A9CEF5"
+    },
+    "typefaces": [
+      "Arial"
+    ]
+  },
+  "inheritedLayers": [],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s04e01",
+      "id": "1",
+      "name": "Section label",
+      "semanticRole": "label",
+      "bbox": [
+        72,
+        72,
+        620,
+        26
+      ],
+      "frame": {
+        "left": 72,
+        "top": 72,
+        "width": 620,
+        "height": 26
+      },
+      "text": "HOW IT WORKS",
+      "textPreview": "HOW IT WORKS",
+      "resolvedFontSize": 14,
+      "resolvedTextStyle": {
+        "fontSize": 14,
+        "typeface": "Arial",
+        "color": "#7D7A75",
+        "bold": true
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s04e02",
+      "id": "2",
+      "name": "Title accent",
+      "semanticRole": "indicator",
+      "bbox": [
+        72,
+        106,
+        44,
+        4
+      ],
+      "frame": {
+        "left": 72,
+        "top": 106,
+        "width": 44,
+        "height": 4
+      },
+      "geometry": "rect",
+      "resolvedFontSize": 0,
+      "fillColor": "#2783DE",
+      "lineColor": "#2783DE",
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s04e03",
+      "id": "3",
+      "name": "Slide title",
+      "semanticRole": "title",
+      "bbox": [
+        72,
+        124,
+        1136,
+        92
+      ],
+      "frame": {
+        "left": 72,
+        "top": 124,
+        "width": 1136,
+        "height": 92
+      },
+      "text": "Three stages, each one auditable",
+      "textPreview": "Three stages, each one auditable",
+      "resolvedFontSize": 40,
+      "resolvedTextStyle": {
+        "fontSize": 40,
+        "typeface": "Arial",
+        "color": "#2C2C2B",
+        "bold": true
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s04e04",
+      "id": "4",
+      "semanticRole": "rule",
+      "bbox": [
+        200,
+        362,
+        880,
+        0
+      ],
+      "frame": {
+        "left": 200,
+        "top": 362,
+        "width": 880,
+        "height": 0
+      },
+      "lineColor": "#E6E5E3",
+      "lineWidth": 1
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s04e05",
+      "id": "5",
+      "name": "Process step 1 marker",
+      "semanticRole": "process-step",
+      "bbox": [
+        244,
+        336,
+        52,
+        52
+      ],
+      "frame": {
+        "left": 244,
+        "top": 336,
+        "width": 52,
+        "height": 52
+      },
+      "geometry": "ellipse",
+      "resolvedFontSize": 0,
+      "fillColor": "#2783DE",
+      "lineColor": "#2783DE",
+      "lineWidth": 2
+    },
+    {
+      "order": 6,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s04e06",
+      "id": "6",
+      "bbox": [
+        244,
+        350,
+        52,
+        24
+      ],
+      "frame": {
+        "left": 244,
+        "top": 350,
+        "width": 52,
+        "height": 24
+      },
+      "text": "01",
+      "textPreview": "01",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "fontSize": 18,
+        "typeface": "Arial",
+        "color": "#FFFFFF",
+        "bold": true,
+        "alignment": "center"
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s04e07",
+      "id": "7",
+      "bbox": [
+        90,
+        410,
+        360,
+        34
+      ],
+      "frame": {
+        "left": 90,
+        "top": 410,
+        "width": 360,
+        "height": 34
+      },
+      "text": "Extract",
+      "textPreview": "Extract",
+      "resolvedFontSize": 25,
+      "resolvedTextStyle": {
+        "fontSize": 25,
+        "typeface": "Arial",
+        "color": "#2C2C2B",
+        "bold": true,
+        "alignment": "center"
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 8,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s04e08",
+      "id": "8",
+      "bbox": [
+        90,
+        452,
+        360,
+        82
+      ],
+      "frame": {
+        "left": 90,
+        "top": 452,
+        "width": 360,
+        "height": 82
+      },
+      "text": "Text layer, then OCR, then degraded mode.",
+      "textPreview": "Text layer, then OCR, then degraded mode.",
+      "resolvedFontSize": 17,
+      "resolvedTextStyle": {
+        "fontSize": 17,
+        "typeface": "Arial",
+        "color": "#7D7A75",
+        "alignment": "center"
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 9,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s04e09",
+      "id": "9",
+      "name": "Process step 2 marker",
+      "semanticRole": "process-step",
+      "bbox": [
+        614,
+        336,
+        52,
+        52
+      ],
+      "frame": {
+        "left": 614,
+        "top": 336,
+        "width": 52,
+        "height": 52
+      },
+      "geometry": "ellipse",
+      "resolvedFontSize": 0,
+      "fillColor": "#FFFFFF",
+      "lineColor": "#E6E5E3",
+      "lineWidth": 2
+    },
+    {
+      "order": 10,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s04e10",
+      "id": "10",
+      "bbox": [
+        614,
+        350,
+        52,
+        24
+      ],
+      "frame": {
+        "left": 614,
+        "top": 350,
+        "width": 52,
+        "height": 24
+      },
+      "text": "02",
+      "textPreview": "02",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "fontSize": 18,
+        "typeface": "Arial",
+        "color": "#2783DE",
+        "bold": true,
+        "alignment": "center"
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 11,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s04e11",
+      "id": "11",
+      "bbox": [
+        460,
+        410,
+        360,
+        34
+      ],
+      "frame": {
+        "left": 460,
+        "top": 410,
+        "width": 360,
+        "height": 34
+      },
+      "text": "Classify",
+      "textPreview": "Classify",
+      "resolvedFontSize": 25,
+      "resolvedTextStyle": {
+        "fontSize": 25,
+        "typeface": "Arial",
+        "color": "#2C2C2B",
+        "bold": true,
+        "alignment": "center"
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 12,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s04e12",
+      "id": "12",
+      "bbox": [
+        460,
+        452,
+        360,
+        82
+      ],
+      "frame": {
+        "left": 460,
+        "top": 452,
+        "width": 360,
+        "height": 82
+      },
+      "text": "Map lines onto 17 land-record fields.",
+      "textPreview": "Map lines onto 17 land-record fields.",
+      "resolvedFontSize": 17,
+      "resolvedTextStyle": {
+        "fontSize": 17,
+        "typeface": "Arial",
+        "color": "#7D7A75",
+        "alignment": "center"
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 13,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s04e13",
+      "id": "13",
+      "name": "Process step 3 marker",
+      "semanticRole": "process-step",
+      "bbox": [
+        984,
+        336,
+        52,
+        52
+      ],
+      "frame": {
+        "left": 984,
+        "top": 336,
+        "width": 52,
+        "height": 52
+      },
+      "geometry": "ellipse",
+      "resolvedFontSize": 0,
+      "fillColor": "#FFFFFF",
+      "lineColor": "#E6E5E3",
+      "lineWidth": 2
+    },
+    {
+      "order": 14,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s04e14",
+      "id": "14",
+      "bbox": [
+        984,
+        350,
+        52,
+        24
+      ],
+      "frame": {
+        "left": 984,
+        "top": 350,
+        "width": 52,
+        "height": 24
+      },
+      "text": "03",
+      "textPreview": "03",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "fontSize": 18,
+        "typeface": "Arial",
+        "color": "#2783DE",
+        "bold": true,
+        "alignment": "center"
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 15,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s04e15",
+      "id": "15",
+      "bbox": [
+        830,
+        410,
+        360,
+        34
+      ],
+      "frame": {
+        "left": 830,
+        "top": 410,
+        "width": 360,
+        "height": 34
+      },
+      "text": "Validate",
+      "textPreview": "Validate",
+      "resolvedFontSize": 25,
+      "resolvedTextStyle": {
+        "fontSize": 25,
+        "typeface": "Arial",
+        "color": "#2C2C2B",
+        "bold": true,
+        "alignment": "center"
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 16,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s04e16",
+      "id": "16",
+      "bbox": [
+        830,
+        452,
+        360,
+        82
+      ],
+      "frame": {
+        "left": 830,
+        "top": 452,
+        "width": 360,
+        "height": 82
+      },
+      "text": "Rules, master data, then route.",
+      "textPreview": "Rules, master data, then route.",
+      "resolvedFontSize": 17,
+      "resolvedTextStyle": {
+        "fontSize": 17,
+        "typeface": "Arial",
+        "color": "#7D7A75",
+        "alignment": "center"
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    }
+  ]
+}

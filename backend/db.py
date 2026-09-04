@@ -1,0 +1,477 @@
+"""
+Persistence layer (SQLite, standard library only).
+Intelligent Land Record Digitization and Validation System - SIH 2026, PS 26018.
+
+Covers the storage requirements named in the problem statement:
+  * secure document repository with metadata management
+  * audit trails (every field change is recorded, nothing is overwritten silently)
+  * role-based access control
+  * the correction corpus that feeds the learning loop
+
+SQLite is used deliberately: the demo must run offline with no server to
+install. The schema is plain relational SQL, so migrating to PostgreSQL for a
+state-scale deployment is a connection-string change, not a rewrite.
+"""
+
+from __future__ import annotations
+
+import datetime as _dt
+import hashlib
+import json
+import os
+import sqlite3
+import threading
+from typing import Any, Dict, List, Optional
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_DB = os.path.join(_HERE, "..", "storage", "landrecords.db")
+
+_LOCK = threading.Lock()
+
+
+SCHEMA = """
+PRAGMA journal_mode = WAL;
+PRAGMA foreign_keys = ON;
+
+-- Users and roles ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS users (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    username    TEXT UNIQUE NOT NULL,
+    full_name   TEXT NOT NULL,
+    role        TEXT NOT NULL CHECK (role IN ('operator','verifier','admin','auditor')),
+    office      TEXT,
+    created_at  TEXT NOT NULL
+);
+
+-- Documents --------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS documents (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    filename        TEXT NOT NULL,
+    stored_path     TEXT NOT NULL,
+    preview_path    TEXT,
+    sha256          TEXT NOT NULL,
+    file_size       INTEGER NOT NULL,
+    mime            TEXT,
+    uploaded_by     INTEGER REFERENCES users(id),
+    uploaded_at     TEXT NOT NULL,
+    -- extraction metadata
+    ocr_engine      TEXT,
+    page_count      INTEGER,
+    mean_ocr_conf   REAL,
+    legibility      REAL,
+    quality_json    TEXT,
+    warnings_json   TEXT,
+    full_text       TEXT,
+    -- validation outcome
+    status          TEXT NOT NULL DEFAULT 'processing'
+                    CHECK (status IN ('processing','needs_review','blocked',
+                                      'auto_approved','approved','rejected')),
+    decision        TEXT,
+    trust_score     REAL,
+    error_count     INTEGER DEFAULT 0,
+    warning_count   INTEGER DEFAULT 0,
+    signature       TEXT,
+    issues_json     TEXT,
+    summary_json    TEXT,
+    -- verification
+    verified_by     INTEGER REFERENCES users(id),
+    verified_at     TEXT,
+    reject_reason   TEXT,
+    processing_ms   INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_documents_status ON documents(status);
+CREATE INDEX IF NOT EXISTS idx_documents_signature ON documents(signature);
+CREATE INDEX IF NOT EXISTS idx_documents_sha ON documents(sha256);
+
+-- Extracted fields -------------------------------------------------------
+CREATE TABLE IF NOT EXISTS fields (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    document_id     INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    field_key       TEXT NOT NULL,
+    display         TEXT,
+    -- machine output (never mutated after ingestion)
+    ai_value        TEXT,
+    ai_confidence   REAL,
+    conf_label      REAL,
+    conf_pattern    REAL,
+    conf_ocr        REAL,
+    -- current accepted value (may be human-corrected)
+    value           TEXT,
+    status          TEXT NOT NULL DEFAULT 'extracted'
+                    CHECK (status IN ('extracted','missing','needs_review',
+                                      'confirmed','corrected')),
+    page            INTEGER,
+    bbox_json       TEXT,
+    source_line     TEXT,
+    notes_json      TEXT,
+    extra_json      TEXT,
+    corrected_by    INTEGER REFERENCES users(id),
+    corrected_at    TEXT,
+    UNIQUE (document_id, field_key)
+);
+CREATE INDEX IF NOT EXISTS idx_fields_doc ON fields(document_id);
+
+-- Immutable audit trail --------------------------------------------------
+CREATE TABLE IF NOT EXISTS audit_log (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    at          TEXT NOT NULL,
+    user_id     INTEGER REFERENCES users(id),
+    username    TEXT,
+    role        TEXT,
+    action      TEXT NOT NULL,
+    document_id INTEGER,
+    field_key   TEXT,
+    old_value   TEXT,
+    new_value   TEXT,
+    detail      TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_audit_doc ON audit_log(document_id);
+CREATE INDEX IF NOT EXISTS idx_audit_at ON audit_log(at);
+
+-- Learning corpus: every human correction is a training signal ----------
+CREATE TABLE IF NOT EXISTS corrections (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    at              TEXT NOT NULL,
+    document_id     INTEGER REFERENCES documents(id) ON DELETE CASCADE,
+    field_key       TEXT NOT NULL,
+    ai_value        TEXT,
+    human_value     TEXT,
+    ai_confidence   REAL,
+    ocr_engine      TEXT,
+    source_line     TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_corrections_field ON corrections(field_key);
+"""
+
+
+def _now() -> str:
+    return _dt.datetime.now().replace(microsecond=0).isoformat()
+
+
+class Database:
+    def __init__(self, path: str = DEFAULT_DB):
+        self.path = os.path.abspath(path)
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        self._conn = sqlite3.connect(self.path, check_same_thread=False)
+        self._conn.row_factory = sqlite3.Row
+        with _LOCK:
+            self._conn.executescript(SCHEMA)
+            self._conn.commit()
+        self._seed_users()
+
+    # -- helpers ----------------------------------------------------------
+    def q(self, sql: str, params: tuple = ()) -> List[sqlite3.Row]:
+        with _LOCK:
+            return self._conn.execute(sql, params).fetchall()
+
+    def one(self, sql: str, params: tuple = ()) -> Optional[sqlite3.Row]:
+        rows = self.q(sql, params)
+        return rows[0] if rows else None
+
+    def run(self, sql: str, params: tuple = ()) -> int:
+        with _LOCK:
+            cur = self._conn.execute(sql, params)
+            self._conn.commit()
+            return cur.lastrowid
+
+    # -- users / RBAC -----------------------------------------------------
+    def _seed_users(self) -> None:
+        if self.one("SELECT id FROM users LIMIT 1"):
+            return
+        demo = [
+            ("operator1", "Data Entry Operator", "operator", "Tehsil Office, Sadar"),
+            ("verifier1", "Revenue Inspector", "verifier", "Tehsil Office, Sadar"),
+            ("admin1", "District Land Records Officer", "admin", "Collectorate"),
+            ("auditor1", "State Audit Cell", "auditor", "DILRMP State Cell"),
+        ]
+        for username, name, role, office in demo:
+            self.run(
+                "INSERT INTO users (username, full_name, role, office, created_at) "
+                "VALUES (?,?,?,?,?)", (username, name, role, office, _now()))
+
+    def get_user(self, username: str) -> Optional[sqlite3.Row]:
+        return self.one("SELECT * FROM users WHERE username = ?", (username,))
+
+    def list_users(self) -> List[dict]:
+        return [dict(r) for r in self.q("SELECT * FROM users ORDER BY id")]
+
+    # -- audit ------------------------------------------------------------
+    def audit(self, user: Optional[dict], action: str, document_id: Optional[int] = None,
+              field_key: Optional[str] = None, old_value: Any = None,
+              new_value: Any = None, detail: Optional[str] = None) -> None:
+        self.run(
+            "INSERT INTO audit_log (at, user_id, username, role, action, document_id,"
+            " field_key, old_value, new_value, detail) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (_now(),
+             (user or {}).get("id"), (user or {}).get("username"), (user or {}).get("role"),
+             action, document_id, field_key,
+             None if old_value is None else str(old_value),
+             None if new_value is None else str(new_value),
+             detail))
+
+    def audit_trail(self, document_id: Optional[int] = None, limit: int = 200) -> List[dict]:
+        if document_id is not None:
+            rows = self.q("SELECT * FROM audit_log WHERE document_id = ? "
+                          "ORDER BY id DESC LIMIT ?", (document_id, limit))
+        else:
+            rows = self.q("SELECT * FROM audit_log ORDER BY id DESC LIMIT ?", (limit,))
+        return [dict(r) for r in rows]
+
+    # -- documents --------------------------------------------------------
+    @staticmethod
+    def file_hash(path: str) -> str:
+        h = hashlib.sha256()
+        with open(path, "rb") as fh:
+            for chunk in iter(lambda: fh.read(65536), b""):
+                h.update(chunk)
+        return h.hexdigest()
+
+    def find_by_hash(self, sha: str) -> Optional[dict]:
+        row = self.one("SELECT id, filename FROM documents WHERE sha256 = ?", (sha,))
+        return dict(row) if row else None
+
+    def insert_document(self, **kw) -> int:
+        cols = ("filename", "stored_path", "preview_path", "sha256", "file_size", "mime",
+                "uploaded_by", "ocr_engine", "page_count", "mean_ocr_conf", "legibility",
+                "quality_json", "warnings_json", "full_text", "status", "decision",
+                "trust_score", "error_count", "warning_count", "signature",
+                "issues_json", "summary_json", "processing_ms")
+        values = [kw.get(c) for c in cols]
+        placeholders = ",".join("?" for _ in cols)
+        return self.run(
+            f"INSERT INTO documents ({','.join(cols)}, uploaded_at) "
+            f"VALUES ({placeholders}, ?)", tuple(values) + (_now(),))
+
+    def insert_field(self, document_id: int, f: dict) -> None:
+        cb = f.get("confidence_breakdown") or {}
+        self.run(
+            "INSERT OR REPLACE INTO fields (document_id, field_key, display, ai_value,"
+            " ai_confidence, conf_label, conf_pattern, conf_ocr, value, status, page,"
+            " bbox_json, source_line, notes_json, extra_json) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (document_id, f["key"], f.get("display"), f.get("value"),
+             f.get("confidence"), cb.get("label"), cb.get("pattern"), cb.get("ocr"),
+             f.get("value"), f.get("status", "extracted"), f.get("page"),
+             json.dumps(f.get("bbox") or []), f.get("source_line"),
+             json.dumps(f.get("notes") or []), json.dumps(f.get("extra") or {})))
+
+    def get_document(self, document_id: int) -> Optional[dict]:
+        row = self.one("SELECT d.*, u.full_name AS uploader_name, "
+                       "v.full_name AS verifier_name FROM documents d "
+                       "LEFT JOIN users u ON u.id = d.uploaded_by "
+                       "LEFT JOIN users v ON v.id = d.verified_by "
+                       "WHERE d.id = ?", (document_id,))
+        if not row:
+            return None
+        doc = dict(row)
+        doc["quality"] = json.loads(doc.pop("quality_json") or "{}")
+        doc["warnings"] = json.loads(doc.pop("warnings_json") or "[]")
+        doc["issues"] = json.loads(doc.pop("issues_json") or "[]")
+        doc["summary"] = json.loads(doc.pop("summary_json") or "{}")
+        doc["fields"] = self.get_fields(document_id)
+        return doc
+
+    def get_fields(self, document_id: int) -> List[dict]:
+        rows = self.q("SELECT f.*, u.full_name AS corrector_name FROM fields f "
+                      "LEFT JOIN users u ON u.id = f.corrected_by "
+                      "WHERE f.document_id = ? ORDER BY f.id", (document_id,))
+        out = []
+        for r in rows:
+            d = dict(r)
+            d["bbox"] = json.loads(d.pop("bbox_json") or "[]")
+            d["notes"] = json.loads(d.pop("notes_json") or "[]")
+            d["extra"] = json.loads(d.pop("extra_json") or "{}")
+            out.append(d)
+        return out
+
+    def field_values_map(self, document_id: int) -> Dict[str, dict]:
+        """Shape expected by validator.validate()."""
+        out: Dict[str, dict] = {}
+        for f in self.get_fields(document_id):
+            out[f["field_key"]] = {
+                "value": f["value"],
+                "confidence": 1.0 if f["status"] in ("confirmed", "corrected")
+                              else (f["ai_confidence"] or 0.0),
+                "extra": f["extra"],
+            }
+        return out
+
+    def list_documents(self, status: Optional[str] = None, search: Optional[str] = None,
+                       limit: int = 100, offset: int = 0) -> List[dict]:
+        sql = ("SELECT d.id, d.filename, d.status, d.decision, d.trust_score, "
+               "d.error_count, d.warning_count, d.uploaded_at, d.ocr_engine, "
+               "d.legibility, d.mean_ocr_conf, d.page_count, d.signature, "
+               "d.summary_json, u.full_name AS uploader_name, "
+               "(SELECT value FROM fields WHERE document_id = d.id AND field_key='owner_name') AS owner_name, "
+               "(SELECT value FROM fields WHERE document_id = d.id AND field_key='village') AS village, "
+               "(SELECT value FROM fields WHERE document_id = d.id AND field_key='district') AS district, "
+               "(SELECT value FROM fields WHERE document_id = d.id AND field_key='khasra_number') AS khasra_number "
+               "FROM documents d LEFT JOIN users u ON u.id = d.uploaded_by WHERE 1=1")
+        params: List[Any] = []
+        if status and status != "all":
+            sql += " AND d.status = ?"
+            params.append(status)
+        if search:
+            sql += (" AND (d.filename LIKE ? OR d.full_text LIKE ? OR d.id IN "
+                    "(SELECT document_id FROM fields WHERE value LIKE ?))")
+            like = f"%{search}%"
+            params.extend([like, like, like])
+        sql += " ORDER BY d.id DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        out = []
+        for r in self.q(sql, tuple(params)):
+            d = dict(r)
+            d["summary"] = json.loads(d.pop("summary_json") or "{}")
+            out.append(d)
+        return out
+
+    def existing_signatures(self, exclude_id: Optional[int] = None) -> List[dict]:
+        """Feeds duplicate detection."""
+        sql = ("SELECT d.id AS document_id, d.filename, d.signature, "
+               "(SELECT value FROM fields WHERE document_id = d.id AND field_key='owner_name') AS owner_name "
+               "FROM documents d WHERE d.signature IS NOT NULL")
+        params: tuple = ()
+        if exclude_id is not None:
+            sql += " AND d.id != ?"
+            params = (exclude_id,)
+        return [dict(r) for r in self.q(sql, params)]
+
+    # -- verification -----------------------------------------------------
+    def update_field(self, document_id: int, field_key: str, new_value: Optional[str],
+                     user: dict, confirm_only: bool = False) -> dict:
+        row = self.one("SELECT * FROM fields WHERE document_id = ? AND field_key = ?",
+                       (document_id, field_key))
+        if not row:
+            raise KeyError(f"Unknown field '{field_key}' on document {document_id}")
+        old = row["value"]
+        status = "confirmed" if confirm_only else (
+            "confirmed" if (old or "") == (new_value or "") else "corrected")
+
+        self.run("UPDATE fields SET value = ?, status = ?, corrected_by = ?, "
+                 "corrected_at = ? WHERE id = ?",
+                 (old if confirm_only else new_value, status, user.get("id"), _now(), row["id"]))
+
+        self.audit(user, "field_confirmed" if status == "confirmed" else "field_corrected",
+                   document_id, field_key, old,
+                   old if confirm_only else new_value)
+
+        if status == "corrected":
+            doc = self.one("SELECT ocr_engine FROM documents WHERE id = ?", (document_id,))
+            self.run(
+                "INSERT INTO corrections (at, document_id, field_key, ai_value,"
+                " human_value, ai_confidence, ocr_engine, source_line) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                (_now(), document_id, field_key, row["ai_value"], new_value,
+                 row["ai_confidence"], (doc or {})["ocr_engine"] if doc else None,
+                 row["source_line"]))
+        return {"field_key": field_key, "old_value": old,
+                "new_value": old if confirm_only else new_value, "status": status}
+
+    def set_document_validation(self, document_id: int, result: dict) -> None:
+        self.run("UPDATE documents SET decision = ?, trust_score = ?, error_count = ?,"
+                 " warning_count = ?, signature = ?, issues_json = ?, status = ? "
+                 "WHERE id = ?",
+                 (result["decision"], result["trust_score"], result["error_count"],
+                  result["warning_count"], result["signature"],
+                  json.dumps(result["issues"], ensure_ascii=False),
+                  result["decision"] if result["decision"] != "auto_approved"
+                  else "auto_approved",
+                  document_id))
+
+    def approve_document(self, document_id: int, user: dict) -> None:
+        self.run("UPDATE documents SET status = 'approved', verified_by = ?, "
+                 "verified_at = ? WHERE id = ?", (user["id"], _now(), document_id))
+        self.audit(user, "document_approved", document_id,
+                   detail="Record approved for publication to LRMS.")
+
+    def reject_document(self, document_id: int, user: dict, reason: str) -> None:
+        self.run("UPDATE documents SET status = 'rejected', verified_by = ?, "
+                 "verified_at = ?, reject_reason = ? WHERE id = ?",
+                 (user["id"], _now(), reason, document_id))
+        self.audit(user, "document_rejected", document_id, detail=reason)
+
+    # -- analytics --------------------------------------------------------
+    def stats(self) -> dict:
+        total = (self.one("SELECT COUNT(*) c FROM documents") or {"c": 0})["c"]
+
+        by_status = {r["status"]: r["c"] for r in self.q(
+            "SELECT status, COUNT(*) c FROM documents GROUP BY status")}
+
+        avg = self.one("SELECT AVG(trust_score) t, AVG(legibility) l, "
+                       "AVG(mean_ocr_conf) o, AVG(processing_ms) p FROM documents")
+
+        by_district = [dict(r) for r in self.q(
+            "SELECT COALESCE(f.value,'Unassigned') district, COUNT(*) c, "
+            "ROUND(AVG(d.trust_score),1) avg_trust FROM documents d "
+            "LEFT JOIN fields f ON f.document_id = d.id AND f.field_key='district' "
+            "GROUP BY district ORDER BY c DESC LIMIT 12")]
+
+        by_engine = [dict(r) for r in self.q(
+            "SELECT COALESCE(ocr_engine,'unknown') engine, COUNT(*) c, "
+            "ROUND(AVG(trust_score),1) avg_trust FROM documents GROUP BY engine")]
+
+        # Field-level accuracy: how often the machine value survived review.
+        field_acc = [dict(r) for r in self.q(
+            "SELECT field_key, display, COUNT(*) total, "
+            "SUM(CASE WHEN status='corrected' THEN 1 ELSE 0 END) corrected, "
+            "SUM(CASE WHEN status='confirmed' THEN 1 ELSE 0 END) confirmed, "
+            "SUM(CASE WHEN value IS NULL THEN 1 ELSE 0 END) missing, "
+            "ROUND(AVG(ai_confidence),4) avg_conf FROM fields "
+            "GROUP BY field_key ORDER BY corrected DESC")]
+        for row in field_acc:
+            reviewed = (row["corrected"] or 0) + (row["confirmed"] or 0)
+            row["reviewed"] = reviewed
+            row["precision"] = round(1.0 - (row["corrected"] or 0) / reviewed, 4) if reviewed else None
+
+        issue_freq = {}
+        for row in self.q("SELECT issues_json FROM documents WHERE issues_json IS NOT NULL"):
+            for issue in json.loads(row["issues_json"] or "[]"):
+                key = issue.get("rule", "UNKNOWN")
+                issue_freq.setdefault(key, {"rule": key, "count": 0,
+                                            "severity": issue.get("severity")})
+                issue_freq[key]["count"] += 1
+        top_issues = sorted(issue_freq.values(), key=lambda x: -x["count"])[:10]
+
+        daily = [dict(r) for r in self.q(
+            "SELECT substr(uploaded_at,1,10) day, COUNT(*) c FROM documents "
+            "GROUP BY day ORDER BY day DESC LIMIT 14")]
+
+        corrections_total = (self.one("SELECT COUNT(*) c FROM corrections") or {"c": 0})["c"]
+        fields_reviewed = (self.one("SELECT COUNT(*) c FROM fields WHERE status IN "
+                                    "('confirmed','corrected')") or {"c": 0})["c"]
+
+        pending = (by_status.get("needs_review", 0) + by_status.get("blocked", 0))
+
+        return {
+            "documents_total": total,
+            "by_status": by_status,
+            "pending_verification": pending,
+            "avg_trust_score": round(avg["t"], 1) if avg and avg["t"] is not None else None,
+            "avg_legibility": round(avg["l"], 1) if avg and avg["l"] is not None else None,
+            "avg_ocr_confidence": round(avg["o"], 4) if avg and avg["o"] is not None else None,
+            "avg_processing_ms": int(avg["p"]) if avg and avg["p"] is not None else None,
+            "by_district": by_district,
+            "by_engine": by_engine,
+            "field_accuracy": field_acc,
+            "top_issues": top_issues,
+            "daily_volume": list(reversed(daily)),
+            "corrections_total": corrections_total,
+            "fields_reviewed": fields_reviewed,
+            "extraction_precision": round(1.0 - corrections_total / fields_reviewed, 4)
+                                    if fields_reviewed else None,
+        }
+
+    def learning_signals(self, limit: int = 50) -> List[dict]:
+        """
+        The correction corpus. This is what an incremental retraining job would
+        consume: (ai_value -> human_value) pairs per field, with the confidence
+        the model had when it was wrong.
+        """
+        return [dict(r) for r in self.q(
+            "SELECT field_key, ai_value, human_value, ai_confidence, ocr_engine, "
+            "source_line, at FROM corrections ORDER BY id DESC LIMIT ?", (limit,))]
+
+    def close(self) -> None:
+        with _LOCK:
+            self._conn.close()

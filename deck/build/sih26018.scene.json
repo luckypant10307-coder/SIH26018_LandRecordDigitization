@@ -1,0 +1,3037 @@
+{
+  "builderKind": "notion-pptx-scene-builder/v1",
+  "requireSlideRecipes": true,
+  "widthPx": 1280,
+  "heightPx": 720,
+  "slides": [
+    {
+      "recipeSource": "notion-ppt-slide-recipes",
+      "role": "cover",
+      "recipeId": "cover-editorial",
+      "recipeGroup": "cover",
+      "contentLoad": "low",
+      "structureKey": "large-left-title-accent-rule",
+      "elements": [
+        {
+          "type": "text",
+          "text": "SIH 2026 · PS 26018",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 72,
+          "y": 110,
+          "width": 900,
+          "height": 26,
+          "fontSizePx": 14,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Cover accent",
+          "semanticRole": "indicator",
+          "shape": "rect",
+          "x": 72,
+          "y": 330,
+          "width": 56,
+          "height": 5,
+          "fill": "#2783DE",
+          "stroke": {
+            "color": "#2783DE",
+            "width": 0
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "Intelligent Land Record Digitization",
+          "semanticRole": "title",
+          "x": 72,
+          "y": 356,
+          "width": 1040,
+          "height": 168,
+          "fontSizePx": 66,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Reads Indian land records, validates them, scores its own confidence, and routes anything uncertain to a human.",
+          "semanticRole": "subtitle",
+          "x": 72,
+          "y": 538,
+          "width": 820,
+          "height": 78,
+          "fontSizePx": 24,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.25,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Department of Land Resources",
+          "name": "Footer",
+          "semanticRole": "source",
+          "x": 848,
+          "y": 662,
+          "width": 360,
+          "height": 18,
+          "fontSizePx": 12,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "align": "right",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        }
+      ]
+    },
+    {
+      "background": "#F9F8F7",
+      "recipeSource": "notion-ppt-slide-recipes",
+      "role": "argument",
+      "recipeId": "big-claim",
+      "recipeGroup": "claim-led",
+      "contentLoad": "low",
+      "structureKey": "oversized-claim-side-support",
+      "elements": [
+        {
+          "type": "text",
+          "text": "THE PROBLEM",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 72,
+          "y": 110,
+          "width": 900,
+          "height": 26,
+          "fontSizePx": 14,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Claim accent",
+          "semanticRole": "indicator",
+          "shape": "rect",
+          "x": 72,
+          "y": 250,
+          "width": 56,
+          "height": 5,
+          "fill": "#2783DE",
+          "stroke": {
+            "color": "#2783DE",
+            "width": 0
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "A wrong khasra number is not a data error. It is a property dispute.",
+          "semanticRole": "title",
+          "x": 72,
+          "y": 276,
+          "width": 1080,
+          "height": 210,
+          "fontSizePx": 68,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.04,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Decades of khatauni and 7/12 extracts sit in tehsil offices as paper.",
+          "x": 72,
+          "y": 556,
+          "width": 820,
+          "height": 48,
+          "fontSizePx": 23,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.3,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        }
+      ]
+    },
+    {
+      "recipeSource": "notion-ppt-slide-recipes",
+      "role": "evidence",
+      "recipeId": "evidence-panel",
+      "recipeGroup": "claim-evidence",
+      "contentLoad": "medium",
+      "structureKey": "left-claim-right-evidence",
+      "elements": [
+        {
+          "type": "text",
+          "text": "WHY THIS IS HARD",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 72,
+          "y": 72,
+          "width": 620,
+          "height": 26,
+          "fontSizePx": 14,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Title accent",
+          "semanticRole": "indicator",
+          "shape": "rect",
+          "x": 72,
+          "y": 106,
+          "width": 44,
+          "height": 4,
+          "fill": "#2783DE",
+          "stroke": {
+            "color": "#2783DE",
+            "width": 0
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "Reading characters is the easy part",
+          "name": "Slide title",
+          "semanticRole": "title",
+          "x": 72,
+          "y": 124,
+          "width": 1136,
+          "height": 92,
+          "fontSizePx": 40,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.04,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "The difficulty is knowing which field a value belongs to.",
+          "x": 72,
+          "y": 250,
+          "width": 520,
+          "height": 190,
+          "fontSizePx": 54,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.02,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "",
+          "x": 72,
+          "y": 452,
+          "width": 500,
+          "height": 64,
+          "fontSizePx": 20,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.35,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "BILINGUAL ROWS",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 650,
+          "y": 250,
+          "width": 300,
+          "height": 18,
+          "fontSizePx": 13,
+          "fontFamily": "Arial",
+          "color": "#2783DE",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Value follows the final separator",
+          "x": 650,
+          "y": 276,
+          "width": 558,
+          "height": 60,
+          "fontSizePx": 21,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.3,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "line",
+          "semanticRole": "rule",
+          "x1": 650,
+          "y1": 340,
+          "x2": 1208,
+          "y2": 340,
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          }
+        },
+        {
+          "type": "text",
+          "text": "REGIONAL UNITS",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 650,
+          "y": 354,
+          "width": 300,
+          "height": 18,
+          "fontSizePx": 13,
+          "fontFamily": "Arial",
+          "color": "#2783DE",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "A bigha differs by state",
+          "x": 650,
+          "y": 380,
+          "width": 558,
+          "height": 60,
+          "fontSizePx": 21,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.3,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "line",
+          "semanticRole": "rule",
+          "x1": 650,
+          "y1": 444,
+          "x2": 1208,
+          "y2": 444,
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          }
+        },
+        {
+          "type": "text",
+          "text": "RIVAL LABELS",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 650,
+          "y": 458,
+          "width": 300,
+          "height": 18,
+          "fontSizePx": 13,
+          "fontFamily": "Arial",
+          "color": "#2783DE",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Two date fields collide",
+          "x": 650,
+          "y": 484,
+          "width": 558,
+          "height": 60,
+          "fontSizePx": 21,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.3,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        }
+      ]
+    },
+    {
+      "recipeSource": "notion-ppt-slide-recipes",
+      "role": "process",
+      "recipeId": "process-steps",
+      "recipeGroup": "process",
+      "contentLoad": "medium",
+      "structureKey": "title-connected-steps",
+      "elements": [
+        {
+          "type": "text",
+          "text": "HOW IT WORKS",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 72,
+          "y": 72,
+          "width": 620,
+          "height": 26,
+          "fontSizePx": 14,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Title accent",
+          "semanticRole": "indicator",
+          "shape": "rect",
+          "x": 72,
+          "y": 106,
+          "width": 44,
+          "height": 4,
+          "fill": "#2783DE",
+          "stroke": {
+            "color": "#2783DE",
+            "width": 0
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "Three stages, each one auditable",
+          "name": "Slide title",
+          "semanticRole": "title",
+          "x": 72,
+          "y": 124,
+          "width": 1136,
+          "height": 92,
+          "fontSizePx": 40,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.04,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "line",
+          "semanticRole": "rule",
+          "x1": 200,
+          "y1": 362,
+          "x2": 1080,
+          "y2": 362,
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Process step 1 marker",
+          "semanticRole": "process-step",
+          "shape": "ellipse",
+          "x": 244,
+          "y": 336,
+          "width": 52,
+          "height": 52,
+          "fill": "#2783DE",
+          "stroke": {
+            "color": "#2783DE",
+            "width": 2
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "01",
+          "x": 244,
+          "y": 350,
+          "width": 52,
+          "height": 24,
+          "fontSizePx": 18,
+          "fontFamily": "Arial",
+          "color": "#FFFFFF",
+          "bold": true,
+          "align": "center",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Extract",
+          "x": 90,
+          "y": 410,
+          "width": 360,
+          "height": 34,
+          "fontSizePx": 25,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "align": "center",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Text layer, then OCR, then degraded mode.",
+          "x": 90,
+          "y": 452,
+          "width": 360,
+          "height": 82,
+          "fontSizePx": 17,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "align": "center",
+          "lineHeight": 1.3,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Process step 2 marker",
+          "semanticRole": "process-step",
+          "shape": "ellipse",
+          "x": 614,
+          "y": 336,
+          "width": 52,
+          "height": 52,
+          "fill": "#FFFFFF",
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 2
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "02",
+          "x": 614,
+          "y": 350,
+          "width": 52,
+          "height": 24,
+          "fontSizePx": 18,
+          "fontFamily": "Arial",
+          "color": "#2783DE",
+          "bold": true,
+          "align": "center",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Classify",
+          "x": 460,
+          "y": 410,
+          "width": 360,
+          "height": 34,
+          "fontSizePx": 25,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "align": "center",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Map lines onto 17 land-record fields.",
+          "x": 460,
+          "y": 452,
+          "width": 360,
+          "height": 82,
+          "fontSizePx": 17,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "align": "center",
+          "lineHeight": 1.3,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Process step 3 marker",
+          "semanticRole": "process-step",
+          "shape": "ellipse",
+          "x": 984,
+          "y": 336,
+          "width": 52,
+          "height": 52,
+          "fill": "#FFFFFF",
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 2
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "03",
+          "x": 984,
+          "y": 350,
+          "width": 52,
+          "height": 24,
+          "fontSizePx": 18,
+          "fontFamily": "Arial",
+          "color": "#2783DE",
+          "bold": true,
+          "align": "center",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Validate",
+          "x": 830,
+          "y": 410,
+          "width": 360,
+          "height": 34,
+          "fontSizePx": 25,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "align": "center",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Rules, master data, then route.",
+          "x": 830,
+          "y": 452,
+          "width": 360,
+          "height": 82,
+          "fontSizePx": 17,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "align": "center",
+          "lineHeight": 1.3,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        }
+      ]
+    },
+    {
+      "recipeSource": "notion-ppt-slide-recipes",
+      "role": "image-media",
+      "recipeId": "image-left-story",
+      "recipeGroup": "image-story",
+      "contentLoad": "medium",
+      "structureKey": "left-image-right-story",
+      "elements": [
+        {
+          "type": "shape",
+          "name": "Media frame",
+          "semanticRole": "media-frame",
+          "shape": "roundRect",
+          "x": 72,
+          "y": 120,
+          "width": 468,
+          "height": 396,
+          "fill": "#F9F8F7",
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          },
+          "cornerRadiusPx": 12,
+          "fontSizePx": 0
+        },
+        {
+          "type": "image",
+          "name": "Story image",
+          "semanticRole": "media",
+          "x": 72,
+          "y": 120,
+          "width": 468,
+          "height": 396,
+          "src": "/data/sih26018/deck/img/ws.png",
+          "fit": "contain",
+          "borderRadius": 12
+        },
+        {
+          "type": "text",
+          "text": "VERIFICATION",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 650,
+          "y": 120,
+          "width": 461,
+          "height": 26,
+          "fontSizePx": 14,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "semanticRole": "shape",
+          "shape": "rect",
+          "x": 650,
+          "y": 152,
+          "width": 44,
+          "height": 4,
+          "fill": "#2783DE",
+          "stroke": {
+            "color": "#2783DE",
+            "width": 0
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "Page and reasoning, side by side",
+          "semanticRole": "title",
+          "x": 650,
+          "y": 170,
+          "width": 470,
+          "height": 124,
+          "fontSizePx": 40,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.05,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Each field carries a confidence bar and a one-click confirm. Clicking a value makes it editable, and trust recalculates on save. This record scored 94.",
+          "x": 650,
+          "y": 316,
+          "width": 470,
+          "height": 210,
+          "fontSizePx": 21,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.4,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        }
+      ]
+    },
+    {
+      "recipeSource": "notion-ppt-slide-recipes",
+      "role": "metric",
+      "recipeId": "metric-grid",
+      "recipeGroup": "metrics",
+      "contentLoad": "high",
+      "structureKey": "title-compact-metric-grid",
+      "elements": [
+        {
+          "type": "text",
+          "text": "MEASURED, NOT ESTIMATED",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 72,
+          "y": 72,
+          "width": 620,
+          "height": 26,
+          "fontSizePx": 14,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Title accent",
+          "semanticRole": "indicator",
+          "shape": "rect",
+          "x": 72,
+          "y": 106,
+          "width": 44,
+          "height": 4,
+          "fill": "#2783DE",
+          "stroke": {
+            "color": "#2783DE",
+            "width": 0
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "What it does today",
+          "name": "Slide title",
+          "semanticRole": "title",
+          "x": 72,
+          "y": 124,
+          "width": 1136,
+          "height": 92,
+          "fontSizePx": 40,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.04,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "line",
+          "semanticRole": "rule",
+          "x1": 450.6666666666667,
+          "y1": 252,
+          "x2": 450.6666666666667,
+          "y2": 590,
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          }
+        },
+        {
+          "type": "line",
+          "semanticRole": "rule",
+          "x1": 829.3333333333334,
+          "y1": 252,
+          "x2": 829.3333333333334,
+          "y2": 590,
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          }
+        },
+        {
+          "type": "line",
+          "semanticRole": "rule",
+          "x1": 72,
+          "y1": 412,
+          "x2": 1208,
+          "y2": 412,
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          }
+        },
+        {
+          "type": "text",
+          "text": "13",
+          "semanticRole": "metric",
+          "x": 72,
+          "y": 262,
+          "width": 326.6666666666667,
+          "height": 76,
+          "fontSizePx": 60,
+          "fontFamily": "Arial",
+          "color": "#2783DE",
+          "bold": true,
+          "lineHeight": 1,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "documents end to end",
+          "x": 72,
+          "y": 344,
+          "width": 326.6666666666667,
+          "height": 28,
+          "fontSizePx": 19,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "",
+          "x": 72,
+          "y": 374,
+          "width": 326.6666666666667,
+          "height": 30,
+          "fontSizePx": 16,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "94%",
+          "semanticRole": "metric",
+          "x": 450.6666666666667,
+          "y": 262,
+          "width": 326.6666666666667,
+          "height": 76,
+          "fontSizePx": 60,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "completeness, clean records",
+          "x": 450.6666666666667,
+          "y": 344,
+          "width": 326.6666666666667,
+          "height": 28,
+          "fontSizePx": 19,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "",
+          "x": 450.6666666666667,
+          "y": 374,
+          "width": 326.6666666666667,
+          "height": 30,
+          "fontSizePx": 16,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "342 ms",
+          "semanticRole": "metric",
+          "x": 829.3333333333334,
+          "y": 262,
+          "width": 326.6666666666667,
+          "height": 76,
+          "fontSizePx": 60,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "average per page",
+          "x": 829.3333333333334,
+          "y": 344,
+          "width": 326.6666666666667,
+          "height": 28,
+          "fontSizePx": 19,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "",
+          "x": 829.3333333333334,
+          "y": 374,
+          "width": 326.6666666666667,
+          "height": 30,
+          "fontSizePx": 16,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "17",
+          "semanticRole": "metric",
+          "x": 72,
+          "y": 430,
+          "width": 326.6666666666667,
+          "height": 76,
+          "fontSizePx": 60,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "fields classified",
+          "x": 72,
+          "y": 512,
+          "width": 326.6666666666667,
+          "height": 28,
+          "fontSizePx": 19,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "",
+          "x": 72,
+          "y": 542,
+          "width": 326.6666666666667,
+          "height": 30,
+          "fontSizePx": 16,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "0",
+          "semanticRole": "metric",
+          "x": 450.6666666666667,
+          "y": 430,
+          "width": 326.6666666666667,
+          "height": 76,
+          "fontSizePx": 60,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "installs required",
+          "x": 450.6666666666667,
+          "y": 512,
+          "width": 326.6666666666667,
+          "height": 28,
+          "fontSizePx": 19,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "",
+          "x": 450.6666666666667,
+          "y": 542,
+          "width": 326.6666666666667,
+          "height": 30,
+          "fontSizePx": 16,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "100%",
+          "semanticRole": "metric",
+          "x": 829.3333333333334,
+          "y": 430,
+          "width": 326.6666666666667,
+          "height": 76,
+          "fontSizePx": 60,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "actions audited",
+          "x": 829.3333333333334,
+          "y": 512,
+          "width": 326.6666666666667,
+          "height": 28,
+          "fontSizePx": 19,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "",
+          "x": 829.3333333333334,
+          "y": 542,
+          "width": 326.6666666666667,
+          "height": 30,
+          "fontSizePx": 16,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        }
+      ]
+    },
+    {
+      "recipeSource": "notion-ppt-slide-recipes",
+      "role": "chart",
+      "recipeId": "chart-led",
+      "recipeGroup": "chart-evidence",
+      "contentLoad": "medium",
+      "structureKey": "title-chart-takeaway",
+      "elements": [
+        {
+          "type": "text",
+          "text": "ROUTING",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 72,
+          "y": 72,
+          "width": 620,
+          "height": 26,
+          "fontSizePx": 14,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Title accent",
+          "semanticRole": "indicator",
+          "shape": "rect",
+          "x": 72,
+          "y": 106,
+          "width": 44,
+          "height": 4,
+          "fill": "#2783DE",
+          "stroke": {
+            "color": "#2783DE",
+            "width": 0
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "The system sorts its own output",
+          "name": "Slide title",
+          "semanticRole": "title",
+          "x": 72,
+          "y": 124,
+          "width": 1136,
+          "height": 92,
+          "fontSizePx": 40,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.04,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Seven blocked is the correct answer: three are degraded scans, the rest carry real defects.",
+          "x": 72,
+          "y": 224,
+          "width": 1000,
+          "height": 34,
+          "fontSizePx": 22,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.3,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "chart",
+          "name": "Chart",
+          "semanticRole": "chart",
+          "x": 72,
+          "y": 296,
+          "width": 1136,
+          "height": 300,
+          "chartType": "column",
+          "categories": [
+            "Auto-approved",
+            "Needs review",
+            "Blocked"
+          ],
+          "series": [
+            {
+              "name": "Documents",
+              "values": [
+                2,
+                4,
+                7
+              ],
+              "unit": "documents"
+            }
+          ],
+          "legend": false,
+          "xAxis": {},
+          "yAxis": {},
+          "valueAxisTitle": "Documents",
+          "stylePreset": "editorial",
+          "accent": "#2783DE",
+          "showValueAxis": true
+        }
+      ]
+    },
+    {
+      "recipeSource": "notion-ppt-slide-recipes",
+      "role": "table",
+      "recipeId": "table-led",
+      "recipeGroup": "table-evidence",
+      "contentLoad": "high",
+      "structureKey": "title-table-takeaway",
+      "elements": [
+        {
+          "type": "text",
+          "text": "VALIDATION",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 72,
+          "y": 72,
+          "width": 620,
+          "height": 26,
+          "fontSizePx": 14,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Title accent",
+          "semanticRole": "indicator",
+          "shape": "rect",
+          "x": 72,
+          "y": 106,
+          "width": 44,
+          "height": 4,
+          "fill": "#2783DE",
+          "stroke": {
+            "color": "#2783DE",
+            "width": 0
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "Rules firing on the sample corpus",
+          "name": "Slide title",
+          "semanticRole": "title",
+          "x": 72,
+          "y": 124,
+          "width": 1136,
+          "height": 92,
+          "fontSizePx": 40,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.04,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Findings name the field and the rule, so a reviewer is told what to fix.",
+          "x": 72,
+          "y": 224,
+          "width": 1000,
+          "height": 34,
+          "fontSizePx": 22,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.3,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "table",
+          "name": "Evidence table",
+          "semanticRole": "table",
+          "x": 72,
+          "y": 280,
+          "width": 1136,
+          "height": 280,
+          "rows": [
+            [
+              {
+                "text": "Rule"
+              },
+              {
+                "text": "Severity"
+              },
+              {
+                "text": "What it caught"
+              }
+            ],
+            [
+              {
+                "text": "REQUIRED_MISSING"
+              },
+              {
+                "text": "Error"
+              },
+              {
+                "text": "Mandatory field absent, 18 times"
+              }
+            ],
+            [
+              {
+                "text": "DUPLICATE_CONFLICT"
+              },
+              {
+                "text": "Error"
+              },
+              {
+                "text": "Same parcel, different owner"
+              }
+            ],
+            [
+              {
+                "text": "DATE_FUTURE"
+              },
+              {
+                "text": "Error"
+              },
+              {
+                "text": "Trust fell to 26"
+              }
+            ],
+            [
+              {
+                "text": "DISTRICT_UNKNOWN"
+              },
+              {
+                "text": "Warning"
+              },
+              {
+                "text": "Suggested 'Kanpur Nagar'"
+              }
+            ],
+            [
+              {
+                "text": "AREA_REGIONAL_UNIT"
+              },
+              {
+                "text": "Warning"
+              },
+              {
+                "text": "Bigha to 6,322.98 m², flagged"
+              }
+            ],
+            [
+              {
+                "text": "OWNER_FATHER_SAME"
+              },
+              {
+                "text": "Error"
+              },
+              {
+                "text": "Same person in both fields"
+              }
+            ]
+          ],
+          "stylePreset": "editorial"
+        }
+      ]
+    },
+    {
+      "recipeSource": "notion-ppt-slide-recipes",
+      "role": "image-media",
+      "recipeId": "image-left-story",
+      "recipeGroup": "image-story",
+      "contentLoad": "medium",
+      "structureKey": "left-image-right-story",
+      "elements": [
+        {
+          "type": "shape",
+          "name": "Media frame",
+          "semanticRole": "media-frame",
+          "shape": "roundRect",
+          "x": 72,
+          "y": 120,
+          "width": 468,
+          "height": 396,
+          "fill": "#F9F8F7",
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          },
+          "cornerRadiusPx": 12,
+          "fontSizePx": 0
+        },
+        {
+          "type": "image",
+          "name": "Story image",
+          "semanticRole": "media",
+          "x": 72,
+          "y": 120,
+          "width": 468,
+          "height": 396,
+          "src": "/data/sih26018/deck/img/learn.png",
+          "fit": "contain",
+          "borderRadius": 12
+        },
+        {
+          "type": "text",
+          "text": "LEARNING LOOP",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 650,
+          "y": 120,
+          "width": 461,
+          "height": 26,
+          "fontSizePx": 14,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "semanticRole": "shape",
+          "shape": "rect",
+          "x": 650,
+          "y": 152,
+          "width": 44,
+          "height": 4,
+          "fill": "#2783DE",
+          "stroke": {
+            "color": "#2783DE",
+            "width": 0
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "Corrections become improvements",
+          "semanticRole": "title",
+          "x": 650,
+          "y": 170,
+          "width": 470,
+          "height": 124,
+          "fontSizePx": 40,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.05,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Confusions, aliases and confidence calibration are mined from human corrections. Rules activate only past a support threshold, so one typo never reshapes the model.",
+          "x": 650,
+          "y": 316,
+          "width": 470,
+          "height": 210,
+          "fontSizePx": 21,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.4,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        }
+      ]
+    },
+    {
+      "recipeSource": "notion-ppt-slide-recipes",
+      "role": "comparison",
+      "recipeId": "comparison",
+      "recipeGroup": "comparison",
+      "contentLoad": "medium",
+      "structureKey": "title-two-rounded-panels",
+      "elements": [
+        {
+          "type": "text",
+          "text": "GOVERNANCE",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 72,
+          "y": 72,
+          "width": 620,
+          "height": 26,
+          "fontSizePx": 14,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Title accent",
+          "semanticRole": "indicator",
+          "shape": "rect",
+          "x": 72,
+          "y": 106,
+          "width": 44,
+          "height": 4,
+          "fill": "#2783DE",
+          "stroke": {
+            "color": "#2783DE",
+            "width": 0
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "Access control and audit are enforced",
+          "name": "Slide title",
+          "semanticRole": "title",
+          "x": 72,
+          "y": 124,
+          "width": 1136,
+          "height": 92,
+          "fontSizePx": 42,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.04,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "semanticRole": "panel",
+          "shape": "roundRect",
+          "x": 72,
+          "y": 226,
+          "width": 548,
+          "height": 374,
+          "fill": "#F9F8F7",
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "shape",
+          "semanticRole": "panel",
+          "shape": "roundRect",
+          "x": 660,
+          "y": 226,
+          "width": 548,
+          "height": 374,
+          "fill": "#F9F8F7",
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "shape",
+          "semanticRole": "shape",
+          "shape": "rect",
+          "x": 116,
+          "y": 270,
+          "width": 40,
+          "height": 4,
+          "fill": "#7D7A75",
+          "stroke": {
+            "color": "#7D7A75",
+            "width": 0
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "shape",
+          "semanticRole": "shape",
+          "shape": "rect",
+          "x": 704,
+          "y": 270,
+          "width": 40,
+          "height": 4,
+          "fill": "#2783DE",
+          "stroke": {
+            "color": "#2783DE",
+            "width": 0
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "Four roles, server-side",
+          "x": 116,
+          "y": 318,
+          "width": 460,
+          "height": 42,
+          "fontSizePx": 28,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Operators upload and correct. Inspectors approve and reject. Officers retrain and export. The audit cell is read-only. An operator attempting approval gets a 403.",
+          "x": 116,
+          "y": 374,
+          "width": 460,
+          "height": 126,
+          "fontSizePx": 20,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.34,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Append-only trail",
+          "x": 704,
+          "y": 318,
+          "width": 460,
+          "height": 42,
+          "fontSizePx": 28,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Ingestion, corrections with old and new value, approvals and rejections are written with actor and timestamp. Nothing can edit a past entry.",
+          "x": 704,
+          "y": 374,
+          "width": 460,
+          "height": 126,
+          "fontSizePx": 20,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.34,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        }
+      ]
+    },
+    {
+      "recipeSource": "notion-ppt-slide-recipes",
+      "role": "image-media",
+      "recipeId": "image-left-story",
+      "recipeGroup": "image-story",
+      "contentLoad": "medium",
+      "structureKey": "left-image-right-story",
+      "elements": [
+        {
+          "type": "shape",
+          "name": "Media frame",
+          "semanticRole": "media-frame",
+          "shape": "roundRect",
+          "x": 72,
+          "y": 120,
+          "width": 468,
+          "height": 396,
+          "fill": "#F9F8F7",
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          },
+          "cornerRadiusPx": 12,
+          "fontSizePx": 0
+        },
+        {
+          "type": "image",
+          "name": "Story image",
+          "semanticRole": "media",
+          "x": 72,
+          "y": 120,
+          "width": 468,
+          "height": 396,
+          "src": "/data/sih26018/deck/img/dash.png",
+          "fit": "contain",
+          "borderRadius": 12
+        },
+        {
+          "type": "text",
+          "text": "DASHBOARD",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 650,
+          "y": 120,
+          "width": 461,
+          "height": 26,
+          "fontSizePx": 14,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "semanticRole": "shape",
+          "shape": "rect",
+          "x": 650,
+          "y": 152,
+          "width": 44,
+          "height": 4,
+          "fill": "#2783DE",
+          "stroke": {
+            "color": "#2783DE",
+            "width": 0
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "Reporting the department can act on",
+          "semanticRole": "title",
+          "x": 650,
+          "y": 170,
+          "width": 470,
+          "height": 124,
+          "fontSizePx": 40,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.05,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Volume, pending review, trust, district progress, error frequency and per-field quality. Precision reads 0.0% rather than an invented number, because only one field is reviewed so far.",
+          "x": 650,
+          "y": 316,
+          "width": 470,
+          "height": 210,
+          "fontSizePx": 21,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.4,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        }
+      ]
+    },
+    {
+      "recipeSource": "notion-ppt-slide-recipes",
+      "role": "content",
+      "recipeId": "two-column",
+      "recipeGroup": "two-column",
+      "contentLoad": "medium",
+      "structureKey": "title-two-balanced-columns",
+      "elements": [
+        {
+          "type": "text",
+          "text": "ENGINEERING CHOICES",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 72,
+          "y": 72,
+          "width": 620,
+          "height": 26,
+          "fontSizePx": 14,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Title accent",
+          "semanticRole": "indicator",
+          "shape": "rect",
+          "x": 72,
+          "y": 106,
+          "width": 44,
+          "height": 4,
+          "fill": "#2783DE",
+          "stroke": {
+            "color": "#2783DE",
+            "width": 0
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "Two decisions that make the demo survivable",
+          "name": "Slide title",
+          "semanticRole": "title",
+          "x": 72,
+          "y": 124,
+          "width": 1136,
+          "height": 92,
+          "fontSizePx": 42,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.04,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "01",
+          "x": 72,
+          "y": 236,
+          "width": 54,
+          "height": 30,
+          "fontSizePx": 20,
+          "fontFamily": "Arial",
+          "color": "#2783DE",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "line",
+          "semanticRole": "rule",
+          "x1": 72,
+          "y1": 292,
+          "x2": 606,
+          "y2": 292,
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          }
+        },
+        {
+          "type": "text",
+          "text": "Zero install. Python standard library only, plus plain HTML and JavaScript. The biggest demo risk is a venue with no internet and a failing pip install.",
+          "x": 72,
+          "y": 312,
+          "width": 534,
+          "height": 240,
+          "fontSizePx": 21,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.4,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "02",
+          "x": 650,
+          "y": 236,
+          "width": 54,
+          "height": 30,
+          "fontSizePx": 20,
+          "fontFamily": "Arial",
+          "color": "#2783DE",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "line",
+          "semanticRole": "rule",
+          "x1": 650,
+          "y1": 292,
+          "x2": 1184,
+          "y2": 292,
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          }
+        },
+        {
+          "type": "text",
+          "text": "Honest degraded mode. With no OCR engine, a scan is blocked with trust 0 and enters the queue as work, never as a silent success.",
+          "x": 650,
+          "y": 312,
+          "width": 534,
+          "height": 240,
+          "fontSizePx": 21,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.4,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        }
+      ]
+    },
+    {
+      "recipeSource": "notion-ppt-slide-recipes",
+      "role": "sequence",
+      "recipeId": "timeline-clean",
+      "recipeGroup": "timeline",
+      "contentLoad": "medium",
+      "structureKey": "title-clean-horizontal-timeline",
+      "elements": [
+        {
+          "type": "text",
+          "text": "ROADMAP",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 72,
+          "y": 72,
+          "width": 620,
+          "height": 26,
+          "fontSizePx": 14,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Title accent",
+          "semanticRole": "indicator",
+          "shape": "rect",
+          "x": 72,
+          "y": 106,
+          "width": 44,
+          "height": 4,
+          "fill": "#2783DE",
+          "stroke": {
+            "color": "#2783DE",
+            "width": 0
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "From prototype to district pilot",
+          "name": "Slide title",
+          "semanticRole": "title",
+          "x": 72,
+          "y": 124,
+          "width": 1136,
+          "height": 92,
+          "fontSizePx": 40,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.04,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "line",
+          "name": "Timeline axis",
+          "semanticRole": "rule",
+          "x1": 150,
+          "y1": 392,
+          "x2": 1130,
+          "y2": 392,
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 2
+          }
+        },
+        {
+          "type": "line",
+          "name": "Timeline progress",
+          "semanticRole": "rule",
+          "x1": 150,
+          "y1": 392,
+          "x2": 395,
+          "y2": 392,
+          "stroke": {
+            "color": "#2783DE",
+            "width": 2
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Timeline marker 1",
+          "semanticRole": "timeline-marker",
+          "shape": "ellipse",
+          "x": 137,
+          "y": 379,
+          "width": 26,
+          "height": 26,
+          "fill": "#2783DE",
+          "stroke": {
+            "color": "#2783DE",
+            "width": 2
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "Now",
+          "x": 50,
+          "y": 326,
+          "width": 200,
+          "height": 24,
+          "fontSizePx": 20,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "align": "center",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Working prototype",
+          "x": 30,
+          "y": 416,
+          "width": 240,
+          "height": 48,
+          "fontSizePx": 16,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "align": "center",
+          "lineHeight": 1.2,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Timeline marker 2",
+          "semanticRole": "timeline-marker",
+          "shape": "ellipse",
+          "x": 382,
+          "y": 379,
+          "width": 26,
+          "height": 26,
+          "fill": "#FFFFFF",
+          "stroke": {
+            "color": "#7D7A75",
+            "width": 2
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "Stage 2",
+          "x": 295,
+          "y": 326,
+          "width": 200,
+          "height": 24,
+          "fontSizePx": 20,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "align": "center",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Indic HTR",
+          "x": 275,
+          "y": 416,
+          "width": 240,
+          "height": 48,
+          "fontSizePx": 16,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "align": "center",
+          "lineHeight": 1.2,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Timeline marker 3",
+          "semanticRole": "timeline-marker",
+          "shape": "ellipse",
+          "x": 627,
+          "y": 379,
+          "width": 26,
+          "height": 26,
+          "fill": "#FFFFFF",
+          "stroke": {
+            "color": "#7D7A75",
+            "width": 2
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "Stage 3",
+          "x": 540,
+          "y": 326,
+          "width": 200,
+          "height": 24,
+          "fontSizePx": 20,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "align": "center",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Full LGD data",
+          "x": 520,
+          "y": 416,
+          "width": 240,
+          "height": 48,
+          "fontSizePx": 16,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "align": "center",
+          "lineHeight": 1.2,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Timeline marker 4",
+          "semanticRole": "timeline-marker",
+          "shape": "ellipse",
+          "x": 872,
+          "y": 379,
+          "width": 26,
+          "height": 26,
+          "fill": "#FFFFFF",
+          "stroke": {
+            "color": "#7D7A75",
+            "width": 2
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "Stage 4",
+          "x": 785,
+          "y": 326,
+          "width": 200,
+          "height": 24,
+          "fontSizePx": 20,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "align": "center",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "DILRMP connectors",
+          "x": 765,
+          "y": 416,
+          "width": 240,
+          "height": 48,
+          "fontSizePx": 16,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "align": "center",
+          "lineHeight": 1.2,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Timeline marker 5",
+          "semanticRole": "timeline-marker",
+          "shape": "ellipse",
+          "x": 1117,
+          "y": 379,
+          "width": 26,
+          "height": 26,
+          "fill": "#FFFFFF",
+          "stroke": {
+            "color": "#7D7A75",
+            "width": 2
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "Stage 5",
+          "x": 1030,
+          "y": 326,
+          "width": 200,
+          "height": 24,
+          "fontSizePx": 20,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "align": "center",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "District pilot",
+          "x": 1010,
+          "y": 416,
+          "width": 240,
+          "height": 48,
+          "fontSizePx": 16,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "align": "center",
+          "lineHeight": 1.2,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        }
+      ]
+    },
+    {
+      "recipeSource": "notion-ppt-slide-recipes",
+      "role": "summary",
+      "recipeId": "closing-takeaways",
+      "recipeGroup": "takeaways",
+      "contentLoad": "medium",
+      "structureKey": "title-numbered-takeaways",
+      "elements": [
+        {
+          "type": "text",
+          "text": "SUMMARY",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 72,
+          "y": 72,
+          "width": 620,
+          "height": 26,
+          "fontSizePx": 14,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Title accent",
+          "semanticRole": "indicator",
+          "shape": "rect",
+          "x": 72,
+          "y": 106,
+          "width": 44,
+          "height": 4,
+          "fill": "#2783DE",
+          "stroke": {
+            "color": "#2783DE",
+            "width": 0
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "Three things to remember",
+          "name": "Slide title",
+          "semanticRole": "title",
+          "x": 72,
+          "y": 124,
+          "width": 1136,
+          "height": 92,
+          "fontSizePx": 40,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.04,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "01",
+          "x": 72,
+          "y": 246,
+          "width": 72,
+          "height": 48,
+          "fontSizePx": 38,
+          "fontFamily": "Arial",
+          "color": "#2783DE",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "A running system, not a mockup.",
+          "x": 168,
+          "y": 244,
+          "width": 1040,
+          "height": 46,
+          "fontSizePx": 27,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.12,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "line",
+          "semanticRole": "rule",
+          "x1": 72,
+          "y1": 340,
+          "x2": 1208,
+          "y2": 340,
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          }
+        },
+        {
+          "type": "text",
+          "text": "02",
+          "x": 72,
+          "y": 372,
+          "width": 72,
+          "height": 48,
+          "fontSizePx": 38,
+          "fontFamily": "Arial",
+          "color": "#2783DE",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Confidence is explainable, not a bare score.",
+          "x": 168,
+          "y": 370,
+          "width": 1040,
+          "height": 46,
+          "fontSizePx": 27,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": false,
+          "lineHeight": 1.12,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "line",
+          "semanticRole": "rule",
+          "x1": 72,
+          "y1": 466,
+          "x2": 1208,
+          "y2": 466,
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          }
+        },
+        {
+          "type": "text",
+          "text": "03",
+          "x": 72,
+          "y": 498,
+          "width": 72,
+          "height": 48,
+          "fontSizePx": 38,
+          "fontFamily": "Arial",
+          "color": "#2783DE",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "It refuses to fake success.",
+          "x": 168,
+          "y": 496,
+          "width": 1040,
+          "height": 46,
+          "fontSizePx": 27,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": false,
+          "lineHeight": 1.12,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        }
+      ]
+    },
+    {
+      "recipeSource": "notion-ppt-slide-recipes",
+      "role": "sources",
+      "recipeId": "source-summary",
+      "recipeGroup": "sources",
+      "contentLoad": "medium",
+      "structureKey": "title-grouped-sources",
+      "elements": [
+        {
+          "type": "text",
+          "text": "NOTES",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 72,
+          "y": 72,
+          "width": 620,
+          "height": 26,
+          "fontSizePx": 14,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "shape",
+          "name": "Title accent",
+          "semanticRole": "indicator",
+          "shape": "rect",
+          "x": 72,
+          "y": 106,
+          "width": 44,
+          "height": 4,
+          "fill": "#2783DE",
+          "stroke": {
+            "color": "#2783DE",
+            "width": 0
+          },
+          "fontSizePx": 0
+        },
+        {
+          "type": "text",
+          "text": "Scope and limitations",
+          "name": "Slide title",
+          "semanticRole": "title",
+          "x": 72,
+          "y": 124,
+          "width": 1136,
+          "height": 92,
+          "fontSizePx": 38,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.04,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "SOURCE 1",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 72,
+          "y": 256,
+          "width": 180,
+          "height": 18,
+          "fontSizePx": 13,
+          "fontFamily": "Arial",
+          "color": "#2783DE",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Source 1",
+          "x": 264,
+          "y": 252,
+          "width": 520,
+          "height": 28,
+          "fontSizePx": 19,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "PS 26018, Dept of Land Resources",
+          "x": 792,
+          "y": 252,
+          "width": 416,
+          "height": 28,
+          "fontSizePx": 17,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "line",
+          "semanticRole": "rule",
+          "x1": 72,
+          "y1": 294,
+          "x2": 1208,
+          "y2": 294,
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          }
+        },
+        {
+          "type": "text",
+          "text": "SOURCE 2",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 72,
+          "y": 320,
+          "width": 180,
+          "height": 18,
+          "fontSizePx": 13,
+          "fontFamily": "Arial",
+          "color": "#2783DE",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Source 2",
+          "x": 264,
+          "y": 316,
+          "width": 520,
+          "height": 28,
+          "fontSizePx": 19,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "No dataset supplied; corpus generated",
+          "x": 792,
+          "y": 316,
+          "width": 416,
+          "height": 28,
+          "fontSizePx": 17,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "line",
+          "semanticRole": "rule",
+          "x1": 72,
+          "y1": 358,
+          "x2": 1208,
+          "y2": 358,
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          }
+        },
+        {
+          "type": "text",
+          "text": "SOURCE 3",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 72,
+          "y": 384,
+          "width": 180,
+          "height": 18,
+          "fontSizePx": 13,
+          "fontFamily": "Arial",
+          "color": "#2783DE",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Source 3",
+          "x": 264,
+          "y": 380,
+          "width": 520,
+          "height": 28,
+          "fontSizePx": 19,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "OCR tier pluggable, not yet benchmarked",
+          "x": 792,
+          "y": 380,
+          "width": 416,
+          "height": 28,
+          "fontSizePx": 17,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "line",
+          "semanticRole": "rule",
+          "x1": 72,
+          "y1": 422,
+          "x2": 1208,
+          "y2": 422,
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          }
+        },
+        {
+          "type": "text",
+          "text": "SOURCE 4",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 72,
+          "y": 448,
+          "width": 180,
+          "height": 18,
+          "fontSizePx": 13,
+          "fontFamily": "Arial",
+          "color": "#2783DE",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Source 4",
+          "x": 264,
+          "y": 444,
+          "width": 520,
+          "height": 28,
+          "fontSizePx": 19,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Handwriting needs an Indic HTR model",
+          "x": 792,
+          "y": 444,
+          "width": 416,
+          "height": 28,
+          "fontSizePx": 17,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "line",
+          "semanticRole": "rule",
+          "x1": 72,
+          "y1": 486,
+          "x2": 1208,
+          "y2": 486,
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          }
+        },
+        {
+          "type": "text",
+          "text": "SOURCE 5",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 72,
+          "y": 512,
+          "width": 180,
+          "height": 18,
+          "fontSizePx": 13,
+          "fontFamily": "Arial",
+          "color": "#2783DE",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Source 5",
+          "x": 264,
+          "y": 508,
+          "width": 520,
+          "height": 28,
+          "fontSizePx": 19,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Bigha conversion uses UP values",
+          "x": 792,
+          "y": 508,
+          "width": 416,
+          "height": 28,
+          "fontSizePx": 17,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "line",
+          "semanticRole": "rule",
+          "x1": 72,
+          "y1": 550,
+          "x2": 1208,
+          "y2": 550,
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          }
+        },
+        {
+          "type": "text",
+          "text": "SOURCE 6",
+          "name": "Section label",
+          "semanticRole": "label",
+          "x": 72,
+          "y": 576,
+          "width": 180,
+          "height": 18,
+          "fontSizePx": 13,
+          "fontFamily": "Arial",
+          "color": "#2783DE",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Source 6",
+          "x": 264,
+          "y": 572,
+          "width": 520,
+          "height": 28,
+          "fontSizePx": 19,
+          "fontFamily": "Arial",
+          "color": "#2C2C2B",
+          "bold": true,
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "text",
+          "text": "Master data covers eight states",
+          "x": 792,
+          "y": 572,
+          "width": 416,
+          "height": 28,
+          "fontSizePx": 17,
+          "fontFamily": "Arial",
+          "color": "#7D7A75",
+          "lineHeight": 1.16,
+          "stroke": {
+            "color": "#D8D6D1",
+            "width": 0
+          }
+        },
+        {
+          "type": "line",
+          "semanticRole": "rule",
+          "x1": 72,
+          "y1": 614,
+          "x2": 1208,
+          "y2": 614,
+          "stroke": {
+            "color": "#E6E5E3",
+            "width": 1
+          }
+        }
+      ]
+    }
+  ]
+}

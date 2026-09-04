@@ -1,0 +1,200 @@
+{"kind":"deck","id":"pr/local","name":"Deck"}
+{"kind":"slide","id":"sl/s01e00","slide":1,"title":"SIH 2026 · PS 26018","role":"cover","recipeId":"cover-editorial","recipeGroup":"cover","textShapes":4}
+{"kind":"textbox","id":"sh/s01e01","slide":1,"name":"Section label","text":"SIH 2026 · PS 26018","textPreview":"SIH 2026 · PS 26018","textChars":19,"textLines":1,"bbox":[72,110,900,26]}
+{"kind":"shape","id":"sh/s01e02","slide":1,"name":"Cover accent","bbox":[72,330,56,5]}
+{"kind":"textbox","id":"sh/s01e03","slide":1,"name":"","text":"Intelligent Land Record Digitization","textPreview":"Intelligent Land Record Digitization","textChars":36,"textLines":1,"bbox":[72,356,1040,168]}
+{"kind":"textbox","id":"sh/s01e04","slide":1,"name":"","text":"Reads Indian land records, validates them, scores its own confidence, and routes anything uncertain to a human.","textPreview":"Reads Indian land records, validates them, scores its own confidence, and routes anything uncertain to a human.","textChars":111,"textLines":1,"bbox":[72,538,820,78]}
+{"kind":"textbox","id":"sh/s01e05","slide":1,"name":"Footer","text":"Department of Land Resources","textPreview":"Department of Land Resources","textChars":28,"textLines":1,"bbox":[848,662,360,18]}
+{"kind":"notes","id":"nt/s01e00","slide":1,"text":""}
+{"kind":"slide","id":"sl/s02e00","slide":2,"title":"THE PROBLEM","role":"argument","recipeId":"big-claim","recipeGroup":"claim-led","textShapes":3}
+{"kind":"textbox","id":"sh/s02e01","slide":2,"name":"Section label","text":"THE PROBLEM","textPreview":"THE PROBLEM","textChars":11,"textLines":1,"bbox":[72,110,900,26]}
+{"kind":"shape","id":"sh/s02e02","slide":2,"name":"Claim accent","bbox":[72,250,56,5]}
+{"kind":"textbox","id":"sh/s02e03","slide":2,"name":"","text":"A wrong khasra number is not a data error. It is a property dispute.","textPreview":"A wrong khasra number is not a data error. It is a property dispute.","textChars":68,"textLines":1,"bbox":[72,276,1080,210]}
+{"kind":"textbox","id":"sh/s02e04","slide":2,"name":"","text":"Decades of khatauni and 7/12 extracts sit in tehsil offices as paper.","textPreview":"Decades of khatauni and 7/12 extracts sit in tehsil offices as paper.","textChars":69,"textLines":1,"bbox":[72,556,820,48]}
+{"kind":"notes","id":"nt/s02e00","slide":2,"text":""}
+{"kind":"slide","id":"sl/s03e00","slide":3,"title":"WHY THIS IS HARD","role":"evidence","recipeId":"evidence-panel","recipeGroup":"claim-evidence","textShapes":9}
+{"kind":"textbox","id":"sh/s03e01","slide":3,"name":"Section label","text":"WHY THIS IS HARD","textPreview":"WHY THIS IS HARD","textChars":16,"textLines":1,"bbox":[72,72,620,26]}
+{"kind":"shape","id":"sh/s03e02","slide":3,"name":"Title accent","bbox":[72,106,44,4]}
+{"kind":"textbox","id":"sh/s03e03","slide":3,"name":"Slide title","text":"Reading characters is the easy part","textPreview":"Reading characters is the easy part","textChars":35,"textLines":1,"bbox":[72,124,1136,92]}
+{"kind":"textbox","id":"sh/s03e04","slide":3,"name":"","text":"The difficulty is knowing which field a value belongs to.","textPreview":"The difficulty is knowing which field a value belongs to.","textChars":57,"textLines":1,"bbox":[72,250,520,190]}
+{"kind":"textbox","id":"sh/s03e05","slide":3,"name":"","text":"","textPreview":"","textChars":0,"textLines":0,"bbox":[72,452,500,64]}
+{"kind":"textbox","id":"sh/s03e06","slide":3,"name":"Section label","text":"BILINGUAL ROWS","textPreview":"BILINGUAL ROWS","textChars":14,"textLines":1,"bbox":[650,250,300,18]}
+{"kind":"textbox","id":"sh/s03e07","slide":3,"name":"","text":"Value follows the final separator","textPreview":"Value follows the final separator","textChars":33,"textLines":1,"bbox":[650,276,558,60]}
+{"kind":"shape","id":"sh/s03e08","slide":3,"name":"","bbox":[650,340,558,0]}
+{"kind":"textbox","id":"sh/s03e09","slide":3,"name":"Section label","text":"REGIONAL UNITS","textPreview":"REGIONAL UNITS","textChars":14,"textLines":1,"bbox":[650,354,300,18]}
+{"kind":"textbox","id":"sh/s03e10","slide":3,"name":"","text":"A bigha differs by state","textPreview":"A bigha differs by state","textChars":24,"textLines":1,"bbox":[650,380,558,60]}
+{"kind":"shape","id":"sh/s03e11","slide":3,"name":"","bbox":[650,444,558,0]}
+{"kind":"textbox","id":"sh/s03e12","slide":3,"name":"Section label","text":"RIVAL LABELS","textPreview":"RIVAL LABELS","textChars":12,"textLines":1,"bbox":[650,458,300,18]}
+{"kind":"textbox","id":"sh/s03e13","slide":3,"name":"","text":"Two date fields collide","textPreview":"Two date fields collide","textChars":23,"textLines":1,"bbox":[650,484,558,60]}
+{"kind":"notes","id":"nt/s03e00","slide":3,"text":""}
+{"kind":"slide","id":"sl/s04e00","slide":4,"title":"HOW IT WORKS","role":"process","recipeId":"process-steps","recipeGroup":"process","textShapes":11}
+{"kind":"textbox","id":"sh/s04e01","slide":4,"name":"Section label","text":"HOW IT WORKS","textPreview":"HOW IT WORKS","textChars":12,"textLines":1,"bbox":[72,72,620,26]}
+{"kind":"shape","id":"sh/s04e02","slide":4,"name":"Title accent","bbox":[72,106,44,4]}
+{"kind":"textbox","id":"sh/s04e03","slide":4,"name":"Slide title","text":"Three stages, each one auditable","textPreview":"Three stages, each one auditable","textChars":32,"textLines":1,"bbox":[72,124,1136,92]}
+{"kind":"shape","id":"sh/s04e04","slide":4,"name":"","bbox":[200,362,880,0]}
+{"kind":"shape","id":"sh/s04e05","slide":4,"name":"Process step 1 marker","bbox":[244,336,52,52]}
+{"kind":"textbox","id":"sh/s04e06","slide":4,"name":"","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[244,350,52,24]}
+{"kind":"textbox","id":"sh/s04e07","slide":4,"name":"","text":"Extract","textPreview":"Extract","textChars":7,"textLines":1,"bbox":[90,410,360,34]}
+{"kind":"textbox","id":"sh/s04e08","slide":4,"name":"","text":"Text layer, then OCR, then degraded mode.","textPreview":"Text layer, then OCR, then degraded mode.","textChars":41,"textLines":1,"bbox":[90,452,360,82]}
+{"kind":"shape","id":"sh/s04e09","slide":4,"name":"Process step 2 marker","bbox":[614,336,52,52]}
+{"kind":"textbox","id":"sh/s04e10","slide":4,"name":"","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[614,350,52,24]}
+{"kind":"textbox","id":"sh/s04e11","slide":4,"name":"","text":"Classify","textPreview":"Classify","textChars":8,"textLines":1,"bbox":[460,410,360,34]}
+{"kind":"textbox","id":"sh/s04e12","slide":4,"name":"","text":"Map lines onto 17 land-record fields.","textPreview":"Map lines onto 17 land-record fields.","textChars":37,"textLines":1,"bbox":[460,452,360,82]}
+{"kind":"shape","id":"sh/s04e13","slide":4,"name":"Process step 3 marker","bbox":[984,336,52,52]}
+{"kind":"textbox","id":"sh/s04e14","slide":4,"name":"","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[984,350,52,24]}
+{"kind":"textbox","id":"sh/s04e15","slide":4,"name":"","text":"Validate","textPreview":"Validate","textChars":8,"textLines":1,"bbox":[830,410,360,34]}
+{"kind":"textbox","id":"sh/s04e16","slide":4,"name":"","text":"Rules, master data, then route.","textPreview":"Rules, master data, then route.","textChars":31,"textLines":1,"bbox":[830,452,360,82]}
+{"kind":"notes","id":"nt/s04e00","slide":4,"text":""}
+{"kind":"slide","id":"sl/s05e00","slide":5,"title":"VERIFICATION","role":"image-media","recipeId":"image-left-story","recipeGroup":"image-story","textShapes":3}
+{"kind":"shape","id":"sh/s05e01","slide":5,"name":"Media frame","bbox":[72,120,468,396]}
+{"kind":"image","id":"im/s05e02","slide":5,"name":"Story image","imageFit":"contain","bbox":[72,120,468,396]}
+{"kind":"textbox","id":"sh/s05e03","slide":5,"name":"Section label","text":"VERIFICATION","textPreview":"VERIFICATION","textChars":12,"textLines":1,"bbox":[650,120,461,26]}
+{"kind":"shape","id":"sh/s05e04","slide":5,"name":"","bbox":[650,152,44,4]}
+{"kind":"textbox","id":"sh/s05e05","slide":5,"name":"","text":"Page and reasoning, side by side","textPreview":"Page and reasoning, side by side","textChars":32,"textLines":1,"bbox":[650,170,470,124]}
+{"kind":"textbox","id":"sh/s05e06","slide":5,"name":"","text":"Each field carries a confidence bar and a one-click confirm. Clicking a value makes it editable, and trust recalculates on save. This record scored 94.","textPreview":"Each field carries a confidence bar and a one-click confirm. Clicking a value makes it editable, and trust recalculates on save. This recor...","textChars":151,"textLines":1,"bbox":[650,316,470,210]}
+{"kind":"notes","id":"nt/s05e00","slide":5,"text":""}
+{"kind":"slide","id":"sl/s06e00","slide":6,"title":"MEASURED, NOT ESTIMATED","role":"metric","recipeId":"metric-grid","recipeGroup":"metrics","textShapes":14}
+{"kind":"textbox","id":"sh/s06e01","slide":6,"name":"Section label","text":"MEASURED, NOT ESTIMATED","textPreview":"MEASURED, NOT ESTIMATED","textChars":23,"textLines":1,"bbox":[72,72,620,26]}
+{"kind":"shape","id":"sh/s06e02","slide":6,"name":"Title accent","bbox":[72,106,44,4]}
+{"kind":"textbox","id":"sh/s06e03","slide":6,"name":"Slide title","text":"What it does today","textPreview":"What it does today","textChars":18,"textLines":1,"bbox":[72,124,1136,92]}
+{"kind":"shape","id":"sh/s06e04","slide":6,"name":"","bbox":[450.6666666666667,252,0,338]}
+{"kind":"shape","id":"sh/s06e05","slide":6,"name":"","bbox":[829.3333333333334,252,0,338]}
+{"kind":"shape","id":"sh/s06e06","slide":6,"name":"","bbox":[72,412,1136,0]}
+{"kind":"textbox","id":"sh/s06e07","slide":6,"name":"","text":"13","textPreview":"13","textChars":2,"textLines":1,"bbox":[72,262,326.6666666666667,76]}
+{"kind":"textbox","id":"sh/s06e08","slide":6,"name":"","text":"documents end to end","textPreview":"documents end to end","textChars":20,"textLines":1,"bbox":[72,344,326.6666666666667,28]}
+{"kind":"textbox","id":"sh/s06e09","slide":6,"name":"","text":"","textPreview":"","textChars":0,"textLines":0,"bbox":[72,374,326.6666666666667,30]}
+{"kind":"textbox","id":"sh/s06e10","slide":6,"name":"","text":"94%","textPreview":"94%","textChars":3,"textLines":1,"bbox":[450.6666666666667,262,326.6666666666667,76]}
+{"kind":"textbox","id":"sh/s06e11","slide":6,"name":"","text":"completeness, clean records","textPreview":"completeness, clean records","textChars":27,"textLines":1,"bbox":[450.6666666666667,344,326.6666666666667,28]}
+{"kind":"textbox","id":"sh/s06e12","slide":6,"name":"","text":"","textPreview":"","textChars":0,"textLines":0,"bbox":[450.6666666666667,374,326.6666666666667,30]}
+{"kind":"textbox","id":"sh/s06e13","slide":6,"name":"","text":"342 ms","textPreview":"342 ms","textChars":6,"textLines":1,"bbox":[829.3333333333334,262,326.6666666666667,76]}
+{"kind":"textbox","id":"sh/s06e14","slide":6,"name":"","text":"average per page","textPreview":"average per page","textChars":16,"textLines":1,"bbox":[829.3333333333334,344,326.6666666666667,28]}
+{"kind":"textbox","id":"sh/s06e15","slide":6,"name":"","text":"","textPreview":"","textChars":0,"textLines":0,"bbox":[829.3333333333334,374,326.6666666666667,30]}
+{"kind":"textbox","id":"sh/s06e16","slide":6,"name":"","text":"17","textPreview":"17","textChars":2,"textLines":1,"bbox":[72,430,326.6666666666667,76]}
+{"kind":"textbox","id":"sh/s06e17","slide":6,"name":"","text":"fields classified","textPreview":"fields classified","textChars":17,"textLines":1,"bbox":[72,512,326.6666666666667,28]}
+{"kind":"textbox","id":"sh/s06e18","slide":6,"name":"","text":"","textPreview":"","textChars":0,"textLines":0,"bbox":[72,542,326.6666666666667,30]}
+{"kind":"textbox","id":"sh/s06e19","slide":6,"name":"","text":"0","textPreview":"0","textChars":1,"textLines":1,"bbox":[450.6666666666667,430,326.6666666666667,76]}
+{"kind":"textbox","id":"sh/s06e20","slide":6,"name":"","text":"installs required","textPreview":"installs required","textChars":17,"textLines":1,"bbox":[450.6666666666667,512,326.6666666666667,28]}
+{"kind":"textbox","id":"sh/s06e21","slide":6,"name":"","text":"","textPreview":"","textChars":0,"textLines":0,"bbox":[450.6666666666667,542,326.6666666666667,30]}
+{"kind":"textbox","id":"sh/s06e22","slide":6,"name":"","text":"100%","textPreview":"100%","textChars":4,"textLines":1,"bbox":[829.3333333333334,430,326.6666666666667,76]}
+{"kind":"textbox","id":"sh/s06e23","slide":6,"name":"","text":"actions audited","textPreview":"actions audited","textChars":15,"textLines":1,"bbox":[829.3333333333334,512,326.6666666666667,28]}
+{"kind":"textbox","id":"sh/s06e24","slide":6,"name":"","text":"","textPreview":"","textChars":0,"textLines":0,"bbox":[829.3333333333334,542,326.6666666666667,30]}
+{"kind":"notes","id":"nt/s06e00","slide":6,"text":""}
+{"kind":"slide","id":"sl/s07e00","slide":7,"title":"ROUTING","role":"chart","recipeId":"chart-led","recipeGroup":"chart-evidence","textShapes":3}
+{"kind":"textbox","id":"sh/s07e01","slide":7,"name":"Section label","text":"ROUTING","textPreview":"ROUTING","textChars":7,"textLines":1,"bbox":[72,72,620,26]}
+{"kind":"shape","id":"sh/s07e02","slide":7,"name":"Title accent","bbox":[72,106,44,4]}
+{"kind":"textbox","id":"sh/s07e03","slide":7,"name":"Slide title","text":"The system sorts its own output","textPreview":"The system sorts its own output","textChars":31,"textLines":1,"bbox":[72,124,1136,92]}
+{"kind":"textbox","id":"sh/s07e04","slide":7,"name":"","text":"Seven blocked is the correct answer: three are degraded scans, the rest carry real defects.","textPreview":"Seven blocked is the correct answer: three are degraded scans, the rest carry real defects.","textChars":91,"textLines":1,"bbox":[72,224,1000,34]}
+{"kind":"chart","id":"ch/s07e05","slide":7,"name":"Chart","chartType":"column","bbox":[72,296,1136,300]}
+{"kind":"notes","id":"nt/s07e00","slide":7,"text":""}
+{"kind":"slide","id":"sl/s08e00","slide":8,"title":"VALIDATION","role":"table","recipeId":"table-led","recipeGroup":"table-evidence","textShapes":4}
+{"kind":"textbox","id":"sh/s08e01","slide":8,"name":"Section label","text":"VALIDATION","textPreview":"VALIDATION","textChars":10,"textLines":1,"bbox":[72,72,620,26]}
+{"kind":"shape","id":"sh/s08e02","slide":8,"name":"Title accent","bbox":[72,106,44,4]}
+{"kind":"textbox","id":"sh/s08e03","slide":8,"name":"Slide title","text":"Rules firing on the sample corpus","textPreview":"Rules firing on the sample corpus","textChars":33,"textLines":1,"bbox":[72,124,1136,92]}
+{"kind":"textbox","id":"sh/s08e04","slide":8,"name":"","text":"Findings name the field and the rule, so a reviewer is told what to fix.","textPreview":"Findings name the field and the rule, so a reviewer is told what to fix.","textChars":72,"textLines":1,"bbox":[72,224,1000,34]}
+{"kind":"textbox","id":"sh/s08e05","slide":8,"name":"Evidence table","text":"Rule | Severity | What it caught\nREQUIRED_MISSING | Error | Mandatory field absent, 18 times\nDUPLICATE_CONFLICT | Error | Same parcel, different owner\nDATE_FUTURE | Error | Trust fell to 26\nDISTRICT_UNKNOWN | Warning | Suggested 'Kanpur Nagar'\nAREA_REGIONAL_UNIT | Warning | Bigha to 6,322.98 m², flagged\nOWNER_FATHER_SAME | Error | Same person in both fields","textPreview":"Rule | Severity | What it caught | REQUIRED_MISSING | Error | Mandatory field absent, 18 times | DUPLICATE_CONFLICT | Error | Same parcel, ...","textChars":359,"textLines":7,"bbox":[72,280,1136,280]}
+{"kind":"table","id":"tb/s08e05","slide":8,"name":"Evidence table","rows":7,"cols":3,"preview":"Rule | Severity | What it caught | REQUIRED_MISSING | Error | Mandatory field absent, 18 times | DUPLICATE_CONFLICT | Error | Same parcel, ...","bbox":[72,280,1136,280]}
+{"kind":"notes","id":"nt/s08e00","slide":8,"text":""}
+{"kind":"slide","id":"sl/s09e00","slide":9,"title":"LEARNING LOOP","role":"image-media","recipeId":"image-left-story","recipeGroup":"image-story","textShapes":3}
+{"kind":"shape","id":"sh/s09e01","slide":9,"name":"Media frame","bbox":[72,120,468,396]}
+{"kind":"image","id":"im/s09e02","slide":9,"name":"Story image","imageFit":"contain","bbox":[72,120,468,396]}
+{"kind":"textbox","id":"sh/s09e03","slide":9,"name":"Section label","text":"LEARNING LOOP","textPreview":"LEARNING LOOP","textChars":13,"textLines":1,"bbox":[650,120,461,26]}
+{"kind":"shape","id":"sh/s09e04","slide":9,"name":"","bbox":[650,152,44,4]}
+{"kind":"textbox","id":"sh/s09e05","slide":9,"name":"","text":"Corrections become improvements","textPreview":"Corrections become improvements","textChars":31,"textLines":1,"bbox":[650,170,470,124]}
+{"kind":"textbox","id":"sh/s09e06","slide":9,"name":"","text":"Confusions, aliases and confidence calibration are mined from human corrections. Rules activate only past a support threshold, so one typo never reshapes the model.","textPreview":"Confusions, aliases and confidence calibration are mined from human corrections. Rules activate only past a support threshold, so one typo ...","textChars":164,"textLines":1,"bbox":[650,316,470,210]}
+{"kind":"notes","id":"nt/s09e00","slide":9,"text":""}
+{"kind":"slide","id":"sl/s10e00","slide":10,"title":"GOVERNANCE","role":"comparison","recipeId":"comparison","recipeGroup":"comparison","textShapes":6}
+{"kind":"textbox","id":"sh/s10e01","slide":10,"name":"Section label","text":"GOVERNANCE","textPreview":"GOVERNANCE","textChars":10,"textLines":1,"bbox":[72,72,620,26]}
+{"kind":"shape","id":"sh/s10e02","slide":10,"name":"Title accent","bbox":[72,106,44,4]}
+{"kind":"textbox","id":"sh/s10e03","slide":10,"name":"Slide title","text":"Access control and audit are enforced","textPreview":"Access control and audit are enforced","textChars":37,"textLines":1,"bbox":[72,124,1136,92]}
+{"kind":"shape","id":"sh/s10e04","slide":10,"name":"","bbox":[72,226,548,374]}
+{"kind":"shape","id":"sh/s10e05","slide":10,"name":"","bbox":[660,226,548,374]}
+{"kind":"shape","id":"sh/s10e06","slide":10,"name":"","bbox":[116,270,40,4]}
+{"kind":"shape","id":"sh/s10e07","slide":10,"name":"","bbox":[704,270,40,4]}
+{"kind":"textbox","id":"sh/s10e08","slide":10,"name":"","text":"Four roles, server-side","textPreview":"Four roles, server-side","textChars":23,"textLines":1,"bbox":[116,318,460,42]}
+{"kind":"textbox","id":"sh/s10e09","slide":10,"name":"","text":"Operators upload and correct. Inspectors approve and reject. Officers retrain and export. The audit cell is read-only. An operator attempting approval gets a 403.","textPreview":"Operators upload and correct. Inspectors approve and reject. Officers retrain and export. The audit cell is read-only. An operator attempti...","textChars":162,"textLines":1,"bbox":[116,374,460,126]}
+{"kind":"textbox","id":"sh/s10e10","slide":10,"name":"","text":"Append-only trail","textPreview":"Append-only trail","textChars":17,"textLines":1,"bbox":[704,318,460,42]}
+{"kind":"textbox","id":"sh/s10e11","slide":10,"name":"","text":"Ingestion, corrections with old and new value, approvals and rejections are written with actor and timestamp. Nothing can edit a past entry.","textPreview":"Ingestion, corrections with old and new value, approvals and rejections are written with actor and timestamp. Nothing can edit a past entry.","textChars":140,"textLines":1,"bbox":[704,374,460,126]}
+{"kind":"notes","id":"nt/s10e00","slide":10,"text":""}
+{"kind":"slide","id":"sl/s11e00","slide":11,"title":"DASHBOARD","role":"image-media","recipeId":"image-left-story","recipeGroup":"image-story","textShapes":3}
+{"kind":"shape","id":"sh/s11e01","slide":11,"name":"Media frame","bbox":[72,120,468,396]}
+{"kind":"image","id":"im/s11e02","slide":11,"name":"Story image","imageFit":"contain","bbox":[72,120,468,396]}
+{"kind":"textbox","id":"sh/s11e03","slide":11,"name":"Section label","text":"DASHBOARD","textPreview":"DASHBOARD","textChars":9,"textLines":1,"bbox":[650,120,461,26]}
+{"kind":"shape","id":"sh/s11e04","slide":11,"name":"","bbox":[650,152,44,4]}
+{"kind":"textbox","id":"sh/s11e05","slide":11,"name":"","text":"Reporting the department can act on","textPreview":"Reporting the department can act on","textChars":35,"textLines":1,"bbox":[650,170,470,124]}
+{"kind":"textbox","id":"sh/s11e06","slide":11,"name":"","text":"Volume, pending review, trust, district progress, error frequency and per-field quality. Precision reads 0.0% rather than an invented number, because only one field is reviewed so far.","textPreview":"Volume, pending review, trust, district progress, error frequency and per-field quality. Precision reads 0.0% rather than an invented numbe...","textChars":184,"textLines":1,"bbox":[650,316,470,210]}
+{"kind":"notes","id":"nt/s11e00","slide":11,"text":""}
+{"kind":"slide","id":"sl/s12e00","slide":12,"title":"ENGINEERING CHOICES","role":"content","recipeId":"two-column","recipeGroup":"two-column","textShapes":6}
+{"kind":"textbox","id":"sh/s12e01","slide":12,"name":"Section label","text":"ENGINEERING CHOICES","textPreview":"ENGINEERING CHOICES","textChars":19,"textLines":1,"bbox":[72,72,620,26]}
+{"kind":"shape","id":"sh/s12e02","slide":12,"name":"Title accent","bbox":[72,106,44,4]}
+{"kind":"textbox","id":"sh/s12e03","slide":12,"name":"Slide title","text":"Two decisions that make the demo survivable","textPreview":"Two decisions that make the demo survivable","textChars":43,"textLines":1,"bbox":[72,124,1136,92]}
+{"kind":"textbox","id":"sh/s12e04","slide":12,"name":"","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[72,236,54,30]}
+{"kind":"shape","id":"sh/s12e05","slide":12,"name":"","bbox":[72,292,534,0]}
+{"kind":"textbox","id":"sh/s12e06","slide":12,"name":"","text":"Zero install. Python standard library only, plus plain HTML and JavaScript. The biggest demo risk is a venue with no internet and a failing pip install.","textPreview":"Zero install. Python standard library only, plus plain HTML and JavaScript. The biggest demo risk is a venue with no internet and a failing...","textChars":152,"textLines":1,"bbox":[72,312,534,240]}
+{"kind":"textbox","id":"sh/s12e07","slide":12,"name":"","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[650,236,54,30]}
+{"kind":"shape","id":"sh/s12e08","slide":12,"name":"","bbox":[650,292,534,0]}
+{"kind":"textbox","id":"sh/s12e09","slide":12,"name":"","text":"Honest degraded mode. With no OCR engine, a scan is blocked with trust 0 and enters the queue as work, never as a silent success.","textPreview":"Honest degraded mode. With no OCR engine, a scan is blocked with trust 0 and enters the queue as work, never as a silent success.","textChars":129,"textLines":1,"bbox":[650,312,534,240]}
+{"kind":"notes","id":"nt/s12e00","slide":12,"text":""}
+{"kind":"slide","id":"sl/s13e00","slide":13,"title":"ROADMAP","role":"sequence","recipeId":"timeline-clean","recipeGroup":"timeline","textShapes":12}
+{"kind":"textbox","id":"sh/s13e01","slide":13,"name":"Section label","text":"ROADMAP","textPreview":"ROADMAP","textChars":7,"textLines":1,"bbox":[72,72,620,26]}
+{"kind":"shape","id":"sh/s13e02","slide":13,"name":"Title accent","bbox":[72,106,44,4]}
+{"kind":"textbox","id":"sh/s13e03","slide":13,"name":"Slide title","text":"From prototype to district pilot","textPreview":"From prototype to district pilot","textChars":32,"textLines":1,"bbox":[72,124,1136,92]}
+{"kind":"shape","id":"sh/s13e04","slide":13,"name":"Timeline axis","bbox":[150,392,980,0]}
+{"kind":"shape","id":"sh/s13e05","slide":13,"name":"Timeline progress","bbox":[150,392,245,0]}
+{"kind":"shape","id":"sh/s13e06","slide":13,"name":"Timeline marker 1","bbox":[137,379,26,26]}
+{"kind":"textbox","id":"sh/s13e07","slide":13,"name":"","text":"Now","textPreview":"Now","textChars":3,"textLines":1,"bbox":[50,326,200,24]}
+{"kind":"textbox","id":"sh/s13e08","slide":13,"name":"","text":"Working prototype","textPreview":"Working prototype","textChars":17,"textLines":1,"bbox":[30,416,240,48]}
+{"kind":"shape","id":"sh/s13e09","slide":13,"name":"Timeline marker 2","bbox":[382,379,26,26]}
+{"kind":"textbox","id":"sh/s13e10","slide":13,"name":"","text":"Stage 2","textPreview":"Stage 2","textChars":7,"textLines":1,"bbox":[295,326,200,24]}
+{"kind":"textbox","id":"sh/s13e11","slide":13,"name":"","text":"Indic HTR","textPreview":"Indic HTR","textChars":9,"textLines":1,"bbox":[275,416,240,48]}
+{"kind":"shape","id":"sh/s13e12","slide":13,"name":"Timeline marker 3","bbox":[627,379,26,26]}
+{"kind":"textbox","id":"sh/s13e13","slide":13,"name":"","text":"Stage 3","textPreview":"Stage 3","textChars":7,"textLines":1,"bbox":[540,326,200,24]}
+{"kind":"textbox","id":"sh/s13e14","slide":13,"name":"","text":"Full LGD data","textPreview":"Full LGD data","textChars":13,"textLines":1,"bbox":[520,416,240,48]}
+{"kind":"shape","id":"sh/s13e15","slide":13,"name":"Timeline marker 4","bbox":[872,379,26,26]}
+{"kind":"textbox","id":"sh/s13e16","slide":13,"name":"","text":"Stage 4","textPreview":"Stage 4","textChars":7,"textLines":1,"bbox":[785,326,200,24]}
+{"kind":"textbox","id":"sh/s13e17","slide":13,"name":"","text":"DILRMP connectors","textPreview":"DILRMP connectors","textChars":17,"textLines":1,"bbox":[765,416,240,48]}
+{"kind":"shape","id":"sh/s13e18","slide":13,"name":"Timeline marker 5","bbox":[1117,379,26,26]}
+{"kind":"textbox","id":"sh/s13e19","slide":13,"name":"","text":"Stage 5","textPreview":"Stage 5","textChars":7,"textLines":1,"bbox":[1030,326,200,24]}
+{"kind":"textbox","id":"sh/s13e20","slide":13,"name":"","text":"District pilot","textPreview":"District pilot","textChars":14,"textLines":1,"bbox":[1010,416,240,48]}
+{"kind":"notes","id":"nt/s13e00","slide":13,"text":""}
+{"kind":"slide","id":"sl/s14e00","slide":14,"title":"SUMMARY","role":"summary","recipeId":"closing-takeaways","recipeGroup":"takeaways","textShapes":8}
+{"kind":"textbox","id":"sh/s14e01","slide":14,"name":"Section label","text":"SUMMARY","textPreview":"SUMMARY","textChars":7,"textLines":1,"bbox":[72,72,620,26]}
+{"kind":"shape","id":"sh/s14e02","slide":14,"name":"Title accent","bbox":[72,106,44,4]}
+{"kind":"textbox","id":"sh/s14e03","slide":14,"name":"Slide title","text":"Three things to remember","textPreview":"Three things to remember","textChars":24,"textLines":1,"bbox":[72,124,1136,92]}
+{"kind":"textbox","id":"sh/s14e04","slide":14,"name":"","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[72,246,72,48]}
+{"kind":"textbox","id":"sh/s14e05","slide":14,"name":"","text":"A running system, not a mockup.","textPreview":"A running system, not a mockup.","textChars":31,"textLines":1,"bbox":[168,244,1040,46]}
+{"kind":"shape","id":"sh/s14e06","slide":14,"name":"","bbox":[72,340,1136,0]}
+{"kind":"textbox","id":"sh/s14e07","slide":14,"name":"","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[72,372,72,48]}
+{"kind":"textbox","id":"sh/s14e08","slide":14,"name":"","text":"Confidence is explainable, not a bare score.","textPreview":"Confidence is explainable, not a bare score.","textChars":44,"textLines":1,"bbox":[168,370,1040,46]}
+{"kind":"shape","id":"sh/s14e09","slide":14,"name":"","bbox":[72,466,1136,0]}
+{"kind":"textbox","id":"sh/s14e10","slide":14,"name":"","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[72,498,72,48]}
+{"kind":"textbox","id":"sh/s14e11","slide":14,"name":"","text":"It refuses to fake success.","textPreview":"It refuses to fake success.","textChars":27,"textLines":1,"bbox":[168,496,1040,46]}
+{"kind":"notes","id":"nt/s14e00","slide":14,"text":""}
+{"kind":"slide","id":"sl/s15e00","slide":15,"title":"NOTES","role":"sources","recipeId":"source-summary","recipeGroup":"sources","textShapes":20}
+{"kind":"textbox","id":"sh/s15e01","slide":15,"name":"Section label","text":"NOTES","textPreview":"NOTES","textChars":5,"textLines":1,"bbox":[72,72,620,26]}
+{"kind":"shape","id":"sh/s15e02","slide":15,"name":"Title accent","bbox":[72,106,44,4]}
+{"kind":"textbox","id":"sh/s15e03","slide":15,"name":"Slide title","text":"Scope and limitations","textPreview":"Scope and limitations","textChars":21,"textLines":1,"bbox":[72,124,1136,92]}
+{"kind":"textbox","id":"sh/s15e04","slide":15,"name":"Section label","text":"SOURCE 1","textPreview":"SOURCE 1","textChars":8,"textLines":1,"bbox":[72,256,180,18]}
+{"kind":"textbox","id":"sh/s15e05","slide":15,"name":"","text":"Source 1","textPreview":"Source 1","textChars":8,"textLines":1,"bbox":[264,252,520,28]}
+{"kind":"textbox","id":"sh/s15e06","slide":15,"name":"","text":"PS 26018, Dept of Land Resources","textPreview":"PS 26018, Dept of Land Resources","textChars":32,"textLines":1,"bbox":[792,252,416,28]}
+{"kind":"shape","id":"sh/s15e07","slide":15,"name":"","bbox":[72,294,1136,0]}
+{"kind":"textbox","id":"sh/s15e08","slide":15,"name":"Section label","text":"SOURCE 2","textPreview":"SOURCE 2","textChars":8,"textLines":1,"bbox":[72,320,180,18]}
+{"kind":"textbox","id":"sh/s15e09","slide":15,"name":"","text":"Source 2","textPreview":"Source 2","textChars":8,"textLines":1,"bbox":[264,316,520,28]}
+{"kind":"textbox","id":"sh/s15e10","slide":15,"name":"","text":"No dataset supplied; corpus generated","textPreview":"No dataset supplied; corpus generated","textChars":37,"textLines":1,"bbox":[792,316,416,28]}
+{"kind":"shape","id":"sh/s15e11","slide":15,"name":"","bbox":[72,358,1136,0]}
+{"kind":"textbox","id":"sh/s15e12","slide":15,"name":"Section label","text":"SOURCE 3","textPreview":"SOURCE 3","textChars":8,"textLines":1,"bbox":[72,384,180,18]}
+{"kind":"textbox","id":"sh/s15e13","slide":15,"name":"","text":"Source 3","textPreview":"Source 3","textChars":8,"textLines":1,"bbox":[264,380,520,28]}
+{"kind":"textbox","id":"sh/s15e14","slide":15,"name":"","text":"OCR tier pluggable, not yet benchmarked","textPreview":"OCR tier pluggable, not yet benchmarked","textChars":39,"textLines":1,"bbox":[792,380,416,28]}
+{"kind":"shape","id":"sh/s15e15","slide":15,"name":"","bbox":[72,422,1136,0]}
+{"kind":"textbox","id":"sh/s15e16","slide":15,"name":"Section label","text":"SOURCE 4","textPreview":"SOURCE 4","textChars":8,"textLines":1,"bbox":[72,448,180,18]}
+{"kind":"textbox","id":"sh/s15e17","slide":15,"name":"","text":"Source 4","textPreview":"Source 4","textChars":8,"textLines":1,"bbox":[264,444,520,28]}
+{"kind":"textbox","id":"sh/s15e18","slide":15,"name":"","text":"Handwriting needs an Indic HTR model","textPreview":"Handwriting needs an Indic HTR model","textChars":36,"textLines":1,"bbox":[792,444,416,28]}
+{"kind":"shape","id":"sh/s15e19","slide":15,"name":"","bbox":[72,486,1136,0]}
+{"kind":"textbox","id":"sh/s15e20","slide":15,"name":"Section label","text":"SOURCE 5","textPreview":"SOURCE 5","textChars":8,"textLines":1,"bbox":[72,512,180,18]}
+{"kind":"textbox","id":"sh/s15e21","slide":15,"name":"","text":"Source 5","textPreview":"Source 5","textChars":8,"textLines":1,"bbox":[264,508,520,28]}
+{"kind":"textbox","id":"sh/s15e22","slide":15,"name":"","text":"Bigha conversion uses UP values","textPreview":"Bigha conversion uses UP values","textChars":31,"textLines":1,"bbox":[792,508,416,28]}
+{"kind":"shape","id":"sh/s15e23","slide":15,"name":"","bbox":[72,550,1136,0]}
+{"kind":"textbox","id":"sh/s15e24","slide":15,"name":"Section label","text":"SOURCE 6","textPreview":"SOURCE 6","textChars":8,"textLines":1,"bbox":[72,576,180,18]}
+{"kind":"textbox","id":"sh/s15e25","slide":15,"name":"","text":"Source 6","textPreview":"Source 6","textChars":8,"textLines":1,"bbox":[264,572,520,28]}
+{"kind":"textbox","id":"sh/s15e26","slide":15,"name":"","text":"Master data covers eight states","textPreview":"Master data covers eight states","textChars":31,"textLines":1,"bbox":[792,572,416,28]}
+{"kind":"shape","id":"sh/s15e27","slide":15,"name":"","bbox":[72,614,1136,0]}
+{"kind":"notes","id":"nt/s15e00","slide":15,"text":""}

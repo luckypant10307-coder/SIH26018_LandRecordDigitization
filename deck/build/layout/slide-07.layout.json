@@ -1,0 +1,187 @@
+{
+  "schema": "local.presentation.layout/v2",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/s07e00",
+    "id": "7",
+    "slide": 7,
+    "role": "chart",
+    "recipeId": "chart-led",
+    "recipeGroup": "chart-evidence",
+    "contentLoad": "medium",
+    "structureKey": "title-chart-takeaway",
+    "recipeSource": "notion-ppt-slide-recipes",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "Notion Native PPTX",
+    "colors": {
+      "bg1": "#FFFFFF",
+      "bg2": "#F0EFED",
+      "lt1": "#FFFFFF",
+      "lt2": "#F9F8F7",
+      "tx1": "#2C2C2B",
+      "tx2": "#FFFFFF",
+      "dk1": "#2C2C2B",
+      "dk2": "#7D7A75",
+      "panel": "#F0EFED",
+      "rule": "#B8BCC4",
+      "accent": "#2783DE",
+      "accentSoft": "#E5F2FC",
+      "accentMuted": "#A9CEF5"
+    },
+    "typefaces": [
+      "Arial"
+    ]
+  },
+  "inheritedLayers": [],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s07e01",
+      "id": "1",
+      "name": "Section label",
+      "semanticRole": "label",
+      "bbox": [
+        72,
+        72,
+        620,
+        26
+      ],
+      "frame": {
+        "left": 72,
+        "top": 72,
+        "width": 620,
+        "height": 26
+      },
+      "text": "ROUTING",
+      "textPreview": "ROUTING",
+      "resolvedFontSize": 14,
+      "resolvedTextStyle": {
+        "fontSize": 14,
+        "typeface": "Arial",
+        "color": "#7D7A75",
+        "bold": true
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s07e02",
+      "id": "2",
+      "name": "Title accent",
+      "semanticRole": "indicator",
+      "bbox": [
+        72,
+        106,
+        44,
+        4
+      ],
+      "frame": {
+        "left": 72,
+        "top": 106,
+        "width": 44,
+        "height": 4
+      },
+      "geometry": "rect",
+      "resolvedFontSize": 0,
+      "fillColor": "#2783DE",
+      "lineColor": "#2783DE",
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s07e03",
+      "id": "3",
+      "name": "Slide title",
+      "semanticRole": "title",
+      "bbox": [
+        72,
+        124,
+        1136,
+        92
+      ],
+      "frame": {
+        "left": 72,
+        "top": 124,
+        "width": 1136,
+        "height": 92
+      },
+      "text": "The system sorts its own output",
+      "textPreview": "The system sorts its own output",
+      "resolvedFontSize": 40,
+      "resolvedTextStyle": {
+        "fontSize": 40,
+        "typeface": "Arial",
+        "color": "#2C2C2B",
+        "bold": true
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s07e04",
+      "id": "4",
+      "bbox": [
+        72,
+        224,
+        1000,
+        34
+      ],
+      "frame": {
+        "left": 72,
+        "top": 224,
+        "width": 1000,
+        "height": 34
+      },
+      "text": "Seven blocked is the correct answer: three are degraded scans, the rest carry real defects.",
+      "textPreview": "Seven blocked is the correct answer: three are degraded scans, the rest carry real defects.",
+      "resolvedFontSize": 22,
+      "resolvedTextStyle": {
+        "fontSize": 22,
+        "typeface": "Arial",
+        "color": "#2C2C2B",
+        "bold": true
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 5,
+      "kind": "chart",
+      "scope": "slide",
+      "aid": "ch/s07e05",
+      "id": "5",
+      "name": "Chart",
+      "semanticRole": "chart",
+      "bbox": [
+        72,
+        296,
+        1136,
+        300
+      ],
+      "frame": {
+        "left": 72,
+        "top": 296,
+        "width": 1136,
+        "height": 300
+      },
+      "chartType": "column"
+    }
+  ]
+}

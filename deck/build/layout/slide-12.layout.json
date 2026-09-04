@@ -1,0 +1,297 @@
+{
+  "schema": "local.presentation.layout/v2",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/s12e00",
+    "id": "12",
+    "slide": 12,
+    "role": "content",
+    "recipeId": "two-column",
+    "recipeGroup": "two-column",
+    "contentLoad": "medium",
+    "structureKey": "title-two-balanced-columns",
+    "recipeSource": "notion-ppt-slide-recipes",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "Notion Native PPTX",
+    "colors": {
+      "bg1": "#FFFFFF",
+      "bg2": "#F0EFED",
+      "lt1": "#FFFFFF",
+      "lt2": "#F9F8F7",
+      "tx1": "#2C2C2B",
+      "tx2": "#FFFFFF",
+      "dk1": "#2C2C2B",
+      "dk2": "#7D7A75",
+      "panel": "#F0EFED",
+      "rule": "#B8BCC4",
+      "accent": "#2783DE",
+      "accentSoft": "#E5F2FC",
+      "accentMuted": "#A9CEF5"
+    },
+    "typefaces": [
+      "Arial"
+    ]
+  },
+  "inheritedLayers": [],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s12e01",
+      "id": "1",
+      "name": "Section label",
+      "semanticRole": "label",
+      "bbox": [
+        72,
+        72,
+        620,
+        26
+      ],
+      "frame": {
+        "left": 72,
+        "top": 72,
+        "width": 620,
+        "height": 26
+      },
+      "text": "ENGINEERING CHOICES",
+      "textPreview": "ENGINEERING CHOICES",
+      "resolvedFontSize": 14,
+      "resolvedTextStyle": {
+        "fontSize": 14,
+        "typeface": "Arial",
+        "color": "#7D7A75",
+        "bold": true
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s12e02",
+      "id": "2",
+      "name": "Title accent",
+      "semanticRole": "indicator",
+      "bbox": [
+        72,
+        106,
+        44,
+        4
+      ],
+      "frame": {
+        "left": 72,
+        "top": 106,
+        "width": 44,
+        "height": 4
+      },
+      "geometry": "rect",
+      "resolvedFontSize": 0,
+      "fillColor": "#2783DE",
+      "lineColor": "#2783DE",
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s12e03",
+      "id": "3",
+      "name": "Slide title",
+      "semanticRole": "title",
+      "bbox": [
+        72,
+        124,
+        1136,
+        92
+      ],
+      "frame": {
+        "left": 72,
+        "top": 124,
+        "width": 1136,
+        "height": 92
+      },
+      "text": "Two decisions that make the demo survivable",
+      "textPreview": "Two decisions that make the demo survivable",
+      "resolvedFontSize": 42,
+      "resolvedTextStyle": {
+        "fontSize": 42,
+        "typeface": "Arial",
+        "color": "#2C2C2B",
+        "bold": true
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s12e04",
+      "id": "4",
+      "bbox": [
+        72,
+        236,
+        54,
+        30
+      ],
+      "frame": {
+        "left": 72,
+        "top": 236,
+        "width": 54,
+        "height": 30
+      },
+      "text": "01",
+      "textPreview": "01",
+      "resolvedFontSize": 20,
+      "resolvedTextStyle": {
+        "fontSize": 20,
+        "typeface": "Arial",
+        "color": "#2783DE",
+        "bold": true
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s12e05",
+      "id": "5",
+      "semanticRole": "rule",
+      "bbox": [
+        72,
+        292,
+        534,
+        0
+      ],
+      "frame": {
+        "left": 72,
+        "top": 292,
+        "width": 534,
+        "height": 0
+      },
+      "lineColor": "#E6E5E3",
+      "lineWidth": 1
+    },
+    {
+      "order": 6,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s12e06",
+      "id": "6",
+      "bbox": [
+        72,
+        312,
+        534,
+        240
+      ],
+      "frame": {
+        "left": 72,
+        "top": 312,
+        "width": 534,
+        "height": 240
+      },
+      "text": "Zero install. Python standard library only, plus plain HTML and JavaScript. The biggest demo risk is a venue with no internet and a failing pip install.",
+      "textPreview": "Zero install. Python standard library only, plus plain HTML and JavaScript. The biggest demo risk is a venue with no internet and a failing...",
+      "resolvedFontSize": 21,
+      "resolvedTextStyle": {
+        "fontSize": 21,
+        "typeface": "Arial",
+        "color": "#7D7A75"
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s12e07",
+      "id": "7",
+      "bbox": [
+        650,
+        236,
+        54,
+        30
+      ],
+      "frame": {
+        "left": 650,
+        "top": 236,
+        "width": 54,
+        "height": 30
+      },
+      "text": "02",
+      "textPreview": "02",
+      "resolvedFontSize": 20,
+      "resolvedTextStyle": {
+        "fontSize": 20,
+        "typeface": "Arial",
+        "color": "#2783DE",
+        "bold": true
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    },
+    {
+      "order": 8,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s12e08",
+      "id": "8",
+      "semanticRole": "rule",
+      "bbox": [
+        650,
+        292,
+        534,
+        0
+      ],
+      "frame": {
+        "left": 650,
+        "top": 292,
+        "width": 534,
+        "height": 0
+      },
+      "lineColor": "#E6E5E3",
+      "lineWidth": 1
+    },
+    {
+      "order": 9,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s12e09",
+      "id": "9",
+      "bbox": [
+        650,
+        312,
+        534,
+        240
+      ],
+      "frame": {
+        "left": 650,
+        "top": 312,
+        "width": 534,
+        "height": 240
+      },
+      "text": "Honest degraded mode. With no OCR engine, a scan is blocked with trust 0 and enters the queue as work, never as a silent success.",
+      "textPreview": "Honest degraded mode. With no OCR engine, a scan is blocked with trust 0 and enters the queue as work, never as a silent success.",
+      "resolvedFontSize": 21,
+      "resolvedTextStyle": {
+        "fontSize": 21,
+        "typeface": "Arial",
+        "color": "#7D7A75"
+      },
+      "lineColor": "#D8D6D1",
+      "lineWidth": 0
+    }
+  ]
+}

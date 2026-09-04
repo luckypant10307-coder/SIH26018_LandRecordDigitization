@@ -1,0 +1,72 @@
+{
+  "scene": "/vercel/sandbox/data/sih26018/deck/build/sih26018.scene.json",
+  "output": "/vercel/sandbox/data/sih26018/deck/SIH26018_Land_Record_Digitization.pptx",
+  "widthPx": 1280.0,
+  "heightPx": 720.0,
+  "slides": [
+    {
+      "slide": 1,
+      "elements": 5
+    },
+    {
+      "slide": 2,
+      "elements": 4
+    },
+    {
+      "slide": 3,
+      "elements": 13
+    },
+    {
+      "slide": 4,
+      "elements": 16
+    },
+    {
+      "slide": 5,
+      "elements": 6
+    },
+    {
+      "slide": 6,
+      "elements": 24
+    },
+    {
+      "slide": 7,
+      "elements": 5
+    },
+    {
+      "slide": 8,
+      "elements": 5
+    },
+    {
+      "slide": 9,
+      "elements": 6
+    },
+    {
+      "slide": 10,
+      "elements": 11
+    },
+    {
+      "slide": 11,
+      "elements": 6
+    },
+    {
+      "slide": 12,
+      "elements": 9
+    },
+    {
+      "slide": 13,
+      "elements": 20
+    },
+    {
+      "slide": 14,
+      "elements": 11
+    },
+    {
+      "slide": 15,
+      "elements": 27
+    }
+  ],
+  "issues": [],
+  "warnings": [],
+  "intentionalOverlaps": [],
+  "valid": true
+}
