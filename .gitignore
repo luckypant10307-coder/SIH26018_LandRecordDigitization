@@ -8,3 +8,5 @@ venv/
 env/
 .env
 .DS_Store
+.claude/
+.agents/
