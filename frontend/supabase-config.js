@@ -6,12 +6,12 @@
 const SUPABASE_CONFIG = {
   // Get these from your Supabase project settings
   // https://app.supabase.com/project/YOUR_PROJECT/settings/api
-  url: 'https://rpjhtegnbsvjgofmntdc.supabase.co',
-  anonKey: 'sb_publishable_q4PdYTtYfJZCHB9eGLK8rA_QrO5lKxu'
+  url: 'https://qyvdjgiaypcdywrrdlwu.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5dmRqZ2lheXBjZHl3cnJkbHd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MzgxMjIsImV4cCI6MjEwNDExNDEyMn0.hYlIGE8ppp5X-NVz-plf70P-_Svz-pkLObvAioS4j_o'
 };
 
 // Initialize Supabase client only when window.supabase is available
-let supabase = null;
+let supabaseClient = null;
 
 // Function to initialize Supabase
 function initSupabase() {
@@ -20,8 +20,8 @@ function initSupabase() {
     return false;
   }
 
-  if (!supabase) {
-    supabase = window.supabase.createClient(
+  if (!supabaseClient) {
+    supabaseClient = window.supabase.createClient(
       SUPABASE_CONFIG.url,
       SUPABASE_CONFIG.anonKey
     );
@@ -36,7 +36,7 @@ const SupabaseAuth = {
   async signUp(email, password, userData = {}) {
     if (!initSupabase()) throw new Error('Supabase not initialized');
 
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supabaseClient.auth.signUp({
       email,
       password,
       options: {
@@ -52,7 +52,7 @@ const SupabaseAuth = {
   async signIn(email, password) {
     if (!initSupabase()) throw new Error('Supabase not initialized');
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
       email,
       password
     });
@@ -65,7 +65,7 @@ const SupabaseAuth = {
   async signOut() {
     if (!initSupabase()) throw new Error('Supabase not initialized');
 
-    const { error } = await supabase.auth.signOut();
+    const { error } = await supabaseClient.auth.signOut();
     if (error) throw error;
   },
 
@@ -73,7 +73,7 @@ const SupabaseAuth = {
   async getSession() {
     if (!initSupabase()) throw new Error('Supabase not initialized');
 
-    const { data, error } = await supabase.auth.getSession();
+    const { data, error } = await supabaseClient.auth.getSession();
     if (error) throw error;
     return data.session;
   },
@@ -82,7 +82,7 @@ const SupabaseAuth = {
   async getUser() {
     if (!initSupabase()) throw new Error('Supabase not initialized');
 
-    const { data, error } = await supabase.auth.getUser();
+    const { data, error } = await supabaseClient.auth.getUser();
     if (error) throw error;
     return data.user;
   },
@@ -91,14 +91,14 @@ const SupabaseAuth = {
   onAuthStateChange(callback) {
     if (!initSupabase()) throw new Error('Supabase not initialized');
 
-    return supabase.auth.onAuthStateChange(callback);
+    return supabaseClient.auth.onAuthStateChange(callback);
   },
 
   // Update user metadata (role, etc.)
   async updateUserMetadata(updates) {
     if (!initSupabase()) throw new Error('Supabase not initialized');
 
-    const { data, error } = await supabase.auth.updateUser({
+    const { data, error } = await supabaseClient.auth.updateUser({
       data: updates
     });
 
@@ -110,7 +110,7 @@ const SupabaseAuth = {
   async resetPassword(email) {
     if (!initSupabase()) throw new Error('Supabase not initialized');
 
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password.html`
     });
 
@@ -122,7 +122,7 @@ const SupabaseAuth = {
   async updatePassword(newPassword) {
     if (!initSupabase()) throw new Error('Supabase not initialized');
 
-    const { data, error } = await supabase.auth.updateUser({
+    const { data, error } = await supabaseClient.auth.updateUser({
       password: newPassword
     });
 
@@ -133,5 +133,5 @@ const SupabaseAuth = {
 
 // Export for use in other files
 window.SupabaseAuth = SupabaseAuth;
-window.supabaseClient = supabase;
+window.supabaseClient = supabaseClient;
 window.initSupabase = initSupabase;

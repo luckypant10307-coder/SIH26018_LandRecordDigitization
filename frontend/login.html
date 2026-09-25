@@ -251,14 +251,39 @@
 <script src="supabase-config.js"></script>
 <script>
   // Wait for Supabase to load
+  let loadAttempts = 0;
+  const MAX_ATTEMPTS = 50; // 5 seconds max
+
   function initAuth() {
+    loadAttempts++;
+
     if (typeof window.supabase === 'undefined') {
-      console.log('Waiting for Supabase to load...');
-      setTimeout(initAuth, 100);
-      return;
+      if (loadAttempts < MAX_ATTEMPTS) {
+        console.log('Waiting for Supabase to load... Attempt:', loadAttempts);
+        setTimeout(initAuth, 100);
+        return;
+      } else {
+        // Failed to load after 5 seconds
+        console.error('Supabase library failed to load from CDN');
+        document.getElementById('alertBox').innerHTML =
+          '<div class="alert alert-error">Failed to load authentication library. Please check your internet connection and refresh the page.</div>';
+        return;
+      }
     }
 
     console.log('Supabase loaded successfully');
+
+    // Initialize Supabase client
+    if (typeof window.initSupabase === 'function') {
+      const initialized = window.initSupabase();
+      if (!initialized) {
+        console.error('Failed to initialize Supabase client');
+        document.getElementById('alertBox').innerHTML =
+          '<div class="alert alert-error">Failed to initialize authentication. Please refresh the page.</div>';
+        return;
+      }
+    }
+
     setupAuthHandlers();
   }
 
@@ -310,6 +335,12 @@
     const password = document.getElementById('loginPassword').value;
     const loginBtn = document.getElementById('loginBtn');
 
+    // Check if SupabaseAuth is available
+    if (typeof window.SupabaseAuth === 'undefined') {
+      showAlert('Authentication service not loaded. Please refresh the page.');
+      return;
+    }
+
     loginBtn.disabled = true;
     loginBtn.textContent = 'Signing in...';
 
@@ -327,6 +358,7 @@
       }, 1000);
 
     } catch (error) {
+      console.error('Login error:', error);
       showAlert(error.message || 'Login failed. Please check your credentials.');
       loginBtn.disabled = false;
       loginBtn.textContent = 'Sign In';
@@ -345,6 +377,12 @@
 
     if (!role) {
       showAlert('Please select a role');
+      return;
+    }
+
+    // Check if SupabaseAuth is available
+    if (typeof window.SupabaseAuth === 'undefined') {
+      showAlert('Authentication service not loaded. Please refresh the page.');
       return;
     }
 
@@ -367,6 +405,7 @@
       }, 3000);
 
     } catch (error) {
+      console.error('Signup error:', error);
       showAlert(error.message || 'Signup failed. Please try again.');
     } finally {
       signupBtn.disabled = false;

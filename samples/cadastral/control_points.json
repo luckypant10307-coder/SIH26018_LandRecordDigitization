@@ -1,0 +1,44 @@
+{
+  "_comment": "Illustrative placeholder ground control points for the synthetic demo map only - not a real survey. Loosely centred on Lucknow for continuity with sample_01/03's Narharpur village, not a claim about its real location.",
+  "control_points": [
+    {
+      "pixel": [
+        0,
+        0
+      ],
+      "lon": 80.949,
+      "lat": 26.855
+    },
+    {
+      "pixel": [
+        900,
+        0
+      ],
+      "lon": 80.953,
+      "lat": 26.855
+    },
+    {
+      "pixel": [
+        0,
+        900
+      ],
+      "lon": 80.949,
+      "lat": 26.851
+    },
+    {
+      "pixel": [
+        900,
+        900
+      ],
+      "lon": 80.953,
+      "lat": 26.851
+    }
+  ],
+  "village": "नरहरपुर",
+  "village_aliases": [
+    "नरहरपुर",
+    "Narharpur"
+  ],
+  "district": "Lucknow",
+  "_village_comment": "The village this map covers. Parcel-to-document matching is scoped to it so two villages that reuse the same khasra numbers cannot cross-match."
+}

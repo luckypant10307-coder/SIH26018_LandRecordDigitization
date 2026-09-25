@@ -38,7 +38,10 @@ def check_python() -> None:
 
 def report() -> int:
     """Print what this machine can actually do, honestly."""
+    import fact_checker
+    import llm_extractor
     import ocr_engine
+    import table_structure
     import validator
 
     caps = ocr_engine.capabilities()
@@ -60,6 +63,22 @@ def report() -> int:
         print("    guessed at. Install tesseract-ocr + the hin/eng language")
         print("    packs to enable the OCR path.")
     print(f"  LGD admin master      : {'loaded' if validator._MASTER.loaded else 'MISSING'}")
+    print(f"  Fact-check ML engine  : {'available (scikit-learn)' if fact_checker.SKLEARN_AVAILABLE else 'no (install scikit-learn)'}")
+    print(f"  Fact-check registry   : {'loaded' if fact_checker._REGISTRY.loaded else 'MISSING'}")
+    if table_structure.PADDLE_STRUCTURE_AVAILABLE:
+        print("  Table/layout (PaddleOCR): available (heavy - seconds/page on CPU, no GPU here)")
+    elif table_structure._PYTHON_TOO_NEW:
+        print(f"  Table/layout (PaddleOCR): no - PaddlePaddle does not yet support "
+              f"Python {sys.version_info.major}.{sys.version_info.minor}; needs 3.8-3.12")
+    else:
+        print("  Table/layout (PaddleOCR): no (optional, install paddleocr[doc-parser] + paddlepaddle)")
+    if llm_extractor.LLM_AVAILABLE:
+        provider = ("Anthropic" if llm_extractor.ANTHROPIC_API_KEY
+                    else "OpenAI" if llm_extractor.OPENAI_API_KEY else "NVIDIA")
+        print(f"  LLM field suggestions : ACTIVE ({provider}) - document text is sent "
+              "to a third party for fields the rule-based extractor could not read")
+    else:
+        print(f"  LLM field suggestions : off ({llm_extractor.unavailable_reason()})")
 
     samples = os.path.join(ROOT, "samples")
     count = len([f for f in os.listdir(samples)

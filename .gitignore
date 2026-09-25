@@ -10,3 +10,6 @@ env/
 .DS_Store
 .claude/
 .agents/
+# Runtime logs from run.py
+server.log
+server-error.log

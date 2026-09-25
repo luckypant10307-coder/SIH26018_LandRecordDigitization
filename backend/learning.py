@@ -39,9 +39,9 @@ import os
 import re
 from collections import Counter, defaultdict
 from difflib import SequenceMatcher
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
-from field_extractor import FIELD_BY_KEY, normalise
+from field_extractor import FIELD_BY_KEY, REVIEW_THRESHOLD, normalise
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(_HERE, "..", "storage", "learned_model.json")
@@ -97,10 +97,21 @@ def mine_confusions(corrections: List[dict]) -> List[dict]:
         kinds = sorted(contexts[(a, b)])
         out.append({
             "from": a, "to": b, "support": count, "field_kinds": kinds,
-            # Only auto-apply inside numeric fields, where the alphabet is
-            # closed and a substitution is provably safe.
-            "auto_apply": bool(kinds) and all(k == "number" for k in kinds)
-                          and b.isdigit(),
+            # Eligible to be *offered* as a repair inside identifier fields,
+            # where the alphabet is closed. The gate asks whether this
+            # confusion was ever seen in such a field - NOT whether it was
+            # only ever seen there. Requiring `all(kinds) == number` was too
+            # strict to ever fire: on the sample corpus '4' -> '1' reached 14
+            # supporting corrections but was disqualified because the same
+            # misread also showed up once in a village name, as though seeing
+            # a confusion in prose made it untrue of digits.
+            #
+            # Being eligible is not being trusted. apply_model() still only
+            # touches fields of kind 'number', only substitutes one character
+            # at a time, only accepts a candidate the external registry or a
+            # cadastral map can vouch for, and always sends the result to a
+            # human. This flag opens that path; it does not shortcut it.
+            "auto_apply": ("number" in kinds) and b.isdigit(),
         })
     return out
 
@@ -225,11 +236,45 @@ def load_model(path: str = MODEL_PATH) -> dict:
                 "calibration": [], "active_rules": 0}
 
 
-def apply_model(fields: List, model: Optional[dict] = None) -> List[dict]:
+def _confusion_variants(value: str, confusions: List[dict]) -> Dict[str, dict]:
     """
-    Apply learned aliases and recalibration to freshly extracted fields.
-    Mutates confidence and value in place and returns a list of the
-    adjustments made, so the UI can show exactly what the learning loop did.
+    Every single-character variant of `value` reachable by one learned
+    confusion.
+
+    One substitution at a time, deliberately. A learned confusion says "the
+    engine sometimes reads 4 where the truth is 1"; it does NOT say which 4 on
+    the page was the wrong one. Replacing them all turns khata 4474 into 1171
+    and invents a parcel that does not exist. Generating one candidate per
+    position and making something else choose between them is the only safe
+    reading of the evidence.
+    """
+    out: Dict[str, dict] = {}
+    for rule in confusions:
+        if not rule.get("auto_apply"):
+            continue
+        a, b = rule.get("from"), rule.get("to")
+        if not a or not b:
+            continue
+        for i, ch in enumerate(value):
+            if ch == a:
+                out.setdefault(value[:i] + b + value[i + 1:], rule)
+    return out
+
+
+def apply_model(fields: List, model: Optional[dict] = None,
+                corroborate: Optional[Callable[[str, str], bool]] = None,
+                review_threshold: float = REVIEW_THRESHOLD) -> List[dict]:
+    """
+    Apply learned aliases, confusion repairs and recalibration to freshly
+    extracted fields. Mutates value/confidence/status in place and returns a
+    list of the adjustments made, so the UI can show exactly what the learning
+    loop did.
+
+    `corroborate(field_key, value) -> bool` is the authority that decides
+    whether a candidate plot number actually exists - the external registry and
+    the cadastral parcel index, injected by the caller so this module stays
+    free of those dependencies. Without it, confusion repair is skipped
+    entirely rather than guessed at.
     """
     model = model or load_model()
     if not model.get("active_rules"):
@@ -240,6 +285,7 @@ def apply_model(fields: List, model: Optional[dict] = None) -> List[dict]:
         for a in model.get("aliases", []) if a.get("auto_apply")
     }
     calib_index = {c["field_key"]: c for c in model.get("calibration", [])}
+    confusions = model.get("confusions", [])
     applied: List[dict] = []
 
     for f in fields:
@@ -255,6 +301,45 @@ def apply_model(fields: List, model: Optional[dict] = None) -> List[dict]:
                                 "from": old, "to": f.value,
                                 "support": alias["support"]})
 
+        # Confusion repair. Only for identifiers, where the alphabet is closed
+        # and an authority exists to check a candidate against; and only when
+        # the extracted value is NOT already corroborated, so a plot number
+        # that checks out is never second-guessed.
+        spec = FIELD_BY_KEY.get(f.key)
+        if (corroborate is not None and confusions and getattr(f, "value", None)
+                and spec is not None and spec.kind == "number"
+                and not corroborate(f.key, f.value)):
+            variants = _confusion_variants(f.value, confusions)
+            hits = [v for v in variants if corroborate(f.key, v)]
+            if len(hits) == 1:
+                old, new = f.value, hits[0]
+                rule = variants[new]
+                f.value = new
+                # Repaired, never silently trusted: a learned guess about a
+                # plot number goes in front of a human even though it now
+                # matches the registry.
+                f.status = "needs_review"
+                f.notes.append(
+                    f"Learned OCR repair: '{old}' -> '{new}' "
+                    f"('{rule['from']}' misread as '{rule['to']}' in "
+                    f"{rule['support']} past corrections). '{old}' matches no "
+                    f"registry or cadastral record; '{new}' does. Confirm "
+                    f"against the source document.")
+                applied.append({"field_key": f.key, "type": "confusion_repair",
+                                "from": old, "to": new,
+                                "support": rule["support"]})
+            elif len(hits) > 1:
+                # Several learned repairs are equally plausible. Picking one
+                # would be a coin flip on someone's land, so the value stands
+                # and the doubt is recorded instead.
+                f.status = "needs_review"
+                f.notes.append(
+                    f"'{f.value}' matches no registry or cadastral record, and "
+                    f"learned OCR confusions make {', '.join(sorted(hits))} "
+                    f"equally plausible. Needs a human decision.")
+                applied.append({"field_key": f.key, "type": "confusion_ambiguous",
+                                "from": f.value, "candidates": sorted(hits)})
+
         calib = calib_index.get(f.key)
         if calib and f.confidence > 0:
             before = f.confidence
@@ -267,6 +352,16 @@ def apply_model(fields: List, model: Optional[dict] = None) -> List[dict]:
                                 "from": round(before, 4),
                                 "to": round(f.confidence, 4),
                                 "multiplier": calib["multiplier"]})
+
+        # Recalibration is only worth doing if it changes where the field
+        # GOES. extract_fields() stamped status from the raw confidence before
+        # any of the above ran, so without this the deflation was cosmetic:
+        # a field the loop had learned to distrust still sailed past review
+        # with a lower number printed next to it.
+        if getattr(f, "status", "") not in ("missing", "needs_review"):
+            f.status = ("needs_review" if f.confidence < review_threshold
+                        else "extracted")
+
     return applied
 
 

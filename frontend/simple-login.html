@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Simple Login Test</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 20px;
+  }
+  input, button {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    font-size: 16px;
+  }
+  button {
+    background: #667eea;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .message {
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+  }
+  .error { background: #fee; color: #c00; }
+  .success { background: #efe; color: #0a0; }
+  .info { background: #eef; color: #00a; }
+  #debug {
+    background: #f5f5f5;
+    padding: 10px;
+    margin: 20px 0;
+    font-size: 12px;
+    font-family: monospace;
+    border: 1px solid #ccc;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+</style>
+</head>
+<body>
+
+<h1>🔐 Simple Login Test</h1>
+<div id="status"></div>
+
+<h3>Sign Up</h3>
+<form id="signupForm">
+  <input type="email" id="signupEmail" placeholder="Email" required />
+  <input type="password" id="signupPassword" placeholder="Password (min 6 chars)" required minlength="6" />
+  <button type="submit">Create Account</button>
+</form>
+
+<h3>Sign In</h3>
+<form id="loginForm">
+  <input type="email" id="loginEmail" placeholder="Email" required />
+  <input type="password" id="loginPassword" placeholder="Password" required />
+  <button type="submit">Sign In</button>
+</form>
+
+<h3>Debug Log</h3>
+<div id="debug"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const statusDiv = document.getElementById('status');
+  const debugDiv = document.getElementById('debug');
+
+  function log(msg, type = 'info') {
+    console.log(msg);
+    const time = new Date().toLocaleTimeString();
+    debugDiv.innerHTML += `<div>[${time}] ${msg}</div>`;
+    debugDiv.scrollTop = debugDiv.scrollHeight;
+  }
+
+  function showMessage(msg, type = 'info') {
+    statusDiv.innerHTML = `<div class="message ${type}">${msg}</div>`;
+  }
+
+  log('Page loaded');
+
+  // Supabase configuration
+  const SUPABASE_URL = 'https://qyvdjgiaypcdywrrdlwu.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5dmRqZ2lheXBjZHl3cnJkbHd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MzgxMjIsImV4cCI6MjEwNDExNDEyMn0.hYlIGE8ppp5X-NVz-plf70P-_Svz-pkLObvAioS4j_o';
+
+  // Wait for Supabase library to load
+  let attempts = 0;
+  const checkSupabase = setInterval(() => {
+    attempts++;
+    log(`Checking for Supabase library... attempt ${attempts}`);
+
+    if (typeof window.supabase !== 'undefined') {
+      clearInterval(checkSupabase);
+      log('✅ Supabase library loaded!');
+      initializeSupabase();
+    } else if (attempts > 50) {
+      clearInterval(checkSupabase);
+      log('❌ Supabase library failed to load after 5 seconds');
+      showMessage('Failed to load authentication library. Check your internet connection.', 'error');
+    }
+  }, 100);
+
+  let supabaseClient = null;
+
+  function initializeSupabase() {
+    try {
+      log('Creating Supabase client...');
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      log('✅ Supabase client created successfully!');
+      showMessage('Authentication ready! You can now sign up or sign in.', 'success');
+    } catch (error) {
+      log('❌ Error creating Supabase client: ' + error.message);
+      showMessage('Failed to initialize authentication: ' + error.message, 'error');
+    }
+  }
+
+  // Sign Up
+  document.getElementById('signupForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if (!supabaseClient) {
+      showMessage('Supabase not initialized yet. Please wait.', 'error');
+      return;
+    }
+
+    const email = document.getElementById('signupEmail').value;
+    const password = document.getElementById('signupPassword').value;
+
+    log(`Attempting to sign up: ${email}`);
+    showMessage('Creating account...', 'info');
+
+    try {
+      const { data, error } = await supabaseClient.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: {
+            role: 'operator'
+          }
+        }
+      });
+
+      if (error) {
+        log('❌ Sign up error: ' + error.message);
+        showMessage('Sign up failed: ' + error.message, 'error');
+      } else {
+        log('✅ Sign up successful!');
+        log('User ID: ' + data.user?.id);
+        showMessage('Account created successfully! Check your email for verification.', 'success');
+        document.getElementById('signupForm').reset();
+      }
+    } catch (error) {
+      log('❌ Exception during sign up: ' + error.message);
+      showMessage('Error: ' + error.message, 'error');
+    }
+  });
+
+  // Sign In
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if (!supabaseClient) {
+      showMessage('Supabase not initialized yet. Please wait.', 'error');
+      return;
+    }
+
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+
+    log(`Attempting to sign in: ${email}`);
+    showMessage('Signing in...', 'info');
+
+    try {
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
+
+      if (error) {
+        log('❌ Sign in error: ' + error.message);
+        showMessage('Sign in failed: ' + error.message, 'error');
+      } else {
+        log('✅ Sign in successful!');
+        log('User: ' + data.user?.email);
+        showMessage('Login successful! Redirecting...', 'success');
+
+        // Store in localStorage
+        localStorage.setItem('supabase_user', JSON.stringify(data.user));
+        localStorage.setItem('user_email', data.user.email);
+
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 1500);
+      }
+    } catch (error) {
+      log('❌ Exception during sign in: ' + error.message);
+      showMessage('Error: ' + error.message, 'error');
+    }
+  });
+</script>
+
+</body>
+</html>

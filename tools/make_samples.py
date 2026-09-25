@@ -31,17 +31,29 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas as rl_canvas
 
 DEVA_CANDIDATES = [
-    "/usr/share/fonts/google-droid-sans-fonts/DroidSansDevanagari-Regular.ttf",
-    "/usr/share/fonts/truetype/droid/DroidSansDevanagari-Regular.ttf",
-    "/usr/share/fonts/truetype/lohit-devanagari/Lohit-Devanagari.ttf",
+    ("/usr/share/fonts/google-droid-sans-fonts/DroidSansDevanagari-Regular.ttf", {}),
+    ("/usr/share/fonts/truetype/droid/DroidSansDevanagari-Regular.ttf", {}),
+    ("/usr/share/fonts/truetype/lohit-devanagari/Lohit-Devanagari.ttf", {}),
+    # Windows ships Nirmala UI (Microsoft's default Indic-script font) as a
+    # TrueType Collection, which reportlab can load via subfontIndex.
+    (os.path.expandvars(r"%WINDIR%\Fonts\Nirmala.ttc"), {"subfontIndex": 0}),
 ]
 
+# A missing font is expected and handled; a font that exists but fails to
+# load (a corrupt file, an unsupported .ttc face index) must not be treated
+# the same way - silently falling through would replace every Devanagari
+# character with the wrong glyph while still claiming success, corrupting
+# the sample corpus without a warning.
 DEVA_OK = False
-for path in DEVA_CANDIDATES:
-    if os.path.exists(path):
-        pdfmetrics.registerFont(TTFont("Deva", path))
+for path, kwargs in DEVA_CANDIDATES:
+    if not os.path.exists(path):
+        continue
+    try:
+        pdfmetrics.registerFont(TTFont("Deva", path, **kwargs))
         DEVA_OK = True
         break
+    except Exception as exc:
+        print(f"  ! Found {path} but could not load it as a font ({exc}); trying next candidate.")
 if not DEVA_OK:
     print("  ! No Devanagari font found - Hindi samples will render as boxes.")
 
@@ -162,10 +174,25 @@ def draw_record(path: str, header: list, rows: list, footer: list,
     c.setStrokeGray(0.4)
     c.setLineWidth(0.7)
     c.line(W - margin - 55 * mm, margin + 24 * mm, W - margin, margin + 24 * mm)
+    # Real department/notary seals are stamped in coloured ink (purple, red,
+    # blue) specifically so they are distinguishable from photocopied black
+    # body text - verified against a real notary seal and real revenue
+    # stamps. A black outline here would never register as a seal to
+    # backend/document_authenticity.py's colour-based detector, which is
+    # exactly the property real seal ink exists to guarantee.
+    c.setStrokeColorRGB(0.45, 0.08, 0.42)
+    c.setFillColorRGB(0.45, 0.08, 0.42)
+    # A thick stroke, not reportlab's hairline default: real stamp ink is
+    # bold enough to survive being stamped by hand, and detection's
+    # closing+opening morphology needs that real thickness to work with -
+    # a 1px outline just gets eroded away as noise, same as it would be on
+    # an actual faint/dry-inked stamp.
+    c.setLineWidth(5.0)
     c.circle(margin + 22 * mm, margin + 24 * mm, 13 * mm, stroke=1, fill=0)
     dcentre(c, margin + 22 * mm, margin + 25 * mm, "राजस्व विभाग", 6.5)
     dcentre(c, margin + 22 * mm, margin + 21 * mm, "REVENUE DEPT", 6.5)
     c.setStrokeGray(0)
+    c.setFillGray(0)
 
     c.showPage()
     c.save()
@@ -207,7 +234,7 @@ SAMPLES = [
         rows=[
             ("खाता संख्या / Khata Number", "1428"),
             ("खसरा संख्या / Khasra Number", "237/4"),
-            ("ULPIN", "UP0912237004"),
+            ("ULPIN", "UP091223700412"),
             (None, None),
             ("खातेदार का नाम / Owner Name", "रामप्रसाद वर्मा"),
             ("पिता का नाम / Father's Name", "श्री जगदीश वर्मा"),
@@ -442,13 +469,53 @@ SAMPLES = [
             ("भूमि श्रेणी / Land Classification", "बंजर"),
             (None, None),
             ("ग्राम / Village", "Rampur Bhagan"),
-            ("तहसील / Tehsil", "Sadar"),
+            # The district was renamed Allahabad -> Prayagraj in 2018, but the
+            # LGD sub-district record kept the pre-rename name "Allahabad" -
+            # using "Sadar" here would not match the real gazetteer.
+            ("तहसील / Tehsil", "Allahabad"),
             ("जनपद / District", "Prayagraj"),
             ("राज्य / State", "Uttar Pradesh"),
             (None, None),
             ("पंजीकरण दिनांक / Registration Date", "21/04/1938"),
         ],
         footer=["ऐतिहासिक अभिलेख / Historical record - manual verification advised."],
+    ),
+
+    # 11. Clean record whose khasra number (213/1) and village (नरहरपुर) are
+    #     the same ones the bundled demo cadastral map
+    #     (samples/cadastral/village_map_narharpur.png, ground_truth.json)
+    #     already uses for its last parcel - deliberately, so uploading this
+    #     one sample and approving it demonstrates the map-linking feature
+    #     (S12a "GET /api/cadastral/parcels" document join) working end to
+    #     end out of the box, not just wired but unverified. Every other
+    #     sample's khasra number was checked against the cadastral ground
+    #     truth's 200/3-213/1 range before this was added, to confirm this
+    #     is the only intentional overlap, not an accidental collision.
+    dict(
+        name="sample_11_cadastral_linked.pdf", header=UP_HEADER, seed=111,
+        rows=[
+            ("खाता संख्या / Khata Number", "1500"),
+            ("खसरा संख्या / Khasra Number", "213/1"),
+            ("ULPIN", "UP091221300106"),
+            (None, None),
+            ("खातेदार का नाम / Owner Name", "सुनीता देवी"),
+            ("पिता का नाम / Father's Name", "श्री राम किशोर"),
+            ("अंश / Share", "1/1"),
+            (None, None),
+            ("क्षेत्रफल / Area", "0.8100 हेक्टेयर"),
+            ("भूमि श्रेणी / Land Classification", "सिंचित कृषि भूमि"),
+            (None, None),
+            ("ग्राम / Village", "नरहरपुर"),
+            ("तहसील / Tehsil", "Sadar"),
+            ("जनपद / District", "Lucknow"),
+            ("राज्य / State", "Uttar Pradesh"),
+            (None, None),
+            ("नामांतरण संख्या / Mutation Number", "MUT-2024-005566"),
+            ("नामांतरण दिनांक / Mutation Date", "11/02/2024"),
+            ("पंजीकरण संख्या / Registration Number", "REG-2020-88213"),
+            ("पंजीकरण दिनांक / Registration Date", "03/06/2020"),
+        ],
+        footer=FOOTER_STD,
     ),
 ]
 
@@ -507,8 +574,15 @@ def make_scans(pdf_names: list) -> None:
         img = img.astype(np.uint8)
         base = os.path.splitext(src_name)[0].replace("sample_", "")
         out = os.path.join(OUT, f"scan_{base}_{style}.png")
-        cv2.imwrite(out, img)
-        print(f"  + {os.path.relpath(out, ROOT)}")
+        # cv2.imwrite returns False rather than raising - on Windows a path
+        # over MAX_PATH (260) fails exactly this way. Unchecked, the corpus
+        # silently comes up one document short and every accuracy number
+        # measured on it is quietly wrong.
+        if cv2.imwrite(out, img):
+            print(f"  + {os.path.relpath(out, ROOT)}")
+        else:
+            print(f"  ! FAILED to write {out} "
+                  f"({len(os.path.abspath(out))} chars) - path too long?")
 
     tmp = os.path.join(OUT, "_tmp_render.png")
     if os.path.exists(tmp):

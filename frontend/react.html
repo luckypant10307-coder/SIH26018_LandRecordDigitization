@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Land Record Digitization &amp; Validation — React UI</title>
+
+<!-- Reuses the existing stylesheet unchanged. The React port renders the same
+     class names as the vanilla app on purpose: the two UIs then cannot drift
+     apart visually, and a CSS fix benefits both. -->
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="react/react-ui.css">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+</head>
+<body>
+
+<div id="root"></div>
+
+<!-- Everything is vendored locally, exactly as Leaflet already was, so this
+     page works with no internet and nothing to install. No bundler, no npm,
+     no Babel: components are written with React.createElement (aliased to `h`
+     in react/lib.js) rather than JSX, which is what removes the build step.
+
+     Load order matters because these are plain scripts sharing globals rather
+     than ES modules - lib.js defines `h` and the helpers that every later
+     file uses. -->
+<script src="vendor/react/react.production.min.js"></script>
+<script src="vendor/react/react-dom.production.min.js"></script>
+<script src="vendor/leaflet/leaflet.js"></script>
+
+<script src="react/lib.js"></script>
+<script src="react/ui.js"></script>
+<script src="react/views.js"></script>
+<script src="react/cadastral.js"></script>
+<script src="react/app.js"></script>
+
+</body>
+</html>

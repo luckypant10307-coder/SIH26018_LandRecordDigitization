@@ -1,0 +1,103 @@
+{
+  "_comment": "Bundled demo extract standing in for an external, authoritative parcel-level registry (a DILRMP/LGD-style land-records index reached over an API in production). Used for fact-checking: does an ingested record actually correspond to what the authority already has on file for that parcel, and if so, do owner/area/classification agree? The shape is kept identical so only the transport layer changes when a real registry is wired in.",
+  "source": "Bundled demo extract (registry-API-compatible shape)",
+  "version": "2026.1-demo",
+  "records": [
+    {
+      "source_id": "UP-BOR-1428-237-4",
+      "khasra_number": "237/4",
+      "khata_number": "1428",
+      "village": "नरहरपुर",
+      "tehsil": "Sadar",
+      "district": "Lucknow",
+      "state": "Uttar Pradesh",
+      "owner_name": "रामप्रसाद वर्मा",
+      "area_sqm": 12540.0,
+      "land_classification": "irrigated_agricultural"
+    },
+    {
+      "source_id": "RJ-BOR-1902-66-1",
+      "khasra_number": "66/1",
+      "khata_number": "1902",
+      "village": "Dausa Kalan",
+      "tehsil": "Dausa",
+      "district": "Dausa",
+      "state": "Rajasthan",
+      "owner_name": "Suresh Chand Meena",
+      "area_sqm": 16000.0,
+      "land_classification": "unirrigated_agricultural"
+    },
+    {
+      "source_id": "UP-BOR-7781-1024-2",
+      "khasra_number": "1024/2",
+      "khata_number": "7781",
+      "village": "Bhadohi Khurd",
+      "tehsil": "Varanasi",
+      "district": "Varanasi",
+      "state": "Uttar Pradesh",
+      "owner_name": "Shabana Khatoon",
+      "area_sqm": 3400.0,
+      "land_classification": "residential"
+    },
+    {
+      "source_id": "MH-BOR-4471-142",
+      "khasra_number": "142",
+      "khata_number": "4471",
+      "village": "Shirur Kasar",
+      "tehsil": "Haveli",
+      "district": "Pune",
+      "state": "Maharashtra",
+      "owner_name": "Vitthal Bhau Pawar",
+      "area_sqm": 5100.0,
+      "land_classification": "unirrigated_agricultural"
+    },
+    {
+      "source_id": "UP-BOR-3390-4820",
+      "khasra_number": "512",
+      "khata_number": "930",
+      "village": "Sarojini Nagar",
+      "tehsil": "Sarojini Nagar",
+      "district": "Lucknow",
+      "state": "Uttar Pradesh",
+      "owner_name": "Vinod Kumar Tiwari",
+      "area_sqm": 8100.0,
+      "land_classification": "agricultural"
+    },
+    {
+      "source_id": "MP-BOR-2255-118",
+      "khasra_number": "118/2",
+      "khata_number": "2255",
+      "village": "Berasia",
+      "tehsil": "Berasia",
+      "district": "Bhopal",
+      "state": "Madhya Pradesh",
+      "owner_name": "Manoj Sharma",
+      "area_sqm": 4200.0,
+      "land_classification": "agricultural"
+    },
+    {
+      "source_id": "RJ-BOR-1140-29",
+      "khasra_number": "29/1",
+      "khata_number": "1140",
+      "village": "Chomu",
+      "tehsil": "Chomu",
+      "district": "Jaipur",
+      "state": "Rajasthan",
+      "owner_name": "Kailash Chand Sharma",
+      "area_sqm": 6070.0,
+      "land_classification": "residential"
+    },
+    {
+      "source_id": "BH-BOR-3301-88",
+      "khasra_number": "88/3",
+      "khata_number": "3301",
+      "village": "Danapur",
+      "tehsil": "Danapur",
+      "district": "Patna",
+      "state": "Bihar",
+      "owner_name": "Ashok Kumar Singh",
+      "area_sqm": 2500.0,
+      "land_classification": "residential"
+    }
+  ]
+}

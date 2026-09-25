@@ -1,0 +1,118 @@
+/* Intelligent Land Record Digitization & Validation System - SIH 2026, PS 26018
+ *
+ * React port: ONLY the rules the shared stylesheet does not already provide.
+ *
+ * styles.css is loaded first and unchanged, and the React components render
+ * the same class names as the vanilla markup, so nearly everything is already
+ * styled. What remains are the few places where the vanilla app styled an
+ * ELEMENT BY ID (#previewImg, #fileList, #capList) - ids that a component
+ * tree should not be reproducing, because they have to be unique and a
+ * component may legitimately appear twice. Those become classes here.
+ *
+ * Every value below is taken from the tokens in styles.css rather than
+ * re-picked, so the two UIs cannot drift apart visually.
+ */
+
+/* The React root has no .panel-view tab machinery: only the active view is
+   rendered at all, so there is nothing to hide. */
+.panel { padding: 24px; max-width: 1500px; margin: 0 auto; }
+
+.row-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 24px; flex-wrap: wrap; margin-bottom: 12px;
+}
+
+/* Ingest */
+.file-list { list-style: none; margin: 12px 0 0; padding: 0; }
+.file-list li {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.file-list .fname { flex: 1 1 auto; overflow-wrap: anywhere; }
+.file-list .fsize { color: var(--text-2); font-size: 14px; }
+
+.cap-list { list-style: none; margin: 0; padding: 0; }
+.cap-list li {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.cap-list li:last-child { border-bottom: none; }
+.cap-list .cap-name { flex: 0 0 240px; font-weight: 500; }
+.cap-list .cap-note { color: var(--text-2); font-size: 14px; overflow-wrap: anywhere; }
+
+/* Workspace: two columns on a wide screen, stacked on a narrow one - the
+   same breakpoint styles.css uses for .grid-ws. */
+.ws-grid {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 24px; align-items: start;
+}
+.chart-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;
+}
+@media (max-width: 1000px) {
+  .ws-grid, .chart-grid { grid-template-columns: 1fr; }
+}
+
+.preview-pane { display: flex; flex-direction: column; gap: 12px; }
+.preview-img {
+  max-width: 100%; border: 1px solid var(--border);
+  border-radius: var(--r); background: var(--canvas);
+}
+.preview-text {
+  max-height: 420px; overflow: auto; margin: 0; padding: 12px;
+  background: var(--surface-2); border-radius: var(--r);
+  font-size: 13px; line-height: 1.6; white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* The field value becomes a real <input> while editing rather than a
+   contentEditable div, so it needs to inherit the row's typography instead of
+   the browser's form defaults. */
+input.field-value {
+  font: inherit; color: inherit; width: 100%;
+  border: 1px solid var(--blue); border-radius: 4px;
+  padding: 2px 6px; background: var(--canvas);
+}
+
+/* Modal. Not in styles.css because the vanilla dialog lives in index.html
+   and is toggled with [hidden]; this port renders nothing when closed. */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(44, 44, 43, .35);
+}
+.modal {
+  background: var(--canvas); border-radius: var(--r-lg); box-shadow: var(--shadow);
+  padding: 24px; width: min(520px, calc(100vw - 48px));
+}
+.modal h3 { margin-top: 0; }
+.modal-actions {
+  display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px;
+}
+
+/* Cadastral map. A height is mandatory: Leaflet measures its container, and
+   a container that collapses to zero renders a grey box with no tiles and no
+   error message. */
+.cadastral-map {
+  height: 620px; width: 100%; border-radius: var(--r);
+  border: 1px solid var(--border); background: var(--surface-2);
+}
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; }
+.legend-item {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 14px; color: var(--text-2);
+}
+.legend-swatch {
+  width: 12px; height: 12px; border-radius: 3px; display: inline-block;
+}
+
+/* Shown when the API cannot be reached at all, in place of the whole UI -
+   an empty shell with silent failures would be worse than a plain message
+   naming the command that starts the backend. */
+.boot-error {
+  max-width: 560px; margin: 15vh auto; padding: 24px;
+  background: var(--canvas); border: 1px solid var(--border);
+  border-left: 3px solid var(--red); border-radius: var(--r); box-shadow: var(--shadow);
+}
+.boot-error h2 { margin-top: 0; }

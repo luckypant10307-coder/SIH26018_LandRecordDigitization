@@ -108,6 +108,7 @@ function showTab(name) {
   $$(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === name));
   $$(".panel-view").forEach((v) => v.classList.toggle("active", v.id === "view-" + name));
   if (name === "queue") loadDocuments();
+  if (name === "cadastral") loadCadastralMap();
   if (name === "dashboard") loadDashboard();
   if (name === "learning") loadLearning();
   if (name === "audit") loadAudit();
@@ -554,6 +555,265 @@ function barChart(el, rows, colorFn) {
     </div>`).join("") : `<p class="mini-empty">No data yet.</p>`;
 }
 
+/* ------------------------------------------------------------------ *
+ * Cadastral map (S12a vectorization/georeferencing, rendered with a
+ * locally-vendored Leaflet - see frontend/vendor/leaflet/, not a CDN, so
+ * this keeps working with no internet connection).
+ * ------------------------------------------------------------------ */
+
+let cadastralMap = null;
+let cadastralLayers = null;
+let cadastralLayerControl = null;
+
+// Matches STATUS_META's colour classes (see statusBadge above) so a parcel's
+// fill colour always means the same thing the queue/workspace badges do.
+function parcelColor(linked) {
+  if (!linked) return "#B9B7B2";   // no uploaded document matched yet
+  const cls = (STATUS_META[linked.status] || {}).cls;
+  if (cls === "green") return "var(--green)";
+  if (cls === "orange") return "var(--orange)";
+  if (cls === "red") return "var(--red)";
+  return "var(--blue)";
+}
+
+function parcelPopup(props) {
+  const linked = props.linked_document;
+  let body = `<b>Parcel ${esc(props.parcel_id)}</b><br>`
+    + `Khasra: ${esc(props.khasra_number || "— (label not read)")}`;
+  if (props.area_m2) {
+    body += `<br>Measured area: ${Number(props.area_m2).toLocaleString()} m²`
+      + ` (${(props.area_m2 / 10000).toFixed(3)} ha)`;
+  }
+  if (props.centroid_lat != null) {
+    body += `<br><span class="muted small">${props.centroid_lat.toFixed(5)},`
+      + ` ${props.centroid_lon.toFixed(5)}</span>`;
+  }
+  if (linked) {
+    body += `<br>${statusBadge(linked.status)}`
+      + `<br>Owner: ${esc(linked.owner_name || "—")}`
+      + `<br>Trust: ${linked.trust_score != null ? Math.round(linked.trust_score) : "—"}`
+      + `<br><a href="#workspace/${linked.document_id}">Open in verification workspace &rarr;</a>`;
+  } else {
+    body += `<br><span class="muted small">No uploaded document matched to this parcel yet.</span>`;
+  }
+  return body;
+}
+
+/* ---- Thematic layer: land classification -------------------------------
+ * Classification values arrive as free text in whatever script the record
+ * was written in (सिंचित / असिंचित / irrigated / barren ...), so they are
+ * bucketed by keyword rather than matched exactly - an unrecognised value
+ * gets its own colour and is still shown, never silently dropped, because
+ * "we could not classify this" is itself information a revenue officer
+ * wants on the map.
+ */
+const LAND_CLASS_BUCKETS = [
+  { key: "irrigated",   color: "#2E7D32", test: /सिंचित|सिचित|irrigat|बागायत/i, label: "Irrigated" },
+  { key: "unirrigated", color: "#C0864B", test: /असिंचित|असचिति|unirrigat|जिरायत|dry/i, label: "Unirrigated" },
+  { key: "barren",      color: "#9E9E9E", test: /बंजर|barren|waste/i, label: "Barren / waste" },
+  { key: "residential", color: "#6A4C93", test: /आवासीय|residen|abadi|आबादी/i, label: "Residential" },
+];
+
+function landClassBucket(value) {
+  if (!value) return null;
+  // Unirrigated must be tested before irrigated: "असिंचित" contains "सिंचित".
+  for (const b of LAND_CLASS_BUCKETS) {
+    if (b.key === "unirrigated" && b.test.test(value)) return b;
+  }
+  for (const b of LAND_CLASS_BUCKETS) {
+    if (b.key !== "unirrigated" && b.test.test(value)) return b;
+  }
+  return { key: "other", color: "#2783DE", label: "Other / unclassified" };
+}
+
+function buildLegend(entries) {
+  const el = $("#cadastralLegend");
+  if (!entries.length) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = entries.map((e) =>
+    `<span class="legend-item"><span class="legend-swatch" style="background:${e.color}"></span>${esc(e.label)}</span>`
+  ).join("");
+}
+
+// Refetched every time this tab is opened, not cached like the queue/
+// dashboard would be tempted to: the whole point is that a document's link
+// to its parcel is live - approve, correct, or reject it elsewhere and the
+// map must reflect that on the next visit, not the state from page load.
+let cadastralSelectedMap = null;
+
+// The village list can grow at runtime (an admin adds a real map), so it is
+// refreshed on every visit rather than built once at page load.
+async function refreshCadastralMapList() {
+  const sel = $("#cadastralMapSelect");
+  let maps = [];
+  try {
+    maps = (await api("/api/cadastral/maps")).maps || [];
+  } catch (e) {
+    maps = [];
+  }
+  sel.innerHTML = maps.map((m) =>
+    `<option value="${esc(m.id)}">${esc(m.village)}${m.district ? " — " + esc(m.district) : ""}`
+    + `${m.bundled ? " (demo)" : ""}</option>`).join("");
+  if (maps.length && !maps.some((m) => m.id === cadastralSelectedMap)) {
+    cadastralSelectedMap = maps[0].id;
+  }
+  if (cadastralSelectedMap) sel.value = cadastralSelectedMap;
+  sel.parentElement.hidden = maps.length < 2;   // pointless chooser for one map
+  return maps;
+}
+
+async function loadCadastralMap() {
+  await refreshCadastralMapList();
+  const qs = cadastralSelectedMap ? `?map=${encodeURIComponent(cadastralSelectedMap)}` : "";
+  const geojson = await api("/api/cadastral/parcels" + qs);
+  const metaEl = $("#cadastralMeta");
+  const discEl = $("#cadastralDisclaimer");
+
+  if (geojson._error) {
+    metaEl.textContent = "Unavailable";
+    discEl.hidden = false;
+    discEl.textContent = geojson._error;
+    return;
+  }
+  discEl.hidden = !geojson._disclaimer;
+  if (geojson._disclaimer) discEl.textContent = geojson._disclaimer;
+
+  const features = geojson.features || [];
+  const linkedCount = features.filter((f) => f.properties.linked_document).length;
+  const geo = geojson._georeferencing || {};
+  metaEl.textContent = `${features.length} parcel(s), ${linkedCount} linked to an uploaded document`
+    + (geo.max_residual_deg != null ? ` · max residual ${geo.max_residual_deg.toFixed(6)}°` : "");
+
+  if (!features.length) return;
+
+  if (!cadastralMap) {
+    cadastralMap = L.map("cadastralMap", { attributionControl: true });
+  }
+  // Every layer is rebuilt from the fresh response rather than mutated, so a
+  // status change elsewhere can never leave a stale polygon behind.
+  if (cadastralLayers) {
+    Object.values(cadastralLayers).forEach((l) => cadastralMap.removeLayer(l));
+  }
+  if (cadastralLayerControl) cadastralMap.removeControl(cadastralLayerControl);
+
+  // --- Layer 1: record status (the default view) ---
+  const statusLayer = L.geoJSON(geojson, {
+    style: (f) => {
+      const linked = f.properties.linked_document;
+      const c = parcelColor(linked);
+      return { color: c, weight: 2, fillColor: c, fillOpacity: linked ? 0.35 : 0.1 };
+    },
+    onEachFeature: (f, layer) => layer.bindPopup(parcelPopup(f.properties || {})),
+  });
+
+  // --- Layer 2: land classification, from the linked record's own field ---
+  const classesSeen = new Map();
+  const landUseLayer = L.geoJSON(geojson, {
+    style: (f) => {
+      const linked = f.properties.linked_document;
+      const bucket = linked ? landClassBucket(linked.land_classification) : null;
+      if (bucket) classesSeen.set(bucket.key, bucket);
+      const c = bucket ? bucket.color : "#E6E5E3";
+      return { color: c, weight: 2, fillColor: c, fillOpacity: bucket ? 0.45 : 0.08 };
+    },
+    onEachFeature: (f, layer) => {
+      const linked = f.properties.linked_document;
+      layer.bindPopup(`<b>Parcel ${esc(f.properties.parcel_id)}</b><br>`
+        + `Land classification: ${esc((linked && linked.land_classification) || "— no linked record")}`);
+    },
+  });
+
+  // --- Layer 3: parcels with no digitised record yet ---
+  // The operationally useful inverse of the status layer: a revenue office
+  // needs to see the gaps in its own coverage, not just what it has done.
+  const missing = features.filter((f) => !f.properties.linked_document);
+  const missingLayer = L.geoJSON(
+    { type: "FeatureCollection", features: missing },
+    {
+      style: { color: "#E56458", weight: 2, fillColor: "#E56458",
+               fillOpacity: 0.3, dashArray: "5,4" },
+      onEachFeature: (f, layer) => layer.bindPopup(
+        `<b>Parcel ${esc(f.properties.parcel_id)}</b><br>`
+        + `Khasra: ${esc(f.properties.khasra_number || "— (label not read)")}<br>`
+        + `<span class="muted small">No digitised record for this parcel yet.</span>`),
+    });
+
+  // --- Layer 4: khasra number labels ---
+  const labelLayer = L.layerGroup(
+    features.filter((f) => f.properties.khasra_number).map((f) => {
+      const layer = L.geoJSON(f);
+      const c = layer.getBounds().getCenter();
+      return L.marker(c, {
+        icon: L.divIcon({ className: "parcel-label",
+                          html: esc(f.properties.khasra_number) }),
+        interactive: false,
+      });
+    }));
+
+  // --- Layer 5: the ground control points the georeferencing was fitted to ---
+  const gcps = geojson._control_points || [];
+  const gcpLayer = L.layerGroup(gcps.map((p, i) =>
+    L.circleMarker([p.lat, p.lon], {
+      radius: 6, color: "#6A4C93", fillColor: "#6A4C93", fillOpacity: 0.9, weight: 2,
+    }).bindPopup(`<b>Ground control point ${i + 1}</b><br>`
+      + `lat ${p.lat}, lon ${p.lon}<br>`
+      + `<span class="muted small">Illustrative demo anchor, not a real survey point.</span>`)));
+
+  // --- Optional basemap. Off by default and labelled as such: every other
+  // part of this project works with no internet, and a tile layer silently
+  // reaching out to a third party would break that promise without saying
+  // so. Turning it on is the viewer's explicit choice.
+  const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors (loaded only when enabled)',
+  });
+
+  cadastralLayers = {
+    status: statusLayer, landUse: landUseLayer, missing: missingLayer,
+    labels: labelLayer, gcp: gcpLayer, osm: osm,
+  };
+
+  statusLayer.addTo(cadastralMap);
+  cadastralLayerControl = L.control.layers(
+    null,
+    {
+      "Record status": statusLayer,
+      "Land classification": landUseLayer,
+      [`Missing records (${missing.length})`]: missingLayer,
+      "Khasra labels": labelLayer,
+      [`Ground control points (${gcps.length})`]: gcpLayer,
+      "OpenStreetMap basemap (needs internet)": osm,
+    },
+    { collapsed: false }
+  ).addTo(cadastralMap);
+
+  // The legend follows whichever thematic layer is actually showing.
+  const statusLegend = [
+    { color: "var(--green)", label: "Approved" },
+    { color: "var(--orange)", label: "Needs review" },
+    { color: "var(--red)", label: "Blocked" },
+    { color: "#B9B7B2", label: "No record yet" },
+  ];
+  buildLegend(statusLegend);
+  cadastralMap.on("overlayadd", (e) => {
+    if (e.layer === landUseLayer) {
+      buildLegend([...classesSeen.values()].map((b) => ({ color: b.color, label: b.label })));
+    } else if (e.layer === statusLayer) {
+      buildLegend(statusLegend);
+    } else if (e.layer === missingLayer) {
+      buildLegend([{ color: "#E56458", label: "Parcel with no digitised record" }]);
+    }
+  });
+
+  cadastralMap.fitBounds(statusLayer.getBounds(), { padding: [20, 20] });
+  cadastralMap.invalidateSize();
+}
+
+$("#cadastralMapSelect").addEventListener("change", (e) => {
+  cadastralSelectedMap = e.target.value;
+  loadCadastralMap();     // fitBounds re-centres, so switching village moves the view
+});
+
 async function loadDashboard() {
   const s = await api("/api/stats");
 
@@ -701,9 +961,28 @@ async function loadAudit() {
 
 async function checkAuthentication() {
   try {
-    // Check if Supabase is available
-    if (typeof window.SupabaseAuth === 'undefined' || typeof window.supabase === 'undefined') {
-      console.error('Supabase not loaded');
+    // Wait for Supabase to load
+    let attempts = 0;
+    while (typeof window.supabase === 'undefined' && attempts < 50) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+
+    // Check if Supabase is available after waiting
+    if (typeof window.supabase === 'undefined') {
+      console.error('Supabase library failed to load');
+      window.location.href = 'login.html';
+      return false;
+    }
+
+    // Initialize Supabase if not already done
+    if (typeof window.initSupabase === 'function') {
+      window.initSupabase();
+    }
+
+    // Check if SupabaseAuth is available
+    if (typeof window.SupabaseAuth === 'undefined') {
+      console.error('SupabaseAuth not initialized');
       window.location.href = 'login.html';
       return false;
     }
@@ -712,6 +991,7 @@ async function checkAuthentication() {
 
     if (!session) {
       // Not logged in, redirect to login page
+      console.log('No active session found');
       window.location.href = 'login.html';
       return false;
     }
@@ -723,9 +1003,14 @@ async function checkAuthentication() {
     localStorage.setItem('user_email', user.email);
     localStorage.setItem('user_role', user.user_metadata?.role || 'operator');
 
+    console.log('Authentication successful:', user.email);
     return true;
   } catch (error) {
     console.error('Authentication check failed:', error);
+    // Clear any stale data
+    localStorage.removeItem('supabase_user');
+    localStorage.removeItem('user_email');
+    localStorage.removeItem('user_role');
     window.location.href = 'login.html';
     return false;
   }
@@ -755,9 +1040,10 @@ function setupLogout() {
 }
 
 // Listen for auth state changes
-if (window.SupabaseAuth) {
+if (typeof window.SupabaseAuth !== 'undefined') {
   SupabaseAuth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT') {
+      localStorage.clear();
       window.location.href = 'login.html';
     } else if (event === 'TOKEN_REFRESHED') {
       console.log('Token refreshed');

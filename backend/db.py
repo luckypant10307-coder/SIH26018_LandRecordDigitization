@@ -123,7 +123,12 @@ CREATE TABLE IF NOT EXISTS audit_log (
     field_key   TEXT,
     old_value   TEXT,
     new_value   TEXT,
-    detail      TEXT
+    detail      TEXT,
+    -- Tamper-evidence chain. Each row carries the hash of the row before it,
+    -- so editing or deleting any past entry invalidates every entry after it.
+    -- See _chain_digest() and verify_audit_chain().
+    prev_hash   TEXT,
+    entry_hash  TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_audit_doc ON audit_log(document_id);
 CREATE INDEX IF NOT EXISTS idx_audit_at ON audit_log(at);
@@ -148,6 +153,57 @@ def _now() -> str:
     return _dt.datetime.now().replace(microsecond=0).isoformat()
 
 
+# --------------------------------------------------------------------------
+# Audit tamper-evidence chain
+# --------------------------------------------------------------------------
+#
+# WHAT THIS DOES, AND WHAT IT DOES NOT
+#
+# Each audit row stores the SHA-256 of (the previous row's hash + this row's
+# own content). Editing an old entry, or deleting one, changes that row's hash
+# and breaks the link every later row depends on, so verify_audit_chain()
+# localises the tampering to the first row that no longer agrees.
+#
+# This is deliberately NOT a blockchain, and claiming it were one would be the
+# kind of overclaim the rest of this system avoids. There is no distributed
+# consensus and no external notary: an attacker with write access to the file
+# can recompute the whole chain from the edited row onward and it will verify
+# clean. What the chain buys is that tampering can no longer be SILENT - it
+# must be deliberate and complete, and a copy of the tip hash held anywhere
+# outside this database (a nightly export, a printout, a second office) turns
+# even that into a detectable change. That is the honest claim: tamper-EVIDENT,
+# not tamper-proof.
+#
+# Rows written before the chain existed are sealed on first migration. Sealing
+# proves nothing about what happened to them beforehand; it only establishes
+# the baseline that everything after it is measured against.
+
+GENESIS_HASH = "0" * 64
+
+# The row fields the hash covers. `id` is excluded because SQLite assigns it
+# after the digest must already exist; row deletion is still caught, because
+# the following row's prev_hash then matches no surviving predecessor.
+_CHAINED_FIELDS = ("at", "user_id", "username", "role", "action",
+                   "document_id", "field_key", "old_value", "new_value",
+                   "detail")
+
+
+def _chain_digest(prev_hash: Optional[str], row: Any) -> str:
+    """
+    The hash of one audit entry, bound to its predecessor.
+
+    Serialisation is canonical (sorted keys, fixed separators, UTF-8) so the
+    same row always digests identically - a Devanagari owner name must not
+    hash differently just because it was read back through a different code
+    path.
+    """
+    payload = json.dumps({k: row[k] for k in _CHAINED_FIELDS},
+                         sort_keys=True, ensure_ascii=False,
+                         separators=(",", ":"))
+    seed = (prev_hash or GENESIS_HASH) + "\n" + payload
+    return hashlib.sha256(seed.encode("utf-8")).hexdigest()
+
+
 class Database:
     def __init__(self, path: str = DEFAULT_DB):
         self.path = os.path.abspath(path)
@@ -157,7 +213,60 @@ class Database:
         with _LOCK:
             self._conn.executescript(SCHEMA)
             self._conn.commit()
+        self._migrate_audit_chain()
         self._seed_users()
+
+    # -- schema migration -------------------------------------------------
+    def _migrate_audit_chain(self) -> int:
+        """
+        Add the chain columns to a database created before they existed, then
+        seal any unchained rows. Returns how many rows were sealed.
+
+        CREATE TABLE IF NOT EXISTS silently leaves an existing table alone, so
+        an installation that already has an audit history needs the columns
+        added explicitly or every later append would fail on a missing column.
+        """
+        with _LOCK:
+            existing = {r["name"] for r in
+                        self._conn.execute("PRAGMA table_info(audit_log)")}
+            added = False
+            for column in ("prev_hash", "entry_hash"):
+                if column not in existing:
+                    self._conn.execute(
+                        f"ALTER TABLE audit_log ADD COLUMN {column} TEXT")
+                    added = True
+            if added:
+                self._conn.commit()
+        return self._seal_unchained()
+
+    def _seal_unchained(self) -> int:
+        """
+        Give every row that has no hash yet its place in the chain.
+
+        Runs in id order so the links are built in the order the entries were
+        written. A row that is already sealed is never recomputed - doing so
+        would quietly repair a chain that verification is supposed to report
+        as broken.
+        """
+        with _LOCK:
+            rows = self._conn.execute(
+                "SELECT * FROM audit_log ORDER BY id").fetchall()
+            previous = None
+            updates = []
+            for row in rows:
+                if row["entry_hash"]:
+                    previous = row["entry_hash"]
+                    continue
+                digest = _chain_digest(previous, row)
+                updates.append((previous, digest, row["id"]))
+                previous = digest
+            for prev_hash, entry_hash, row_id in updates:
+                self._conn.execute(
+                    "UPDATE audit_log SET prev_hash = ?, entry_hash = ? WHERE id = ?",
+                    (prev_hash, entry_hash, row_id))
+            if updates:
+                self._conn.commit()
+            return len(updates)
 
     # -- helpers ----------------------------------------------------------
     def q(self, sql: str, params: tuple = ()) -> List[sqlite3.Row]:
@@ -199,15 +308,83 @@ class Database:
     def audit(self, user: Optional[dict], action: str, document_id: Optional[int] = None,
               field_key: Optional[str] = None, old_value: Any = None,
               new_value: Any = None, detail: Optional[str] = None) -> None:
-        self.run(
-            "INSERT INTO audit_log (at, user_id, username, role, action, document_id,"
-            " field_key, old_value, new_value, detail) VALUES (?,?,?,?,?,?,?,?,?,?)",
-            (_now(),
-             (user or {}).get("id"), (user or {}).get("username"), (user or {}).get("role"),
-             action, document_id, field_key,
-             None if old_value is None else str(old_value),
-             None if new_value is None else str(new_value),
-             detail))
+        entry = {
+            "at": _now(),
+            "user_id": (user or {}).get("id"),
+            "username": (user or {}).get("username"),
+            "role": (user or {}).get("role"),
+            "action": action,
+            "document_id": document_id,
+            "field_key": field_key,
+            "old_value": None if old_value is None else str(old_value),
+            "new_value": None if new_value is None else str(new_value),
+            "detail": detail,
+        }
+        # Reading the chain tip and appending to it must be ONE atomic step.
+        # Two threads that both read the same tip would write two rows whose
+        # prev_hash points at the same predecessor, forking the chain and
+        # making an untampered log fail verification ever after. The server is
+        # threaded, so this is a real race, not a theoretical one.
+        with _LOCK:
+            tip = self._conn.execute(
+                "SELECT entry_hash FROM audit_log ORDER BY id DESC LIMIT 1").fetchone()
+            prev_hash = tip["entry_hash"] if tip else None
+            entry_hash = _chain_digest(prev_hash, entry)
+            self._conn.execute(
+                "INSERT INTO audit_log (at, user_id, username, role, action,"
+                " document_id, field_key, old_value, new_value, detail,"
+                " prev_hash, entry_hash) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                tuple(entry[k] for k in _CHAINED_FIELDS) + (prev_hash, entry_hash))
+            self._conn.commit()
+
+    def verify_audit_chain(self, limit: Optional[int] = None) -> dict:
+        """
+        Walk the audit log and confirm every entry still hashes to what the
+        next entry expects.
+
+        Reports the FIRST row that disagrees rather than a count, because that
+        row is where the history stops being trustworthy - everything after it
+        is unverifiable regardless of whether it was itself touched.
+        """
+        rows = self.q("SELECT * FROM audit_log ORDER BY id"
+                      + (" LIMIT ?" if limit else ""),
+                      (limit,) if limit else ())
+        previous = None
+        for row in rows:
+            if (row["prev_hash"] or None) != previous:
+                return {
+                    "ok": False,
+                    "entries": len(rows),
+                    "verified": 0,
+                    "broken_at": row["id"],
+                    "reason": "broken_link",
+                    "message": (f"Audit entry {row['id']} expects a different "
+                                f"predecessor than the entry before it. A row "
+                                f"was most likely deleted or reordered."),
+                }
+            expected = _chain_digest(previous, row)
+            if row["entry_hash"] != expected:
+                return {
+                    "ok": False,
+                    "entries": len(rows),
+                    "verified": 0,
+                    "broken_at": row["id"],
+                    "reason": "content_altered",
+                    "message": (f"Audit entry {row['id']} ('{row['action']}') no "
+                                f"longer matches its recorded hash. Its content "
+                                f"was changed after it was written."),
+                }
+            previous = row["entry_hash"]
+        return {
+            "ok": True,
+            "entries": len(rows),
+            "verified": len(rows),
+            "broken_at": None,
+            "reason": None,
+            "tip": previous,
+            "message": (f"All {len(rows)} audit entries verify against the chain."
+                        if rows else "The audit log is empty."),
+        }
 
     def audit_trail(self, document_id: Optional[int] = None, limit: int = 200) -> List[dict]:
         if document_id is not None:
@@ -305,7 +482,9 @@ class Database:
                "(SELECT value FROM fields WHERE document_id = d.id AND field_key='owner_name') AS owner_name, "
                "(SELECT value FROM fields WHERE document_id = d.id AND field_key='village') AS village, "
                "(SELECT value FROM fields WHERE document_id = d.id AND field_key='district') AS district, "
-               "(SELECT value FROM fields WHERE document_id = d.id AND field_key='khasra_number') AS khasra_number "
+               "(SELECT value FROM fields WHERE document_id = d.id AND field_key='khasra_number') AS khasra_number, "
+               "(SELECT value FROM fields WHERE document_id = d.id AND field_key='land_classification') AS land_classification, "
+               "(SELECT value FROM fields WHERE document_id = d.id AND field_key='area') AS area "
                "FROM documents d LEFT JOIN users u ON u.id = d.uploaded_by WHERE 1=1")
         params: List[Any] = []
         if status and status != "all":

@@ -29,6 +29,8 @@ from typing import Dict, List, Optional
 from field_extractor import (
     AREA_UNITS, FIELD_BY_KEY, LAND_CLASSES, normalise, parse_area,
 )
+import fact_checker
+import ner_extractor
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _MASTER_PATH = os.path.join(_HERE, "data", "admin_master.json")
@@ -99,6 +101,29 @@ class AdminMaster:
                     return self._norm(tehsil) in tehsils
         return None
 
+    def village_tehsil_conflict(self, village: str, tehsil: str, district: str) -> Optional[str]:
+        """
+        Returns the tehsil this village is actually listed under, if it is
+        known in this district under a *different* tehsil than claimed - a
+        genuine location conflict. Returns None if the village matches its
+        claimed tehsil, or is simply absent from the bundled subset, which is
+        capped per tehsil and not exhaustive: absence proves nothing, so it
+        must never be reported as a mismatch.
+        """
+        target_village = self._norm(village)
+        target_tehsil = self._norm(tehsil)
+        if not target_village:
+            return None
+        for meta in self.states.values():
+            for dname, dmeta in meta.get("districts", {}).items():
+                if self._norm(dname) != self._norm(district):
+                    continue
+                for t_name, v_list in dmeta.get("villages", {}).items():
+                    if target_village in (self._norm(v) for v in v_list):
+                        return None if self._norm(t_name) == target_tehsil else t_name
+                return None
+        return None
+
     def suggest_district(self, district: str) -> Optional[str]:
         """Nearest known district name, for OCR-mangled spellings."""
         target = self._norm(district)
@@ -134,9 +159,20 @@ _MASTER = AdminMaster()
 
 # Plausible parcel area bounds in square metres. Below the floor is almost
 # always a unit error; above the ceiling is almost always an estate or an
-# extra digit from OCR.
+# extra digit from OCR. Beyond the hard bounds there is no plausible reading
+# at all (not even a swapped unit), so those cross into blocking errors
+# rather than warnings.
 AREA_MIN_SQM = 5.0
 AREA_MAX_SQM = 4_000_000.0        # 400 hectares
+AREA_HARD_MIN_SQM = 0.5
+AREA_HARD_MAX_SQM = 40_000_000.0  # 4,000 hectares - no single parcel is this large
+
+# Values that pass the normal length/pattern checks but are placeholders left
+# by the source form or a failed OCR read rather than real data.
+_PLACEHOLDER_VALUES = {
+    "na", "n a", "n/a", "n.a", "n.a.", "none", "nil", "unknown", "xx", "xxx",
+    "-", "--", "not available", "to be filled", "tbd", "blank",
+}
 
 
 def _get(values: Dict[str, dict], key: str) -> Optional[str]:
@@ -149,15 +185,90 @@ def _conf(values: Dict[str, dict], key: str) -> float:
     return float((values.get(key) or {}).get("confidence") or 0.0)
 
 
-def rule_required_fields(values: Dict[str, dict]) -> List[Issue]:
+# The parcel identifier is one requirement with several regional spellings,
+# not several requirements.
+#
+# "Khasra" is North Indian revenue vocabulary. Tamil Nadu, Karnataka,
+# Telangana, Andhra Pradesh and Kerala do not issue one at all - their parcel
+# identifier is the survey number, which is why field_extractor already
+# carries survey-number labels in Tamil, Telugu and Kannada. West Bengal's
+# equivalent is the "dag" number, which is why that sits among the khasra
+# labels rather than in a field of its own.
+#
+# Demanding khasra_number unconditionally therefore blocked every South
+# Indian record no matter how well it was read: a Tamil Nadu khata with every
+# field extracted at 0.95+ confidence still failed REQUIRED_MISSING, because
+# it was asked for a number its state does not use. That is a schema
+# assumption baked to the Hindi belt, and it made the system's accuracy on
+# half the country irrelevant.
+#
+# So the two are one "at least one of" group. Both missing is still an error -
+# a record that names no parcel identifies no land - but it is now reported
+# once, naming both, instead of demanding a specific regional form.
+IDENTIFIER_GROUP = ("khasra_number", "survey_number")
+
+
+def rule_required_fields(values: Dict[str, dict],
+                         doc_type: Optional[str] = None) -> List[Issue]:
+    """
+    Required fields, scoped to what this KIND of document actually has.
+
+    "Mandatory" is a property of a document type, not of the schema in the
+    abstract. Measured on a real notarised Power of Attorney: the OCR read
+    every printed value correctly and the record was still `blocked` on
+    REQUIRED_MISSING, because a GPA structurally carries no khasra number,
+    no khata number and no area - 0 of its 12 printed field labels exist
+    anywhere in the 221-alias schema. Demanding them was asking the document
+    to be something it is not.
+
+    This is the same correction already made for South Indian records, where
+    khasra-or-survey became an "at least one of" group because those states
+    issue no khasra. Both are the same mistake: treating one region's, or one
+    document type's, paperwork as the universal shape.
+
+    An unknown document type gets the FULL schema rather than an empty one.
+    Reporting "khasra missing" on a paper nobody could identify is honest;
+    reporting nothing would hide that it was processed at all.
+    """
     issues = []
+    # REQUIRED, not merely applicable. A GPA may cite a khatauni without being
+    # defective for omitting one, so the two questions are answered by
+    # different tables in doc_type.
+    required = None
+    if doc_type:
+        try:
+            import doc_type as _dt
+            spec_required = {k for k, sp in FIELD_BY_KEY.items() if sp.required}
+            required = _dt.required_fields(doc_type, spec_required)
+        except Exception:
+            required = None
+
+    def demanded(key: str) -> bool:
+        return required is None or key in required
+
+    identified = any(_get(values, k) is not None for k in IDENTIFIER_GROUP)
+    group_demanded = any(demanded(k) for k in IDENTIFIER_GROUP)
     for key, spec in FIELD_BY_KEY.items():
-        if spec.required and _get(values, key) is None:
-            issues.append(Issue(
-                rule="REQUIRED_MISSING", severity="error", field=key,
-                message=f"{spec.display} is mandatory but was not extracted.",
-                suggestion="Enter the value manually from the source document.",
-            ))
+        if not spec.required or _get(values, key) is not None:
+            continue
+        if key in IDENTIFIER_GROUP:
+            continue        # handled as a group below
+        if not demanded(key):
+            continue        # not a field this document type carries
+        issues.append(Issue(
+            rule="REQUIRED_MISSING", severity="error", field=key,
+            message=f"{spec.display} is mandatory but was not extracted.",
+            suggestion="Enter the value manually from the source document.",
+        ))
+    if not identified and group_demanded:
+        names = " or ".join(
+            FIELD_BY_KEY[k].display for k in IDENTIFIER_GROUP if k in FIELD_BY_KEY)
+        issues.append(Issue(
+            rule="REQUIRED_MISSING", severity="error", field=IDENTIFIER_GROUP[0],
+            message=(f"No parcel identifier was extracted. A record needs "
+                     f"{names} - which one depends on the state."),
+            suggestion="Enter the parcel identifier manually from the source document.",
+        ))
     return issues
 
 
@@ -188,10 +299,18 @@ def rule_area_sanity(values: Dict[str, dict]) -> List[Issue]:
     if sqm <= 0:
         issues.append(Issue("AREA_NON_POSITIVE", "error", "area",
                             "Plot area is zero or negative.", "Correct the area value."))
+    elif sqm < AREA_HARD_MIN_SQM:
+        issues.append(Issue("AREA_RANGE", "error", "area",
+                            f"Plot area ({sqm:.3f} sq.m) is below any plausible parcel size.",
+                            "Almost certainly a unit misread; re-enter from the source document."))
     elif sqm < AREA_MIN_SQM:
         issues.append(Issue("AREA_RANGE", "warning", "area",
                             f"Plot area is implausibly small ({sqm:.2f} sq.m).",
                             "Check whether the unit was misread."))
+    elif sqm > AREA_HARD_MAX_SQM:
+        issues.append(Issue("AREA_RANGE", "error", "area",
+                            f"Plot area ({sqm / 10000:.2f} hectare) exceeds any plausible single parcel.",
+                            "Almost certainly an extra digit from OCR; re-enter from the source document."))
     elif sqm > AREA_MAX_SQM:
         issues.append(Issue("AREA_RANGE", "warning", "area",
                             f"Plot area is implausibly large ({sqm / 10000:.2f} hectare).",
@@ -309,6 +428,16 @@ def rule_administrative_hierarchy(values: Dict[str, dict]) -> List[Issue]:
                         "TEHSIL_MISMATCH", "warning", "tehsil",
                         f"Tehsil '{tehsil}' is not listed under district '{district}'.",
                         "Confirm the tehsil, or update the master directory."))
+                elif ok:
+                    village = _get(values, "village")
+                    if village:
+                        actual = _MASTER.village_tehsil_conflict(village, tehsil, district)
+                        if actual:
+                            issues.append(Issue(
+                                "VILLAGE_TEHSIL_MISMATCH", "warning", "village",
+                                f"Village '{village}' is listed under tehsil '{actual}' "
+                                f"in district '{district}', not '{tehsil}'.",
+                                f"Confirm the tehsil - it may be '{actual}'."))
     return issues
 
 
@@ -339,6 +468,7 @@ def rule_ownership_consistency(values: Dict[str, dict]) -> List[Issue]:
 
     if share:
         m = re.match(r"^(\d{1,4})\s*/\s*(\d{1,4})$", share)
+        m_pct = re.match(r"^(\d{1,3}(?:\.\d+)?)\s*%$", share)
         if m:
             num, den = int(m.group(1)), int(m.group(2))
             if den == 0:
@@ -350,10 +480,86 @@ def rule_ownership_consistency(values: Dict[str, dict]) -> List[Issue]:
                     "SHARE_OVER_UNITY", "error", "share",
                     f"Ownership share {num}/{den} exceeds the whole parcel.",
                     "Check whether numerator and denominator were swapped."))
+        elif m_pct:
+            pct = float(m_pct.group(1))
+            if pct <= 0:
+                issues.append(Issue("SHARE_INVALID", "error", "share",
+                                    "Ownership share percentage is zero or negative.",
+                                    "Re-enter the share percentage."))
+            elif pct > 100:
+                issues.append(Issue(
+                    "SHARE_OVER_UNITY", "error", "share",
+                    f"Ownership share {pct:g}% exceeds the whole parcel.",
+                    "Check for a misplaced decimal point or an extra digit."))
     return issues
 
 
-def rule_low_confidence(values: Dict[str, dict], threshold: float = 0.80) -> List[Issue]:
+def rule_linked_record_completeness(values: Dict[str, dict]) -> List[Issue]:
+    """
+    A mutation or registration event is always a (number, date) pair in the
+    source register. Only one half being present usually means the other half
+    was misread, not genuinely absent - a revenue office does not issue a
+    number without dating it.
+    """
+    issues: List[Issue] = []
+    for num_key, date_key, label in (
+        ("mutation_number", "mutation_date", "Mutation"),
+        ("registration_number", "registration_date", "Registration"),
+    ):
+        num = _get(values, num_key)
+        date = _get(values, date_key)
+        if num and not date:
+            issues.append(Issue(
+                f"{label.upper()}_DATE_MISSING", "warning", date_key,
+                f"{label} number '{num}' is recorded but its date is missing.",
+                f"Enter the {label.lower()} date from the source document."))
+        elif date and not num:
+            issues.append(Issue(
+                f"{label.upper()}_NUMBER_MISSING", "warning", num_key,
+                f"{label} date is recorded but its number is missing.",
+                f"Enter the {label.lower()} number from the source document."))
+    return issues
+
+
+def _looks_like_placeholder(value: str) -> bool:
+    norm = re.sub(r"[^a-z0-9/. ]", "", normalise(value or "").lower()).strip()
+    return norm in _PLACEHOLDER_VALUES
+
+
+def rule_placeholder_values(values: Dict[str, dict]) -> List[Issue]:
+    """
+    A placeholder ('N/A', '-', 'Unknown') passes the normal length and pattern
+    checks that a real value would, so without this rule it is silently
+    accepted as if it were extracted data.
+    """
+    issues: List[Issue] = []
+    for key in ("owner_name", "father_name", "village", "tehsil", "district",
+                "state", "land_classification"):
+        value = _get(values, key)
+        if not value or not _looks_like_placeholder(value):
+            continue
+        spec = FIELD_BY_KEY[key]
+        severity = "error" if spec.required else "warning"
+        issues.append(Issue(
+            "PLACEHOLDER_VALUE", severity, key,
+            f"{spec.display} looks like a placeholder ('{value}'), not a real value.",
+            "Re-check the source document; treat this field as unextracted."))
+    return issues
+
+
+def rule_low_confidence(values: Dict[str, dict], threshold: float = 0.80,
+                        doc_type: Optional[str] = None) -> List[Issue]:
+    """
+    Low confidence, escalated to an error only for fields this DOCUMENT
+    TYPE actually requires.
+
+    Making REQUIRED_MISSING type-aware and leaving this rule on the
+    schema-wide flag was an inconsistency with a visible cost: a GPA
+    whose area was correctly recovered from prose at 0.50 confidence was
+    blocked anyway, because `area` is marked required in the schema even
+    though a Power of Attorney is not required to state one. Both rules
+    have to ask the same question or the scoping only half applies.
+    """
     """Turns the confidence model into actionable review items."""
     issues: List[Issue] = []
     for key, entry in values.items():
@@ -363,12 +569,42 @@ def rule_low_confidence(values: Dict[str, dict], threshold: float = 0.80) -> Lis
         if conf < threshold:
             spec = FIELD_BY_KEY.get(key)
             display = spec.display if spec else key
-            severity = "error" if (spec and spec.required and conf < 0.55) else "warning"
+            required_here = bool(spec and spec.required)
+            if doc_type and spec:
+                try:
+                    import doc_type as _dt
+                    spec_required = {k for k, sp in FIELD_BY_KEY.items() if sp.required}
+                    required_here = key in _dt.required_fields(doc_type, spec_required)
+                except Exception:
+                    pass
+            severity = "error" if (required_here and conf < 0.55) else "warning"
             issues.append(Issue(
                 "LOW_CONFIDENCE", severity, key,
                 f"{display} extracted with {conf * 100:.0f}% confidence.",
                 "Confirm against the highlighted region of the document."))
     return issues
+
+
+def rule_fact_check(values: Dict[str, dict]) -> List[Issue]:
+    """
+    Cross-database verification against an external authority (see
+    fact_checker.py) rather than the bundled LGD administrative extract.
+    Degrades to an explicit `info` issue if scikit-learn or the registry
+    extract is unavailable - never a silent no-op.
+    """
+    return fact_checker.check(values)
+
+
+def rule_ner_cross_check(values: Dict[str, dict]) -> List[Issue]:
+    """
+    Independent ML corroboration for owner_name, father_name, and the
+    mutation/registration dates (see ner_extractor.py) - a general-purpose
+    NER model reading the raw line, agreeing or disagreeing with the
+    rule-based extraction, never replacing it. Degrades to an explicit
+    `info` issue if spaCy or its model is unavailable - never a silent
+    no-op.
+    """
+    return ner_extractor.cross_check(values)
 
 
 # --------------------------------------------------------------------------
@@ -433,11 +669,16 @@ ALL_RULES = [
     ("HIERARCHY", rule_administrative_hierarchy),
     ("CLASSIFICATION", rule_land_classification),
     ("OWNERSHIP", rule_ownership_consistency),
+    ("LINKED_RECORDS", rule_linked_record_completeness),
+    ("PLACEHOLDERS", rule_placeholder_values),
+    ("FACT_CHECK", rule_fact_check),
+    ("NER_CROSS_CHECK", rule_ner_cross_check),
 ]
 
 
 def validate(values: Dict[str, dict], existing: Optional[List[dict]] = None,
-             confidence_threshold: float = 0.80) -> dict:
+             confidence_threshold: float = 0.80,
+             doc_type: Optional[str] = None) -> dict:
     """
     Run every rule. Returns issues plus a routing decision.
 
@@ -447,14 +688,20 @@ def validate(values: Dict[str, dict], existing: Optional[List[dict]] = None,
       blocked          -> at least one error; cannot be published as-is
     """
     issues: List[Issue] = []
-    for _, fn in ALL_RULES:
+    for _name, fn in ALL_RULES:
         try:
-            issues.extend(fn(values))
+            # Only the required-fields rule is document-type aware; passing
+            # doc_type to every rule would invite each one to invent its own
+            # interpretation of it.
+            if _name == "REQUIRED_MISSING":
+                issues.extend(fn(values, doc_type))
+            else:
+                issues.extend(fn(values))
         except Exception as exc:                       # a rule must never crash ingestion
             issues.append(Issue("RULE_ERROR", "warning", None,
                                 f"A validation rule failed to run: {exc}", None))
 
-    issues.extend(rule_low_confidence(values, confidence_threshold))
+    issues.extend(rule_low_confidence(values, confidence_threshold, doc_type))
     if existing:
         issues.extend(rule_duplicates(values, existing))
 
@@ -476,6 +723,7 @@ def validate(values: Dict[str, dict], existing: Optional[List[dict]] = None,
 
     return {
         "decision": decision,
+        "document_type": doc_type,
         "trust_score": trust,
         "error_count": len(errors),
         "warning_count": len(warnings),
