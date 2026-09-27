@@ -16,45 +16,75 @@
    ========================================================================== */
 
 :root {
-  --text: #15251C;
-  --text-2: #5E7268;
-  --canvas: #FFFFFF;
-  --surface: #EEF3EF;
-  --surface-2: #E3EBE6;
-  --border: #D3DFD7;
+  /* ---- Ground: deep forest-green-black, not neutral charcoal. -----------
+     A pure grey dark mode would make the green and blue read as stickers on
+     a default background. Biasing the darks green ties the whole surface to
+     the subject, the way the light theme's greys did. */
+  --canvas: #101C17;      /* cards and panels - the sheet you work on */
+  --surface: #0A1410;     /* the ground behind everything */
+  --surface-2: #17251F;   /* recessed areas, table stripes */
+  --border: #24362D;
 
-  /* Administrative blue - authority, water, anything interactive. */
-  --blue: #1D6FB8;
-  --blue-soft: #E3EFF9;
-  --blue-deep: #0F4C86;
+  --text: #E6EFE9;
+  --text-2: #94A89C;
 
-  /* Cultivated green - the brand, and the "approved" state. */
-  --green: #2E7D52;
-  --green-soft: #DEEEE4;
-  --green-deep: #1B5636;
+  /* ---- Administrative blue: water, authority, interactive. -------------
+     Lifted well above the light theme's #1D6FB8. A mid-blue that reads as
+     confident on white becomes muddy and unreadable on a dark ground; these
+     are the values that actually clear AA against --canvas. */
+  --blue: #5AB0F2;
+  --blue-soft: #14293A;
+  --blue-deep: #8ACBFB;   /* "deep" now means MORE prominent, i.e. lighter */
+  --blue-text: #8ACBFB;
 
-  /* Reserved signals. Never decorative.
-     Both are darker than they look like they need to be, and measured that
-     way: a status badge is small text on a tinted chip, so it must clear
-     WCAG AA (4.5:1) against its OWN soft background, not against white. The
-     first pass used #C0392B and #B4741F, which measured 4.42 and 3.27 -
-     readable enough to pass a glance and not enough to pass an audit, on the
-     single most important label in a verification tool. */
-  --orange: #855312;      /* 5.50:1 on --orange-soft */
-  --orange-soft: #F7EBD8;
-  --red: #A82D22;         /* 5.57:1 on --red-soft */
-  --red-soft: #F8E3E0;
+  /* ---- Cultivated green: the brand, and "approved". ------------------- */
+  --green: #4FC98A;
+  --green-soft: #12301F;
+  --green-deep: #86E3B2;
+  --green-text: #86E3B2;
+  --green-edge: #245C3C;
 
-  /* The survey sheet showing through. */
-  --ink-line: rgba(46, 125, 82, .17);
-  --ink-line-strong: rgba(29, 111, 184, .13);
+  /* ---- Reserved signals. Never decorative. ----------------------------
+     Same discipline as the light theme, re-measured for this ground: a
+     status badge is small text on a tinted chip and must clear WCAG AA
+     against its OWN chip, not against the page. On dark that means going
+     BRIGHTER, the opposite direction from the light theme's fix. */
+  --orange: #E9B45C;
+  --orange-soft: #33260F;
+  --orange-text: #F0C67E;
+  --orange-edge: #5A4418;
+
+  --red: #F2796B;
+  --red-soft: #391A16;
+  --red-text: #F79A8E;
+  --red-edge: #6B2B24;
+
+  /* Row tints: a wash of the status colour, dark enough to stay behind text. */
+  --tint-red: #2A1512;
+  --tint-orange: #2A2012;
+  --tint-blue: #111F2B;
+
+  --toast-bg: #1D2F26;
+  --toast-text: #E6EFE9;
+  --backdrop: rgba(4, 10, 7, .66);
+
+  /* The survey sheet showing through - inverted for a dark ground. */
+  --ink-line: rgba(79, 201, 138, .16);
+  --ink-line-strong: rgba(90, 176, 242, .13);
 
   --r: 8px;
   --r-lg: 12px;
-  --shadow: 0 1px 2px rgba(21,37,28,.06), 0 2px 10px rgba(21,37,28,.05);
-  --shadow-lift: 0 6px 18px rgba(21,37,28,.10), 0 2px 6px rgba(21,37,28,.06);
+  /* Shadows do almost nothing on a dark ground, so depth comes from a rim of
+     light on the upper edge instead - which is how real objects look under
+     overhead lighting. */
+  --shadow: 0 1px 2px rgba(0,0,0,.45), 0 2px 10px rgba(0,0,0,.35),
+            inset 0 1px 0 rgba(255,255,255,.035);
+  --shadow-lift: 0 10px 26px rgba(0,0,0,.55), 0 3px 8px rgba(0,0,0,.4),
+                 inset 0 1px 0 rgba(255,255,255,.06);
 
   --ease: cubic-bezier(.22,.61,.36,1);
+
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -245,7 +275,11 @@ main { padding: 24px 32px 64px; max-width: 1400px; margin: 0 auto; }
   font-size: 11px;
   font-weight: 600;
   color: var(--text);
-  text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
+  /* The halo separates the label from whatever is under it, so it must be the
+     OPPOSITE of the text. On the light theme that was white behind dark text;
+     here the text is light, so a white halo would be invisible and the label
+     would disappear over a bright parcel fill. */
+  text-shadow: 0 0 3px #05100B, 0 0 3px #05100B, 0 0 4px #05100B;
   white-space: nowrap;
 }
 
@@ -304,9 +338,9 @@ main { padding: 24px 32px 64px; max-width: 1400px; margin: 0 auto; }
 .btn.tiny { padding: 4px 10px; font-size: 13px; }
 
 .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
-.btn.primary:hover:not(:disabled) { background: #1F6FBE; }
-.btn.success { background: var(--green); border-color: var(--green); color: #fff; }
-.btn.success:hover:not(:disabled) { background: #3B8A60; }
+.btn.primary:hover:not(:disabled) { background: var(--blue-deep); }
+.btn.success { background: var(--green); border-color: var(--green); color: #08160E; }
+.btn.success:hover:not(:disabled) { background: var(--green-deep); }
 .btn.danger { background: var(--canvas); border-color: var(--red); color: var(--red); }
 .btn.danger:hover:not(:disabled) { background: var(--red-soft); }
 
@@ -422,10 +456,10 @@ select.input, input[type="search"].input { width: auto; min-width: 180px; }
   white-space: nowrap;
 }
 
-.badge.green  { background: var(--green-soft);  color: #2F7350; }
-.badge.blue   { background: var(--blue-soft);   color: #1C5F9F; }
-.badge.orange { background: var(--orange-soft); color: #A25F26; }
-.badge.red    { background: var(--red-soft);    color: #B4453A; }
+.badge.green  { background: var(--green-soft);  color: var(--green-text); }
+.badge.blue   { background: var(--blue-soft);   color: var(--blue-text); }
+.badge.orange { background: var(--orange-soft); color: var(--orange-text); }
+.badge.red    { background: var(--red-soft);    color: var(--red-text); }
 .badge.gray   { background: var(--surface-2);   color: var(--text-2); }
 
 /* ---------------- Workspace ---------------- */
@@ -443,9 +477,9 @@ select.input, input[type="search"].input { width: auto; min-width: 180px; }
 
 .trust-badge .tb-value { font-size: 20px; font-weight: 600; line-height: 1.1; }
 .trust-badge .tb-label { font-size: 11px; color: var(--text-2); text-transform: uppercase; letter-spacing: .04em; }
-.trust-badge.good { background: var(--green-soft); border-color: #CBE3D6; }
-.trust-badge.mid  { background: var(--orange-soft); border-color: #F0D8C2; }
-.trust-badge.bad  { background: var(--red-soft); border-color: #F4CFCB; }
+.trust-badge.good { background: var(--green-soft); border-color: var(--green-edge); }
+.trust-badge.mid  { background: var(--orange-soft); border-color: var(--orange-edge); }
+.trust-badge.bad  { background: var(--red-soft); border-color: var(--red-edge); }
 
 .preview-holder {
   background: var(--surface-2);
@@ -495,9 +529,9 @@ select.input, input[type="search"].input { width: auto; min-width: 180px; }
 }
 
 .field-row:hover { background: var(--surface); }
-.field-row.st-missing { border-left-color: var(--red); background: #FDF6F5; }
-.field-row.st-needs_review { border-left-color: var(--orange); background: #FEFAF6; }
-.field-row.st-corrected { border-left-color: var(--blue); background: #F6FAFE; }
+.field-row.st-missing { border-left-color: var(--red); background: var(--tint-red); }
+.field-row.st-needs_review { border-left-color: var(--orange); background: var(--tint-orange); }
+.field-row.st-corrected { border-left-color: var(--blue); background: var(--tint-blue); }
 .field-row.st-confirmed { border-left-color: var(--green); }
 
 .field-label { font-size: 13px; color: var(--text-2); min-width: 0; }
@@ -613,14 +647,14 @@ select.input, input[type="search"].input { width: auto; min-width: 180px; }
 }
 
 .toast {
-  background: var(--text); color: #fff;
+  background: var(--toast-bg); color: var(--toast-text);
   padding: 12px 16px; border-radius: var(--r);
-  font-size: 14px; box-shadow: 0 4px 16px rgba(44,44,43,.18);
+  font-size: 14px; box-shadow: var(--shadow-lift);
   animation: slidein .18s ease;
 }
 
-.toast.ok  { background: #2F7350; }
-.toast.err { background: #B4453A; }
+.toast.ok  { background: var(--green-deep); }
+.toast.err { background: var(--red); }
 
 @keyframes slidein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
@@ -628,7 +662,7 @@ select.input, input[type="search"].input { width: auto; min-width: 180px; }
 
 .modal-backdrop {
   position: fixed; inset: 0; z-index: 70;
-  background: rgba(44,44,43,.35);
+  background: var(--backdrop);
   display: flex; align-items: center; justify-content: center; padding: 24px;
 }
 
@@ -665,9 +699,9 @@ body {
   position: relative;
   background-color: var(--surface);
   background-image:
-    radial-gradient(1200px 620px at 12% -8%, rgba(46,125,82,.10), transparent 62%),
-    radial-gradient(1000px 560px at 92% 4%, rgba(29,111,184,.09), transparent 58%),
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='700' viewBox='0 0 900 700'><g fill='none' stroke='%232E7D52' stroke-opacity='0.16' stroke-width='1.4'><path d='M40 120 L250 70 L330 250 L120 300 Z'/><path d='M330 250 L120 300 L170 470 L390 430 Z'/><path d='M250 70 L470 40 L540 210 L330 250 Z'/><path d='M540 210 L330 250 L390 430 L600 390 Z'/><path d='M470 40 L700 20 L770 180 L540 210 Z'/><path d='M770 180 L540 210 L600 390 L840 350 Z'/><path d='M170 470 L390 430 L440 620 L220 660 Z'/><path d='M440 620 L390 430 L600 390 L660 580 Z'/><path d='M660 580 L600 390 L840 350 L890 540 Z'/></g><g fill='none' stroke='%231D6FB8' stroke-opacity='0.14' stroke-width='2.2'><path d='M0 352 C 150 330, 300 400, 450 372 S 760 300, 900 330'/><path d='M120 300 L170 470'/></g><g fill='%232E7D52' fill-opacity='0.14' font-family='monospace' font-size='15'><text x='150' y='195'>213/1</text><text x='250' y='370'>200/3</text><text x='400' y='150'>201/2</text><text x='455' y='330'>212/2</text><text x='610' y='120'>205/1</text><text x='690' y='290'>204/3</text><text x='290' y='545'>207/2</text><text x='510' y='500'>206/3</text></g></svg>");
+    radial-gradient(1200px 620px at 12% -8%, rgba(79,201,138,.13), transparent 62%),
+    radial-gradient(1000px 560px at 92% 4%, rgba(90,176,242,.11), transparent 58%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='700' viewBox='0 0 900 700'><g fill='none' stroke='%234FC98A' stroke-opacity='0.20' stroke-width='1.4'><path d='M40 120 L250 70 L330 250 L120 300 Z'/><path d='M330 250 L120 300 L170 470 L390 430 Z'/><path d='M250 70 L470 40 L540 210 L330 250 Z'/><path d='M540 210 L330 250 L390 430 L600 390 Z'/><path d='M470 40 L700 20 L770 180 L540 210 Z'/><path d='M770 180 L540 210 L600 390 L840 350 Z'/><path d='M170 470 L390 430 L440 620 L220 660 Z'/><path d='M440 620 L390 430 L600 390 L660 580 Z'/><path d='M660 580 L600 390 L840 350 L890 540 Z'/></g><g fill='none' stroke='%235AB0F2' stroke-opacity='0.17' stroke-width='2.2'><path d='M0 352 C 150 330, 300 400, 450 372 S 760 300, 900 330'/><path d='M120 300 L170 470'/></g><g fill='%234FC98A' fill-opacity='0.17' font-family='monospace' font-size='15'><text x='150' y='195'>213/1</text><text x='250' y='370'>200/3</text><text x='400' y='150'>201/2</text><text x='455' y='330'>212/2</text><text x='610' y='120'>205/1</text><text x='690' y='290'>204/3</text><text x='290' y='545'>207/2</text><text x='510' y='500'>206/3</text></g></svg>");
   background-repeat: no-repeat, no-repeat, repeat;
   background-size: auto, auto, 900px 700px;
   background-attachment: fixed, fixed, fixed;
@@ -711,9 +745,9 @@ body {
 .brand-mark {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(140deg, var(--green) 0%, var(--green-deep) 55%, var(--blue-deep) 100%);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(27,86,54,.28);
+  background: linear-gradient(140deg, var(--green-deep) 0%, var(--green) 45%, var(--blue) 100%);
+  color: #08160E;
+  box-shadow: 0 2px 14px rgba(79,201,138,.30);
 }
 .brand-mark::after {
   content: "";
@@ -757,11 +791,12 @@ body {
 }
 .btn:active:not(:disabled) { transform: translateY(1px); }
 .btn.primary {
-  background: linear-gradient(180deg, var(--green) 0%, var(--green-deep) 100%);
+  background: linear-gradient(180deg, var(--green-deep) 0%, var(--green) 100%);
+  color: #08160E;
   border-color: var(--green-deep);
 }
-.btn.primary:hover:not(:disabled) { box-shadow: 0 4px 12px rgba(27,86,54,.30); }
-.btn.success { background: var(--green); border-color: var(--green-deep); }
+.btn.primary:hover:not(:disabled) { box-shadow: 0 4px 16px rgba(79,201,138,.35); }
+.btn.success { background: var(--green); border-color: var(--green-deep); color: #08160E; }
 
 /* The dropzone reacts to a file being carried over it. */
 .dropzone {
@@ -790,3 +825,74 @@ body {
   .card:hover, .panel:hover, .stat:hover { transform: none; }
   .dropzone:hover, .dropzone.dragover { transform: none; }
 }
+
+
+/* ==========================================================================
+   THE MAP ON A DARK GROUND
+   --------------------------------------------------------------------------
+   Leaflet ships light: white controls, a white container, and OpenStreetMap
+   tiles that glare against this interface.
+
+   The tiles are darkened with a filter applied to the TILE PANE ONLY, never
+   the whole map. Filtering the map wholesale would invert our own parcel
+   polygons too, turning the cadastral overlay into its own negative - the
+   overlay panes must keep their real colours, because those colours carry
+   meaning (a linked parcel versus an unlinked one).
+
+   The container background matters more than it looks: this system is built
+   to run with no network, and when the tile requests fail that background is
+   the entire map. A white rectangle would be the most obviously broken thing
+   on the screen; a dark ground with our parcels drawn on it still reads as a
+   map with no basemap.
+   ========================================================================== */
+
+.leaflet-container {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* Tiles only. Overlay panes are deliberately untouched. */
+.leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.90) saturate(.75);
+}
+
+.leaflet-bar,
+.leaflet-control-layers,
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--canvas);
+  color: var(--text);
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+}
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  background: var(--canvas);
+  color: var(--text);
+  border-bottom-color: var(--border);
+}
+.leaflet-bar a:hover { background: var(--surface-2); }
+.leaflet-bar a.leaflet-disabled { background: var(--surface); color: var(--text-2); }
+
+.leaflet-control-attribution {
+  background: rgba(16,28,23,.82);
+  color: var(--text-2);
+}
+.leaflet-control-attribution a { color: var(--blue); }
+
+/* A tooltip over a parcel is reading material, so it gets the card treatment
+   rather than Leaflet's white default. */
+.leaflet-tooltip {
+  background: var(--canvas);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.leaflet-tooltip-top:before { border-top-color: var(--border); }
+.leaflet-tooltip-bottom:before { border-bottom-color: var(--border); }
+.leaflet-tooltip-left:before { border-left-color: var(--border); }
+.leaflet-tooltip-right:before { border-right-color: var(--border); }
+
+/* A scanned page is white paper and must STAY white paper - inverting a
+   document preview to match the furniture would misrepresent the record. */
+.preview-holder img { background: #FFFFFF; }
