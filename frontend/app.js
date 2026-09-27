@@ -567,13 +567,43 @@ let cadastralLayerControl = null;
 
 // Matches STATUS_META's colour classes (see statusBadge above) so a parcel's
 // fill colour always means the same thing the queue/workspace badges do.
+/**
+ * Resolve a CSS custom property to the literal colour it currently holds.
+ *
+ * Leaflet writes `color` and `fillColor` into the SVG as `stroke` and `fill`
+ * ATTRIBUTES, and an SVG presentation attribute does not resolve var() - it
+ * is simply invalid, so the browser falls back to the default fill, which is
+ * black. That bug was survivable on a light theme (a black parcel is ugly but
+ * visible) and became invisible parcels on a dark one.
+ *
+ * Reading the variable here keeps the stylesheet as the single source of
+ * truth for the palette while handing Leaflet something SVG understands, so
+ * the map follows any future theme change with no edit to this file.
+ */
+const cssColor = (() => {
+  const cache = new Map();
+  return (name, fallback) => {
+    if (cache.has(name)) return cache.get(name);
+    let value = "";
+    try {
+      value = getComputedStyle(document.documentElement)
+        .getPropertyValue(name).trim();
+    } catch (e) { /* non-browser context */ }
+    const resolved = value || fallback;
+    cache.set(name, resolved);
+    return resolved;
+  };
+})();
+
 function parcelColor(linked) {
-  if (!linked) return "#B9B7B2";   // no uploaded document matched yet
+  // Grey, and deliberately not a status colour: a parcel with no record is
+  // not "pending", it is absent from the register entirely.
+  if (!linked) return cssColor("--text-2", "#94A89C");
   const cls = (STATUS_META[linked.status] || {}).cls;
-  if (cls === "green") return "var(--green)";
-  if (cls === "orange") return "var(--orange)";
-  if (cls === "red") return "var(--red)";
-  return "var(--blue)";
+  if (cls === "green") return cssColor("--green", "#4FC98A");
+  if (cls === "orange") return cssColor("--orange", "#E9B45C");
+  if (cls === "red") return cssColor("--red", "#F2796B");
+  return cssColor("--blue", "#5AB0F2");
 }
 
 function parcelPopup(props) {
@@ -608,10 +638,10 @@ function parcelPopup(props) {
  * wants on the map.
  */
 const LAND_CLASS_BUCKETS = [
-  { key: "irrigated",   color: "#2E7D32", test: /सिंचित|सिचित|irrigat|बागायत/i, label: "Irrigated" },
-  { key: "unirrigated", color: "#C0864B", test: /असिंचित|असचिति|unirrigat|जिरायत|dry/i, label: "Unirrigated" },
-  { key: "barren",      color: "#9E9E9E", test: /बंजर|barren|waste/i, label: "Barren / waste" },
-  { key: "residential", color: "#6A4C93", test: /आवासीय|residen|abadi|आबादी/i, label: "Residential" },
+  { key: "irrigated",   color: "#5FD08A", test: /सिंचित|सिचित|irrigat|बागायत/i, label: "Irrigated" },
+  { key: "unirrigated", color: "#E0A867", test: /असिंचित|असचिति|unirrigat|जिरायत|dry/i, label: "Unirrigated" },
+  { key: "barren",      color: "#A8B6AD", test: /बंजर|barren|waste/i, label: "Barren / waste" },
+  { key: "residential", color: "#B18CE0", test: /आवासीय|residen|abadi|आबादी/i, label: "Residential" },
 ];
 
 function landClassBucket(value) {
@@ -623,7 +653,7 @@ function landClassBucket(value) {
   for (const b of LAND_CLASS_BUCKETS) {
     if (b.key !== "unirrigated" && b.test.test(value)) return b;
   }
-  return { key: "other", color: "#2783DE", label: "Other / unclassified" };
+  return { key: "other", color: "#5AB0F2", label: "Other / unclassified" };
 }
 
 function buildLegend(entries) {
@@ -713,7 +743,7 @@ async function loadCadastralMap() {
       const linked = f.properties.linked_document;
       const bucket = linked ? landClassBucket(linked.land_classification) : null;
       if (bucket) classesSeen.set(bucket.key, bucket);
-      const c = bucket ? bucket.color : "#E6E5E3";
+      const c = bucket ? bucket.color : cssColor("--border", "#24362D");
       return { color: c, weight: 2, fillColor: c, fillOpacity: bucket ? 0.45 : 0.08 };
     },
     onEachFeature: (f, layer) => {
@@ -730,7 +760,8 @@ async function loadCadastralMap() {
   const missingLayer = L.geoJSON(
     { type: "FeatureCollection", features: missing },
     {
-      style: { color: "#E56458", weight: 2, fillColor: "#E56458",
+      style: { color: cssColor("--red", "#F2796B"), weight: 2,
+               fillColor: cssColor("--red", "#F2796B"),
                fillOpacity: 0.3, dashArray: "5,4" },
       onEachFeature: (f, layer) => layer.bindPopup(
         `<b>Parcel ${esc(f.properties.parcel_id)}</b><br>`
@@ -754,7 +785,7 @@ async function loadCadastralMap() {
   const gcps = geojson._control_points || [];
   const gcpLayer = L.layerGroup(gcps.map((p, i) =>
     L.circleMarker([p.lat, p.lon], {
-      radius: 6, color: "#6A4C93", fillColor: "#6A4C93", fillOpacity: 0.9, weight: 2,
+      radius: 6, color: "#B18CE0", fillColor: "#B18CE0", fillOpacity: 0.9, weight: 2,
     }).bindPopup(`<b>Ground control point ${i + 1}</b><br>`
       + `lat ${p.lat}, lon ${p.lon}<br>`
       + `<span class="muted small">Illustrative demo anchor, not a real survey point.</span>`)));
@@ -792,7 +823,7 @@ async function loadCadastralMap() {
     { color: "var(--green)", label: "Approved" },
     { color: "var(--orange)", label: "Needs review" },
     { color: "var(--red)", label: "Blocked" },
-    { color: "#B9B7B2", label: "No record yet" },
+    { color: "var(--text-2)", label: "No record yet" },
   ];
   buildLegend(statusLegend);
   cadastralMap.on("overlayadd", (e) => {
