@@ -263,6 +263,56 @@ The blocker is XLM-R's 250,002-token vocabulary: that embedding table is
 leaves embeddings alone. Hence this path is **local-only** and absent from
 `requirements.txt`; the hosted demo reports it off.
 
+### S4c. SAM as a last resort, and why it is not the primary vectoriser
+
+`cadastral.vectorize()` follows the drawn boundary, which on a cadastral sheet
+is exact by construction: the parcel edge IS the surveyed line. SAM 2 was
+measured against it on two real Bhu-Naksha reports, given every advantage -
+the official package, a 1024-point grid, the model already installed:
+
+| metric | `vectorize()` | SAM 2 (hiera-small) |
+| --- | --- | --- |
+| plots found | 6 of 6 | 4 of 6, two merged |
+| boundary vertices | 4 - 11 | 304 - 861 |
+| time per map | 0.09 s | 64.5 s |
+
+**The vertex column disqualifies it as a replacement.** A cadastral parcel is a
+polygon of straight survey lines; SAM returns the same shape as a jagged
+raster blob. Areas from a wobbling outline are wrong, adjacent parcels stop
+sharing exact edges so `topology.py`'s gap and overlap checks break, and in one
+pass it merged plots 184, 185 and 258 into one region. Merging two neighbours
+is the shape of a property dispute.
+
+So it never runs in front of the vectoriser. `backend/sam_fallback.py` fires
+**only when tracing returned zero parcels** - a mudded or torn cloth sheet with
+broken lines, where contour following gives no answer rather than a poor one,
+and an approximate outline a reviewer can drag beats an empty map. Measured on
+a map degraded into exactly that state: tracing found 0, the fallback
+recovered 16 in 82 s, each simplified to a 4-vertex polygon.
+
+Everything it produces is tagged `approximate=True` and the sheet carries a
+`PARCELS_APPROXIMATE` warning stating the boundaries follow what the image
+looks like, not a surveyed line, and that their areas are not measurements.
+Off unless `SAM_FALLBACK=1`, because it needs torch.
+
+### S4d. MuRIL measured a third time, and rejected again
+
+MuRIL cannot do NER - `BertForMaskedLM`, 197,285 vocabulary, no classification
+head (S4b). The one job a masked LM could genuinely do here is judge whether an
+unmatched Devanagari token is plausible Hindi or OCR garbage, which is a real
+gap: the gazetteer distinguishes *known* names, and nothing scores an unknown
+one.
+
+Measured by pseudo-perplexity over eight real place and person names against
+deliberately corrupted versions of each, it separated **5 of 8** - barely above
+the 4 of 8 a coin flip gives, and three genuine names scored *worse* than their
+own corruption. A signal that calls real villages garbage one time in three is
+not usable, and shipping it would add ~900 MB for it.
+
+Not implemented. This is the third measured rejection of MuRIL in this project,
+after raw embeddings and MLM scoring both lost to the existing gazetteer
+bridge.
+
 ## 5. The seventeen fields
 
 `khasra_number`, `khata_number`, `survey_number`, `ulpin`, `owner_name`,
@@ -1728,6 +1778,7 @@ sih26018/
     shapefile_import.py      .shp/.dbf/.prj reader, no GDAL (S12h)           495
     db.py                    SQLite/Postgres, hash-chained audit (S8a,S8b)    857
     bhashini.py              Indic script bridge + exonyms (S4a)             459
+    sam_fallback.py          last-resort parcel segmentation (S4c)           265
     ner_extractor.py         NER cross-check, English + Indic (S4b)          374
     topology.py              gaps/overlaps/containment/snap (S12i)           465
     boundary_net.py          U-Net + transformer, optional, off (S12j)       460
@@ -1780,7 +1831,7 @@ Run everything:
 PYTHONPATH=backend:tools python3 -m unittest discover -s tests -t tests -q
 ```
 
-**671 tests, 3 skipped, about a minute** (14 more skip unless
+**685 tests, 3 skipped, about a minute** (14 more skip unless
 `TEST_DATABASE_URL` points at a Postgres). Or run one file at a time:
 
 ```bash
@@ -1804,6 +1855,7 @@ python3 tests/test_ner_indic.py -v            # Indic NER: labels, floor, degrad
 python3 tests/test_bhashini.py -v             # script bridge, exonyms, authority
 python3 tests/test_audit_chain.py -v          # tamper detection, from the attacker's side
 python3 tests/test_postgres.py -v             # dialect boundary; skips without TEST_DATABASE_URL
+python3 tests/test_sam_fallback.py -v          # SAM contract: never overrides a traced boundary
 python3 tests/test_document_authenticity.py -v
 python3 tests/test_anomaly_detector.py -v
 python3 tests/test_table_structure.py -v

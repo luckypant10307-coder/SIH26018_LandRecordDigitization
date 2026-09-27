@@ -503,6 +503,21 @@ def vectorize_and_georeference(
         raise ValueError("Either control_points or a transform is required.")
 
     parcels = vectorize(image_path)
+
+    # Last resort, and ONLY when tracing found nothing at all. A ruined cloth
+    # sheet with broken lines yields zero parcels rather than poor ones, and an
+    # approximate outline a reviewer can correct beats an empty map. SAM never
+    # gets to second-guess a boundary that was successfully traced - see
+    # sam_fallback.py for the measurements that settle why.
+    approximate_note = None
+    if not parcels:
+        try:
+            import sam_fallback
+            parcels, approximate_note = sam_fallback.segment_if_empty(
+                image_path, parcels)
+        except Exception:
+            pass                    # a fallback must never break the primary path
+
     if read_labels:
         read_parcel_labels(image_path, parcels)
 
@@ -524,6 +539,11 @@ def vectorize_and_georeference(
     georeference_parcels(parcels, transform)
     geojson = parcels_to_geojson(parcels, disclaimer=disclaimer)
     geojson["_georeferencing"] = meta
+    if approximate_note:
+        # Surfaced at the top level, not buried per feature: if the boundaries
+        # on this map were estimated rather than traced, that is the first
+        # thing a reviewer needs to know about the whole sheet.
+        geojson["_approximate_boundaries"] = approximate_note
     return geojson
 
 

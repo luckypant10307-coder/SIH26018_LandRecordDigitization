@@ -1,25 +1,60 @@
 /* Intelligent Land Record Digitization & Validation System - SIH 2026 PS 26018 */
 
-:root {
-  --text: #2C2C2B;
-  --text-2: #7D7A75;
-  --canvas: #FFFFFF;
-  --surface: #F9F8F7;
-  --surface-2: #F0EFED;
-  --border: #E6E5E3;
+/* ==========================================================================
+   THEME: cultivated land, water, and the survey sheet
+   --------------------------------------------------------------------------
+   Green and blue are the STRUCTURAL palette - green for cultivated land,
+   which is what this system records, blue for water and administrative
+   authority. Red is NOT used decoratively anywhere, and that restraint is
+   functional rather than aesthetic: green already means approved, red means
+   blocked, amber means needs-review. Spending red on a header or a border
+   would leave a blocked record competing with the furniture in a tool whose
+   entire job is making the problem records obvious.
 
-  --blue: #2783DE;
-  --blue-soft: #E5F2FC;
-  --green: #46A171;
-  --green-soft: #E8F1EC;
-  --orange: #D5803B;
-  --orange-soft: #FBEBDE;
-  --red: #E56458;
-  --red-soft: #FCE9E7;
+   The neutrals carry a slight green bias so the greys read as chosen rather
+   than inherited, and sit correctly against the parcel linework behind them.
+   ========================================================================== */
+
+:root {
+  --text: #15251C;
+  --text-2: #5E7268;
+  --canvas: #FFFFFF;
+  --surface: #EEF3EF;
+  --surface-2: #E3EBE6;
+  --border: #D3DFD7;
+
+  /* Administrative blue - authority, water, anything interactive. */
+  --blue: #1D6FB8;
+  --blue-soft: #E3EFF9;
+  --blue-deep: #0F4C86;
+
+  /* Cultivated green - the brand, and the "approved" state. */
+  --green: #2E7D52;
+  --green-soft: #DEEEE4;
+  --green-deep: #1B5636;
+
+  /* Reserved signals. Never decorative.
+     Both are darker than they look like they need to be, and measured that
+     way: a status badge is small text on a tinted chip, so it must clear
+     WCAG AA (4.5:1) against its OWN soft background, not against white. The
+     first pass used #C0392B and #B4741F, which measured 4.42 and 3.27 -
+     readable enough to pass a glance and not enough to pass an audit, on the
+     single most important label in a verification tool. */
+  --orange: #855312;      /* 5.50:1 on --orange-soft */
+  --orange-soft: #F7EBD8;
+  --red: #A82D22;         /* 5.57:1 on --red-soft */
+  --red-soft: #F8E3E0;
+
+  /* The survey sheet showing through. */
+  --ink-line: rgba(46, 125, 82, .17);
+  --ink-line-strong: rgba(29, 111, 184, .13);
 
   --r: 8px;
   --r-lg: 12px;
-  --shadow: 0 1px 2px rgba(44,44,43,.05), 0 1px 8px rgba(44,44,43,.04);
+  --shadow: 0 1px 2px rgba(21,37,28,.06), 0 2px 10px rgba(21,37,28,.05);
+  --shadow-lift: 0 6px 18px rgba(21,37,28,.10), 0 2px 6px rgba(21,37,28,.06);
+
+  --ease: cubic-bezier(.22,.61,.36,1);
 }
 
 * { box-sizing: border-box; }
@@ -609,3 +644,149 @@ select.input, input[type="search"].input { width: auto; min-width: 180px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .status-note { margin-top: 12px; font-size: 14px; color: var(--text-2); }
+
+/* ==========================================================================
+   THE SURVEY SHEET
+   --------------------------------------------------------------------------
+   The background is a cadastral field pattern: irregular parcel polygons in
+   faded survey ink, as though the revenue map underneath were showing through
+   the paper. It is an inline SVG data URI rather than a photograph on
+   purpose - this system must run on a demo laptop with no network, so a
+   remote image would simply fail and a bundled photograph would add megabytes
+   for decoration. Vector linework also stays crisp at any zoom and costs
+   nothing to re-tint.
+
+   The shapes are irregular quadrilaterals, not a grid. Real khasra parcels
+   are surveyed boundaries; a neat grid would read as a spreadsheet rather
+   than as land.
+   ========================================================================== */
+
+body {
+  position: relative;
+  background-color: var(--surface);
+  background-image:
+    radial-gradient(1200px 620px at 12% -8%, rgba(46,125,82,.10), transparent 62%),
+    radial-gradient(1000px 560px at 92% 4%, rgba(29,111,184,.09), transparent 58%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='700' viewBox='0 0 900 700'><g fill='none' stroke='%232E7D52' stroke-opacity='0.16' stroke-width='1.4'><path d='M40 120 L250 70 L330 250 L120 300 Z'/><path d='M330 250 L120 300 L170 470 L390 430 Z'/><path d='M250 70 L470 40 L540 210 L330 250 Z'/><path d='M540 210 L330 250 L390 430 L600 390 Z'/><path d='M470 40 L700 20 L770 180 L540 210 Z'/><path d='M770 180 L540 210 L600 390 L840 350 Z'/><path d='M170 470 L390 430 L440 620 L220 660 Z'/><path d='M440 620 L390 430 L600 390 L660 580 Z'/><path d='M660 580 L600 390 L840 350 L890 540 Z'/></g><g fill='none' stroke='%231D6FB8' stroke-opacity='0.14' stroke-width='2.2'><path d='M0 352 C 150 330, 300 400, 450 372 S 760 300, 900 330'/><path d='M120 300 L170 470'/></g><g fill='%232E7D52' fill-opacity='0.14' font-family='monospace' font-size='15'><text x='150' y='195'>213/1</text><text x='250' y='370'>200/3</text><text x='400' y='150'>201/2</text><text x='455' y='330'>212/2</text><text x='610' y='120'>205/1</text><text x='690' y='290'>204/3</text><text x='290' y='545'>207/2</text><text x='510' y='500'>206/3</text></g></svg>");
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-size: auto, auto, 900px 700px;
+  background-attachment: fixed, fixed, fixed;
+  animation: sheet-settle 1.1s var(--ease) both;
+}
+
+/* The sheet arrives as if laid on a table - once, on load, never looping. */
+@keyframes sheet-settle {
+  from { background-position: 0 0, 0 0, 0 -14px; opacity: .6; }
+  to   { background-position: 0 0, 0 0, 0 0; opacity: 1; }
+}
+
+/* Content sits on the sheet, never under it. */
+.topbar, .tabs, .panel-view, .modal-backdrop, .toast { position: relative; z-index: 1; }
+
+/* ==========================================================================
+   MOTION
+   Entry is staggered so a panel assembles rather than snapping in. All of it
+   is decorative and fully removed under prefers-reduced-motion, which a
+   government deployment will encounter.
+   ========================================================================== */
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes sweep {
+  from { transform: translateX(-120%); }
+  to   { transform: translateX(240%); }
+}
+
+.panel-view.active { animation: rise .42s var(--ease) both; }
+.panel-view.active > * { animation: rise .5s var(--ease) both; }
+.panel-view.active > *:nth-child(1) { animation-delay: .04s; }
+.panel-view.active > *:nth-child(2) { animation-delay: .10s; }
+.panel-view.active > *:nth-child(3) { animation-delay: .16s; }
+.panel-view.active > *:nth-child(4) { animation-delay: .22s; }
+.panel-view.active > *:nth-child(n+5) { animation-delay: .28s; }
+
+/* The brand mark is a surveyor's plate, with light crossing it on arrival. */
+.brand-mark {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(140deg, var(--green) 0%, var(--green-deep) 55%, var(--blue-deep) 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(27,86,54,.28);
+}
+.brand-mark::after {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 42%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent);
+  animation: sweep 2.9s var(--ease) 1.1s 2;
+}
+
+/* Tabs: the active underline grows from the centre out. */
+.tab { position: relative; transition: color .18s var(--ease); }
+.tab::after {
+  content: "";
+  position: absolute;
+  left: 50%; right: 50%; bottom: -1px;
+  height: 2px;
+  background: var(--green);
+  transition: left .24s var(--ease), right .24s var(--ease);
+}
+.tab.active::after { left: 0; right: 0; }
+.tab.active { color: var(--green-deep); border-bottom-color: transparent; }
+.tab.active .tab-count { background: var(--green-soft); color: var(--green-deep); }
+
+/* Cards lift on hover: a physical cue that a record is something you pick up. */
+.card, .panel, .stat, .doc-row {
+  transition: transform .2s var(--ease), box-shadow .2s var(--ease),
+              border-color .2s var(--ease), background .2s var(--ease);
+}
+.card:hover, .panel:hover, .stat:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+}
+.doc-row:hover { border-color: var(--green); background: var(--green-soft); }
+
+/* Primary action is land-green: the common act here is accepting a record
+   into the register. */
+.btn {
+  transition: transform .12s var(--ease), background .18s var(--ease),
+              border-color .18s var(--ease), box-shadow .18s var(--ease);
+}
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn.primary {
+  background: linear-gradient(180deg, var(--green) 0%, var(--green-deep) 100%);
+  border-color: var(--green-deep);
+}
+.btn.primary:hover:not(:disabled) { box-shadow: 0 4px 12px rgba(27,86,54,.30); }
+.btn.success { background: var(--green); border-color: var(--green-deep); }
+
+/* The dropzone reacts to a file being carried over it. */
+.dropzone {
+  transition: border-color .2s var(--ease), background .2s var(--ease),
+              transform .2s var(--ease);
+}
+.dropzone:hover, .dropzone.dragover {
+  border-color: var(--green);
+  background: var(--green-soft);
+  transform: scale(1.005);
+}
+
+.toast { animation: rise .3s var(--ease) both; }
+
+/* Status colour stays exactly as loud as it was. Decoration must not compete
+   with it - that is the whole reason red appears nowhere above. */
+.badge.err, .pill.err { background: var(--red-soft); color: var(--red); }
+.badge.warn, .pill.warn { background: var(--orange-soft); color: var(--orange); }
+.badge.ok, .pill.ok { background: var(--green-soft); color: var(--green-deep); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .card:hover, .panel:hover, .stat:hover { transform: none; }
+  .dropzone:hover, .dropzone.dragover { transform: none; }
+}

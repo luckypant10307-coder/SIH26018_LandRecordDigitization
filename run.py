@@ -125,6 +125,15 @@ def report() -> int:
     else:
         print(f"  LLM field suggestions : off ({llm_extractor.unavailable_reason()})")
 
+    import sam_fallback
+    sam = sam_fallback.status()
+    if sam["enabled"]:
+        print(f"  Parcel fallback (SAM) : enabled ({sam['model']}) - fires ONLY when no")
+        print("                          drawn boundary can be traced; output is approximate")
+    else:
+        print("  Parcel fallback (SAM) : off (SAM_FALLBACK != 1). Contour tracing is the")
+        print("                          primary path and measured better on readable maps.")
+
     import ner_extractor
     if ner_extractor.ner_available():
         print("  NER cross-check (en)  : spaCy en_core_web_sm")
