@@ -125,6 +125,21 @@ def report() -> int:
     else:
         print(f"  LLM field suggestions : off ({llm_extractor.unavailable_reason()})")
 
+    import ner_extractor
+    if ner_extractor.ner_available():
+        print("  NER cross-check (en)  : spaCy en_core_web_sm")
+    else:
+        print("  NER cross-check (en)  : off (pip install spacy; spacy download en_core_web_sm)")
+    if ner_extractor.indic_ner_available():
+        print(f"  NER cross-check (Indic): {ner_extractor.INDIC_NER_MODEL}")
+        print("                          Devanagari owner/father names are now checked "
+              "against the source line")
+    else:
+        status = ner_extractor.indic_ner_status()
+        why = status["error"] or "model not installed"
+        print(f"  NER cross-check (Indic): off ({why})")
+        print("                          Devanagari person fields get no NER claim either way.")
+
     bh = bhashini.capabilities()
     if bh["available"]:
         print("  Script transliteration: ACTIVE (Bhashini) - Indic place names are "

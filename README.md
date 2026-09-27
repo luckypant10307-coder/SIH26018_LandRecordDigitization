@@ -98,6 +98,17 @@ it. This is the same `MAX_PATH` class of bug that once aborted `api_seed`'s
 entire batch, in a second place - on Windows it is worth assuming there is
 a third.
 
+**Two later additions follow the same rule.** The Bhashini script bridge
+(S4a) and the Indic NER cross-check (S4b) are both optional, both off when
+unconfigured, and both say so in `run.py --check` rather than appearing to
+work. Neither can turn a missing capability into a confident answer: without
+the bridge a Devanagari district simply fails to match the Latin master and
+is reported unknown, exactly as before it existed; without the Indic model a
+Devanagari owner name gets no NER verdict at all. The failure mode they are
+built to avoid is the opposite one - `en_core_web_sm` run on Hindi does not
+return nothing, it returns **wrong** answers (see S4b), and a wrong
+corroboration is worse than an absent one.
+
 ## 4. Architecture
 
 ```
@@ -156,6 +167,101 @@ a third.
 | `backend/data/registry_master.json` | Bundled parcel-level registry extract for fact-checking |
 | `frontend/` | Ingest, queue, verification workspace, dashboard, learning, audit |
 | `tools/make_samples.py` | Generates the sample corpus with planted edge cases |
+
+### S4a. The script bridge: Devanagari names against a Latin master
+
+`ocr_engine.py` reads place names in fourteen Indic scripts. The
+administrative master they are validated against holds 65,869 Latin
+characters and **zero Devanagari**. The consequence was measurable and total:
+
+```
+district_exists("Lucknow")  -> "Uttar Pradesh"
+district_exists("लखनऊ")     -> None            # the same district
+```
+
+Across all 43 districts in the bundled LGD extract, **0 resolved from
+Devanagari**. This is not an OCR failure and no amount of better reading
+fixes it; the name has to be rendered into the script the reference data
+uses.
+
+A hand-written character mapping was tried first and managed 5 of 8 on a
+sample of hard cases. It fails on **schwa deletion**: जयपुर is written
+`jayapura` and said `Jaipur`, and knowing which implicit vowels to drop is a
+genuine problem in Indic text processing. Bhashini's IndicXlit learned it
+from data and returns `jaipur`, taking the extract to **31 of 43**.
+
+The remaining twelve are anglicised or orthographic - लखनऊ transliterates to
+`lakhanau`, ठाणे to `thhaane` - and **no transliteration model will ever
+produce Lucknow or Thane**, because the relationship is historical rather
+than phonetic. Those live in `backend/data/place_exonyms.json`, built from
+the measured failures with the model's own output recorded beside each entry,
+and consulted before the network is touched. Result: **43 of 43**.
+
+Three properties matter more than the number:
+
+* **The master decides, not the model.** `bhashini.resolve_to_reference()`
+  takes the authority as a callable, the way `learning.apply_model()` takes
+  its corroborator. The client only proposes candidates.
+* **Matching is exact after normalisation, never fuzzy.** A fuzzy match here
+  would silently *rename* a district rather than fail to find one -
+  `Lucknowe` resolves to nothing, deliberately.
+* **Values are stored in the master's spelling.** A record reads
+  `Uttar Pradesh`, not the model's `uttar pradesh`.
+
+Owner and father names are **not** bridged: nothing validates a person's name
+against a Latin list, so transliterating would discard the form printed on
+the page for no gain. A village the master does not know keeps exactly what
+the OCR read.
+
+TLS note: `dhruva-api.bhashini.gov.in` chains to the Indian emSign root,
+present in `certifi` but not in every trust store, so the module builds its
+context from certifi and **never** disables verification.
+
+### S4b. Indic NER, and why not MuRIL or IndicBERT
+
+The NER cross-check ran `en_core_web_sm`, an **English** model. On a Hindi
+khatauni line it did not degrade quietly, it degraded wrongly:
+
+| Input | Result |
+| --- | --- |
+| Latin | both people found correctly |
+| Devanagari | owner सुनीता देवी missed entirely, देवी tagged **DATE** |
+
+So the check was not merely unavailable on Devanagari - it could manufacture
+a false mismatch, which is why `cross_check()` used to skip non-Latin script
+outright. A multilingual model closes the gap: measured over three real
+land-record lines it recovered **6 of 6** person names and additionally
+tagged नरहरपुर / सदर / लखनऊ as locations. spaCy is **kept** for Latin, being
+a few tens of MB against the multilingual model's 2.5 GB.
+
+**The obvious names do not work.** `google/muril-base-cased` declares itself
+`BertForMaskedLM` with an empty `id2label`, and IndicBERTv2 ships MLM-only -
+they predict masked words and have **no entity head at all**. The model that
+would be ideal is `ai4bharat/IndicNER`, MuRIL already fine-tuned for this
+exact task, but it is a **gated repo** returning 401 without an authenticated
+account that has accepted its terms. Set `INDIC_NER_MODEL=ai4bharat/IndicNER`
+once that access exists and the module uses it with no code change.
+
+One asymmetry is deliberate. The English path feeds the model a *templated
+value*, so it can only ask "is this a person name"; the multilingual model
+handles whole lines, so the Indic path is given the **source line** and asks
+the stronger question: a line reading सुनीता देवी against an extractor that
+produced रीता शर्मा now raises `NER_MISMATCH` instead of waving both through
+as plausible names.
+
+**Deployment cost, measured, not estimated:**
+
+| | PyTorch | ONNX int8 |
+| --- | --- | --- |
+| Model on disk | 1,110 MB | 278 MB |
+| Resident memory | 1,195 MB | 759 MB |
+| Person recall | 6/6 | 6/6 |
+| Fits a 512 MB instance | no | no |
+
+The blocker is XLM-R's 250,002-token vocabulary: that embedding table is
+~768 MB in float32, and dynamic quantisation compresses matmul weights but
+leaves embeddings alone. Hence this path is **local-only** and absent from
+`requirements.txt`; the hosted demo reports it off.
 
 ## 5. The seventeen fields
 
@@ -407,6 +513,52 @@ record.
 Rights are enforced server-side on every route. The role switcher in the UI is
 a demo convenience; removing it does not remove the enforcement.
 
+### S8a. Tamper-evident audit trail
+
+Every `audit_log` row stores the SHA-256 of its own content combined with the
+previous row's hash. Editing an old entry, or deleting one, breaks the link
+every later row depends on, and `verify_audit_chain()` reports the **first**
+row that no longer agrees - because that row is where the history stops being
+trustworthy, regardless of whether later rows were themselves touched.
+
+```
+GET /api/audit/verify
+{"ok": true, "entries": 81, "verified": 81, "broken_at": null,
+ "tip": "57d6d68f4e08bbe8259b40f44d78f69c..."}
+```
+
+Three implementation details are load-bearing:
+
+* **Reading the tip and appending happen inside one lock.** The server is
+  threaded, so two writers reading the same tip would fork the chain and make
+  an honest log fail verification ever after.
+* **Sealing never recomputes a row that already has a hash**, which would
+  quietly repair exactly what verification exists to report.
+* **Rows written before the chain existed are sealed on migration.** That
+  establishes a baseline; it proves nothing about what happened to them
+  beforehand, and the docstring says so.
+
+The endpoint is open to **every** signed-in role, auditor included. An
+integrity check only an administrator may run is worth little, because the
+administrator is who an auditor is checking up on.
+
+**This is tamper-EVIDENT, not tamper-proof, and deliberately not a
+blockchain.** Someone with write access to the file can recompute the chain
+from their edit onward and it will verify clean. What the chain buys is that
+tampering can no longer be *silent* - it must be deliberate and complete -
+and a copy of the tip hash held anywhere outside the database (a nightly
+export, a printout, a second office) makes even a complete recompute
+detectable. There is no distributed consensus here and claiming otherwise
+would be the one dishonest component in an otherwise honest system.
+
+`tests/test_audit_chain.py` is written from the attacker's side: it performs
+the edit a dishonest operator would actually attempt - rewriting an owner
+name, deleting a correction, changing who acted, backdating an entry, forging
+a row by hand - and asserts that verification catches it **and names the right
+row**. One test matters more than the rest: a later honest append must not
+repair an existing break, or an attacker could edit a row and wait for
+ordinary traffic to bury it.
+
 ## 9. The learning loop
 
 Every human correction is stored as a training signal with the AI value, the
@@ -468,6 +620,7 @@ All routes accept an `X-User` header identifying the actor.
 | POST | `/api/documents/{id}/reject` | Reject with a mandatory reason |
 | GET | `/api/stats` | Dashboard aggregates |
 | GET | `/api/audit` | Append-only audit trail |
+| GET | `/api/audit/verify` | Re-verify the hash chain; names the first broken row (S8a) |
 | GET | `/api/learning` | Model state and recent corrections |
 | POST | `/api/learning/retrain` | Retrain from accumulated corrections |
 | GET | `/api/export/csv`, `/api/export/json` | Structured export for LRMS/DILRMP |
@@ -1460,9 +1613,55 @@ that is done and measured, this layer earns nothing and claims nothing.
   actually use on this hardware" are two separate claims here, and only the
   first one holds.
 
+## 13a. Deployment
+
+The backend is standard library only, so nothing is needed to merely run it.
+`requirements.txt` pins the eight packages that make the **hosted** demo show
+the full rule-based pipeline inside a free tier's memory limit, and documents
+what each exclusion costs. Every pin was checked for a Linux wheel on Python
+3.12, so the image compiles nothing.
+
+Deliberately excluded, totalling ~680 MB: `torch` (BoundaryNet refinement),
+`onnxruntime` (TrOCR transcription - handwriting is still *detected* and
+routed to a human, which is the part that protects the record), `spacy`, and
+`paddleocr`. That is the difference between fitting a 512 MB instance and
+being evicted by it.
+
+The `Dockerfile` installs Tesseract's **language packs**, which is why this
+cannot be a plain buildpack deploy: pip cannot provide them, and without them
+a Devanagari khatauni yields confident nonsense. It ends with a build gate
+that greps `run.py --check`, so a missing pack fails the *build* rather than
+the demo.
+
+`run.py` reads `$PORT` and `$HOST`, because a managed host assigns the port
+and requires `0.0.0.0` - bound to localhost a container passes its own health
+check and is unreachable. Explicit flags still win, so a laptop run stays
+private. `AUTO_SEED=1` ingests the bundled corpus on first boot, in a
+background thread started *after* the socket is listening, since a health
+check that cannot connect during a forty-second seed kills the container; it
+drives the real `/api/seed` endpoint over loopback rather than keeping a
+second, untested copy of the ingest loop.
+
+**Measured on the built image:** 1.38 GB, 16 Tesseract languages present,
+first response in ~10 s, peak memory **216 MiB** against a 512 MB cap.
+
+**One honest limitation of the free tier.** Render's free CPU is heavily
+throttled, and OCR is nothing but sustained CPU. Digital PDFs are unaffected
+(text-layer extraction, 4.5 s each) but a scanned page that takes **8.7 s**
+locally **did not finish in 600 s** hosted. The public demo therefore shows
+the eleven digital documents; the OCR path is demonstrated locally. This is a
+CPU limit, not a memory one - verified by running the same container under a
+hard 512 MB cap, where all fourteen documents ingested including the scans.
+
+`.dockerignore` keeps `.env` and the local database out of image layers: a
+baked secret is readable by anyone who can pull the image, and deleting it in
+a later layer does not remove it from the history. Secrets are supplied
+through the platform's own environment settings; `.env.example` is the
+committed template, carrying names and comments and no values.
+
 ## 14. Project layout
 
-21 backend modules, 9 tools, 21 test files. Every line count below is real.
+24 backend modules, 9 tools, 26 test files. Every line count below is real.
 
 ```
 sih26018/
@@ -1476,7 +1675,9 @@ sih26018/
     validator.py             rules, identifier group, trust score            680
     handwriting.py           print-profile novelty detection (S12g)          595
     shapefile_import.py      .shp/.dbf/.prj reader, no GDAL (S12h)           495
-    db.py                    SQLite schema, audit trail, statistics          480
+    db.py                    SQLite schema, hash-chained audit trail (S8a)    656
+    bhashini.py              Indic script bridge + exonyms (S4a)             459
+    ner_extractor.py         NER cross-check, English + Indic (S4b)          374
     topology.py              gaps/overlaps/containment/snap (S12i)           465
     boundary_net.py          U-Net + transformer, optional, off (S12j)       460
     georeference.py          world files, GeoTIFF tags, .aux.xml (S12h)      445
@@ -1528,7 +1729,7 @@ Run everything:
 PYTHONPATH=backend:tools python3 -m unittest discover -s tests -t tests -q
 ```
 
-**502 tests, 3 skipped, about 50 seconds.** Or run one file at a time:
+**657 tests, 3 skipped, about a minute.** Or run one file at a time:
 
 ```bash
 python3 tests/test_validator.py -v            # business rules, identifier group
@@ -1546,7 +1747,10 @@ python3 tests/test_shapefile_import.py -v     # .shp/.dbf/.prj, winding, tombsto
 python3 tests/test_boundary_net.py -v         # U-Net contract + dataset ground truth
 python3 tests/test_cnn_denoiser.py -v         # conv primitives, tiled inference
 python3 tests/test_fact_checker.py -v         # ML fact-check pipeline
-python3 tests/test_ner_extractor.py -v        # NER cross-check, Latin gate
+python3 tests/test_ner_extractor.py -v        # NER cross-check, script routing
+python3 tests/test_ner_indic.py -v            # Indic NER: labels, floor, degradation
+python3 tests/test_bhashini.py -v             # script bridge, exonyms, authority
+python3 tests/test_audit_chain.py -v          # tamper detection, from the attacker's side
 python3 tests/test_document_authenticity.py -v
 python3 tests/test_anomaly_detector.py -v
 python3 tests/test_table_structure.py -v

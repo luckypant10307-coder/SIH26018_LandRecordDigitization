@@ -66,14 +66,31 @@ class MatchingTests(unittest.TestCase):
         self.assertEqual(hit.rule, "NER_CONFIRMED")
         self.assertEqual(hit.severity, "info")
 
-    def test_devanagari_script_is_skipped_not_guessed(self):
+    def test_devanagari_is_never_handed_to_the_english_model(self):
+        """
+        The invariant is not "Devanagari is skipped" - it is "the English model
+        never sees Devanagari". Measured, en_core_web_sm does not fail quietly
+        on Hindi: it missed सुनीता देवी entirely and tagged देवी as a DATE, so
+        running it here would manufacture false mismatches.
+
+        With a multilingual model installed the field IS now checked, by that
+        model. Without one the module still makes no claim, which is what this
+        test asserted when it was written and no Indic path existed.
+        """
         values = {"owner_name": field(
             "रामप्रसाद वर्मा", source_line="Owner Name : रामप्रसाद वर्मा",
             script="devanagari")}
         issues = ner.cross_check(values)
-        # No NER_* issue for owner_name - the module makes no claim on
-        # non-Latin script rather than running an English model on it.
-        self.assertFalse(any(i.field == "owner_name" for i in issues))
+        raised = [i for i in issues if i.field == "owner_name"]
+
+        if ner.indic_ner_available():
+            # Checked by the Indic model, and whatever it concludes must be a
+            # real verdict rather than a crash or a silent pass.
+            self.assertTrue(raised)
+            self.assertIn(raised[0].rule,
+                          ("NER_CONFIRMED", "NER_UNCONFIRMED", "NER_MISMATCH"))
+        else:
+            self.assertFalse(raised, "no Indic model: make no claim")
 
     def test_date_field_is_checked_against_date_entities(self):
         values = {"registration_date": field(

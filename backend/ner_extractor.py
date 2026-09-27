@@ -67,12 +67,113 @@ model (measured against this project's own sample data, not assumed):
 
 from __future__ import annotations
 
+import os
 from dataclasses import asdict, dataclass
 from typing import Dict, List, Optional
 
 from field_extractor import parse_date
 
 _SPACY_MODEL = "en_core_web_sm"
+
+# --------------------------------------------------------------------------
+# Indic-script NER
+# --------------------------------------------------------------------------
+#
+# WHY A SECOND MODEL RATHER THAN ONE
+#
+# en_core_web_sm is an ENGLISH model. On a Hindi khatauni line it does not
+# degrade quietly, it degrades wrongly. Measured on
+#
+#   "खातेदार का नाम: सुनीता देवी पत्नी स्व0 रामप्रसाद, ग्राम नरहरपुर, ..."
+#
+# it missed the owner सुनीता देवी entirely and tagged देवी as a DATE. On the
+# Latin rendering of the same line it found both people correctly. So the
+# cross-check was not merely unavailable on Devanagari - it was capable of
+# reporting a false mismatch, which is worse than making no claim. That is why
+# cross_check() used to skip non-Latin script outright.
+#
+# A multilingual NER model closes the gap. Measured over three real
+# land-record lines (khatauni owner, Bhu-Naksha owner, mutation entry) it
+# recovered 6 of 6 person names, and additionally tagged नरहरपुर / सदर / लखनऊ
+# as locations.
+#
+# spaCy is KEPT for Latin rather than replaced: it is a few tens of MB and
+# already loaded, where the multilingual model is ~2.5 GB. Paying that on an
+# English-only document would be pure waste.
+#
+# WHY NOT MuRIL OR IndicBERT, WHICH ARE THE OBVIOUS NAMES
+#
+# Neither can do this task as published. google/muril-base-cased declares
+# itself BertForMaskedLM with an empty id2label, and IndicBERTv2 ships
+# MLM-only - they predict masked words and have no entity head at all. The
+# model that WOULD be ideal is ai4bharat/IndicNER, MuRIL already fine-tuned
+# for Indic NER, but it is a gated repo and returns 401 without an
+# authenticated Hugging Face account that has accepted its terms. Set
+# INDIC_NER_MODEL=ai4bharat/IndicNER once that access exists and this module
+# will use it with no code change.
+#
+# NO CONSENT GATE, unlike llm_extractor.py and bhashini.py: this model runs
+# locally and no document text leaves the machine, so there is nothing to
+# consent to. It is absent from requirements.txt because it needs torch, which
+# the deployment image excludes - there, this path is simply unavailable and
+# says so.
+
+INDIC_NER_MODEL = os.environ.get("INDIC_NER_MODEL",
+                                 "Davlan/xlm-roberta-base-ner-hrl")
+INDIC_NER_DISABLED = os.environ.get("INDIC_NER_DISABLED") == "1"
+
+# This model labels spans PER/LOC/ORG/DATE; the rest of this module speaks
+# spaCy's vocabulary, so translate at the boundary rather than teaching every
+# caller two schemes.
+_INDIC_LABEL_MAP = {"PER": "PERSON", "DATE": "DATE", "LOC": "GPE", "ORG": "ORG"}
+
+_INDIC = None
+_INDIC_LOAD_ATTEMPTED = False
+_INDIC_ERROR: Optional[str] = None
+
+
+def _indic_ner():
+    """
+    Lazy-load the multilingual NER pipeline.
+
+    Loading is deferred hard: importing transformers and materialising ~2.5 GB
+    of weights must not happen for an installation that only ever sees English
+    documents, nor at module import time, which would make `import server` pay
+    for it on every start.
+    """
+    global _INDIC, _INDIC_LOAD_ATTEMPTED, _INDIC_ERROR
+    if _INDIC_LOAD_ATTEMPTED:
+        return _INDIC
+    _INDIC_LOAD_ATTEMPTED = True
+    if INDIC_NER_DISABLED:
+        _INDIC_ERROR = "INDIC_NER_DISABLED=1"
+        return None
+    try:
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            from transformers import pipeline
+            _INDIC = pipeline("ner", model=INDIC_NER_MODEL,
+                              aggregation_strategy="simple", device=-1)
+    except Exception as exc:
+        _INDIC_ERROR = f"{type(exc).__name__}: {exc}"
+        _INDIC = None
+    return _INDIC
+
+
+def indic_ner_available() -> bool:
+    return _indic_ner() is not None
+
+
+def indic_ner_status() -> dict:
+    """Honest status for --check and the dashboard, without forcing a load."""
+    return {
+        "model": INDIC_NER_MODEL,
+        "loaded": _INDIC is not None,
+        "attempted": _INDIC_LOAD_ATTEMPTED,
+        "error": _INDIC_ERROR,
+        "disabled": INDIC_NER_DISABLED,
+    }
 
 
 def _try_load_spacy():
@@ -137,6 +238,33 @@ def _entities_by_label(text: str) -> Dict[str, List[str]]:
     return out
 
 
+# Below this the model is guessing rather than recognising. A low-confidence
+# span that disagrees with the rule-based reading would raise NER_MISMATCH and
+# send a correct record to a human for no reason, so weak spans are dropped and
+# the field is reported unconfirmed instead.
+_INDIC_MIN_SCORE = 0.60
+
+
+def _indic_entities_by_label(text: str) -> Dict[str, List[str]]:
+    """The same {label: [span, ...]} shape as the spaCy path, in spaCy's labels."""
+    ner = _indic_ner()
+    out: Dict[str, List[str]] = {}
+    if ner is None:
+        return out
+    try:
+        spans = ner(text)
+    except Exception:
+        return out              # a model failure must never break validation
+    for span in spans:
+        if float(span.get("score") or 0) < _INDIC_MIN_SCORE:
+            continue
+        label = _INDIC_LABEL_MAP.get(span.get("entity_group"))
+        word = (span.get("word") or "").strip()
+        if label and word:
+            out.setdefault(label, []).append(word)
+    return out
+
+
 # A bare "Label : Value" line, or even a bare name with no sentence
 # context, gives the small English model too little structure to
 # recognise a person name at all (empirically verified - see module
@@ -157,11 +285,11 @@ def cross_check(values: Dict[str, dict]) -> List[Issue]:
     fields are even attempted - see the module docstring for why non-Latin
     script is skipped rather than guessed at.
     """
-    if not ner_available():
+    if not ner_available() and not indic_ner_available():
         return [Issue(
             "NER_UNAVAILABLE", "info", None,
-            "spaCy (or its 'en_core_web_sm' model) is not installed; "
-            "NER cross-check of person/date fields was skipped.",
+            "Neither spaCy ('en_core_web_sm') nor a multilingual NER model is "
+            "installed; NER cross-check of person/date fields was skipped.",
             "Install with: pip install spacy && python -m spacy download en_core_web_sm",
         )]
 
@@ -171,19 +299,38 @@ def cross_check(values: Dict[str, dict]) -> List[Issue]:
         value = entry.get("value")
         if not value:
             continue
-        script = (entry.get("extra") or {}).get("script")
-        if script not in ("latin", None):
-            continue    # non-Latin script: no claim made, see module docstring
 
-        if expected_label == "PERSON":
+        # Route by the script the value is actually written in. The English
+        # model is not merely weak on Devanagari, it is confidently wrong on
+        # it (see the module docstring), so a non-Latin value must never be
+        # handed to it. Where no Indic model is loaded this still degrades to
+        # the previous behaviour: no claim made.
+        script = (entry.get("extra") or {}).get("script")
+        indic = script not in ("latin", None)
+        if indic:
+            if not indic_ner_available():
+                continue
+        elif not ner_available():
+            continue
+
+        if expected_label == "PERSON" and not indic:
             # The raw source line ("Owner Name : Ramesh Kumar") is not
-            # syntactically rich enough for this model - see
-            # _PERSON_NER_TEMPLATE and the module docstring.
+            # syntactically rich enough for the small English model - see
+            # _PERSON_NER_TEMPLATE and the module docstring. The cost of that
+            # frame is that the check can only ask "is this string a person
+            # name", never "is this the person on the line".
             ner_input = _PERSON_NER_TEMPLATE.format(value)
         else:
+            # The multilingual model needs no such frame: measured on whole
+            # khatauni and mutation lines it recovered every name, so it is
+            # given the SOURCE LINE. That upgrades the check from plausibility
+            # to genuine cross-validation - if the line reads सुनीता देवी and
+            # the extractor produced रीता शर्मा, the mismatch is now visible
+            # instead of both being waved through as plausible names.
             ner_input = entry.get("source_line") or value
 
-        entities = _entities_by_label(ner_input)
+        entities = (_indic_entities_by_label(ner_input) if indic
+                    else _entities_by_label(ner_input))
         candidates = entities.get(expected_label, [])
 
         if expected_label == "DATE":
