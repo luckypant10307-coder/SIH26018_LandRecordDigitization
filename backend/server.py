@@ -24,6 +24,7 @@ import os
 import re
 import shutil
 import sys
+import threading
 import time
 import traceback
 import urllib.parse
@@ -34,6 +35,7 @@ from typing import Any, Dict, List, Optional, Tuple
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import anomaly_detector
+import bhashini
 import cadastral
 import document_authenticity
 import doc_type as doc_type_mod
@@ -526,6 +528,175 @@ def _add_anomaly_issue(result: dict, summary: dict, quality: dict) -> None:
             result["decision"] = "needs_review"
 
 
+# Ordered, and the order is a dependency chain: a tehsil can only be checked
+# once its district is in Latin, and a village only once its tehsil is.
+_SCRIPT_BRIDGED_FIELDS = ("district", "state", "tehsil", "village")
+
+
+def _find_district_entry(master, district: Optional[str]):
+    """The master's (canonical name, record) for a district, matched loosely."""
+    if not district:
+        return None, None
+    target = master._norm(district)
+    for state in master.states.values():
+        for name, record in (state.get("districts") or {}).items():
+            if master._norm(name) == target:
+                return name, record
+    return None, None
+
+
+def _canonical_place(master, kind: str, value: str,
+                     district: Optional[str] = None,
+                     tehsil: Optional[str] = None) -> Optional[str]:
+    """
+    The master's own spelling of `value`, or None if the master does not know it.
+
+    Returning the canonical form rather than a boolean is what keeps
+    "uttar pradesh" from being written into a land record: the transliteration
+    only has to be close enough to identify the place, and the spelling that
+    gets stored is the authority's. Matching is exact after normalisation, not
+    fuzzy - a fuzzy match here would silently RENAME a district rather than
+    merely fail to find it.
+    """
+    if not value:
+        return None
+    target = master._norm(value)
+
+    if kind == "state":
+        for name in master.states:
+            if master._norm(name) == target:
+                return name
+        return None
+
+    if kind == "district":
+        name, _ = _find_district_entry(master, value)
+        return name
+
+    canonical_district, record = _find_district_entry(master, district)
+    if not record:
+        return None
+
+    if kind == "tehsil":
+        for name in (record.get("tehsils") or []):
+            if master._norm(name) == target:
+                return name
+        return None
+
+    if kind == "village":
+        villages = record.get("villages") or {}
+        # Prefer the tehsil the record claims, so two tehsils in one district
+        # that reuse a village name cannot cross-match. Fall back to the whole
+        # district only when no tehsil is known yet.
+        groups = []
+        if tehsil:
+            for name, listed in villages.items():
+                if master._norm(name) == master._norm(tehsil):
+                    groups.append(listed)
+        if not groups:
+            groups = list(villages.values())
+        for listed in groups:
+            for name in listed or []:
+                if master._norm(name) == target:
+                    return name
+        return None
+
+    return None
+
+
+def _normalise_place_scripts(fields) -> List[dict]:
+    """
+    Rewrite Indic-script administrative names to the master's own spelling.
+
+    Order matters and is a dependency, not a preference. District is resolved
+    first because the tehsil authority needs a district to check against:
+    tehsil_in_district("sadar", "लखनऊ") can only fail, while the same call with
+    "Lucknow" succeeds. So each field is bridged with an authority that can
+    actually adjudicate it, rather than all four against the district list.
+
+    Every name is written back in the MASTER's spelling, not the model's. The
+    transliteration only has to be close enough to identify the place; storing
+    its raw output would put "uttar pradesh" on a land record where the
+    directory says "Uttar Pradesh". Matching is exact after normalisation
+    rather than fuzzy, because a fuzzy match here would silently rename a
+    district instead of merely failing to find it.
+
+    Two groups of fields are deliberately NOT bridged:
+
+      * owner_name and father_name. Nothing validates a person's name against a
+        Latin list, so transliterating one would discard the form the document
+        actually carries and gain nothing. सुनीता देवी stays as written, and
+        that is the form a verifier compares against the page.
+      * the identifier fields, which are digits and have no script to bridge.
+
+    A name the master does not know is left in its own script - the master has
+    443 villages and most of India's are not among them, so an unmatched
+    village keeps exactly what the OCR read rather than acquiring a plausible
+    spelling nothing confirmed.
+
+    Returns one record per change, for the audit trail and the reviewer UI. A
+    verifier must always be able to see that the value on screen is not
+    character-for-character what the page says, and why.
+    """
+    if not bhashini.AVAILABLE:
+        return []
+
+    by_key = {f.key: f for f in fields}
+    pending = [k for k in _SCRIPT_BRIDGED_FIELDS
+               if k in by_key and getattr(by_key[k], "value", None)
+               and bhashini.is_indic(by_key[k].value)]
+    if not pending:
+        return []
+
+    master = validator_mod._MASTER
+    applied: List[dict] = []
+    # Context for the dependent lookups. Each starts as whatever the record says
+    # and is replaced the moment that field is bridged, so a tehsil is checked
+    # against a Latin district rather than a Devanagari one.
+    context = {key: getattr(by_key.get(key), "value", None)
+               for key in ("district", "tehsil")}
+
+    for key in _SCRIPT_BRIDGED_FIELDS:
+        if key not in pending:
+            continue
+        field = by_key[key]
+        original = field.value
+
+        # The authority returns the master's spelling, and None reads as false,
+        # so the same callable both screens candidates and canonicalises the
+        # winner. That is what keeps 'uttar pradesh' out of a land record.
+        def authority(candidate: str, _k=key) -> Optional[str]:
+            return _canonical_place(master, _k, candidate,
+                                    district=context.get("district"),
+                                    tehsil=context.get("tehsil"))
+
+        try:
+            resolved = bhashini.resolve_to_reference([original], authority)
+        except Exception as exc:
+            # Never let a third-party outage stop an ingest. Names stay in their
+            # own script, the hierarchy rule reports them as unknown exactly as
+            # it did before this feature existed, and the reason goes to stderr
+            # rather than being swallowed.
+            print(f"  script bridge unavailable: {type(exc).__name__}: {exc}",
+                  file=sys.stderr)
+            return applied
+
+        winner = resolved.get(original)
+        canonical = authority(winner) if winner else None
+        if not canonical or canonical == original:
+            continue
+
+        field.value = canonical
+        if key in context:
+            context[key] = canonical
+        field.notes.append(
+            f"Script bridged: '{original}' read as '{winner}' and matched to "
+            f"'{canonical}' in the administrative master. The document "
+            f"reads '{original}'.")
+        applied.append({"field_key": key, "from": original, "to": canonical})
+
+    return applied
+
+
 def process_document(stored_path: str, original_name: str, user: dict) -> dict:
     """
     The full pipeline for one document:
@@ -544,6 +715,17 @@ def process_document(stored_path: str, original_name: str, user: dict) -> dict:
     fields = extract_fields(extraction.lines)
 
     learned = learning.apply_model(fields, corroborate=_make_corroborator(fields))
+
+    # Script bridge. The OCR reads a place name in fourteen Indic scripts; the
+    # administrative master it will be validated against is Latin-only, so a
+    # perfectly-read Devanagari district resolves to nothing at all. This maps
+    # such names onto the master's own spelling before anything downstream
+    # tries to match them.
+    #
+    # It runs BEFORE the gazetteer on purpose: the gazetteer's vocabularies are
+    # Latin too, so bridging the script first lets its correction work as well.
+    # No-ops entirely on Latin input and when Bhashini is unconfigured.
+    scripts = _normalise_place_scripts(fields)
 
     # Post-OCR correction against closed vocabularies (LGD gazetteer, land
     # classes, identifier shapes). Runs AFTER the learned model so a learned
@@ -644,6 +826,12 @@ def process_document(stored_path: str, original_name: str, user: dict) -> dict:
     for adj in learned:
         DB.audit(user, "learned_adjustment", doc_id, adj.get("field_key"),
                  adj.get("from"), adj.get("to"), detail=adj.get("type"))
+    # A script bridge changes a value the reviewer will compare against the
+    # page, so it belongs in the audit trail for the same reason a learned
+    # correction does: the record must say why the screen and the paper differ.
+    for adj in scripts:
+        DB.audit(user, "script_bridged", doc_id, adj.get("field_key"),
+                 adj.get("from"), adj.get("to"), detail="transliteration")
 
     return {
         "document_id": doc_id,
@@ -1848,9 +2036,73 @@ class Handler(BaseHTTPRequestHandler):
         self._json(_link_cadastral_documents(_cadastral_geojson(map_id)))
 
 
+def _auto_seed(port: int) -> None:
+    """
+    Ingest the bundled corpus once, in the background, if the database is empty.
+
+    Why this exists: a managed host gives every deploy a fresh, empty
+    filesystem, so a judge opening the public URL would land on a dashboard of
+    zeroes and conclude the system does not work. Seeding on first boot means
+    the link always shows a populated demo.
+
+    Two deliberate choices. It runs in a BACKGROUND thread started after the
+    socket is listening, because ingesting fifteen documents takes tens of
+    seconds and a platform health check that cannot connect in that window will
+    kill the container before it ever serves a request. And it drives the real
+    /api/seed endpoint over loopback rather than re-implementing the ingest
+    loop, so the demo path a judge would click is the exact path that runs
+    here - there is no second, untested copy of it to drift.
+
+    Off unless AUTO_SEED=1, so `python3 run.py` on a laptop behaves as before.
+    """
+    if os.environ.get("AUTO_SEED") != "1":
+        return
+    try:
+        if DB.one("SELECT id FROM documents LIMIT 1"):
+            return                      # already populated; never duplicate
+    except Exception:
+        return
+
+    import http.client
+
+    def worker() -> None:
+        # Wait for our own socket rather than sleeping a fixed guess.
+        deadline = time.time() + 60
+        while time.time() < deadline:
+            try:
+                probe = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
+                probe.request("GET", "/api/stats")
+                probe.getresponse().read()
+                probe.close()
+                break
+            except Exception:
+                time.sleep(1)
+        else:
+            print("  auto-seed: server never became reachable; skipped.",
+                  file=sys.stderr)
+            return
+        try:
+            print("  auto-seed: ingesting the bundled corpus...", flush=True)
+            conn = http.client.HTTPConnection("127.0.0.1", port, timeout=900)
+            conn.request("POST", "/api/seed", body=b"",
+                         headers={"Content-Length": "0"})
+            response = conn.getresponse()
+            response.read()
+            conn.close()
+            print(f"  auto-seed: finished (HTTP {response.status}).", flush=True)
+        except Exception as exc:
+            # A failed seed leaves an empty but working system, which is far
+            # better than a container that refuses to start.
+            print(f"  auto-seed failed: {type(exc).__name__}: {exc}",
+                  file=sys.stderr)
+
+    threading.Thread(target=worker, name="auto-seed", daemon=True).start()
+
+
 def serve(host: str = "127.0.0.1", port: int = 8000) -> None:
     caps = ocr_engine.capabilities()
     httpd = ThreadingHTTPServer((host, port), Handler)
+    _auto_seed(port)
     print("=" * 72)
     print("  Intelligent Land Record Digitization and Validation System")
     print("  SIH 2026 | PS 26018 | Ministry of Rural Development (DoLR)")

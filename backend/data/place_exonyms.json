@@ -1,0 +1,52 @@
+{
+  "_comment": "Established English spellings for Indic-script place names, consulted BEFORE any transliteration call. Every entry here exists because transliteration provably cannot produce the target: the relationship is historical or orthographic, not phonetic. Bhashini's IndicXlit renders लखनऊ as 'lakhanau', which is a correct transliteration and is not the name any Indian land record system uses. See backend/bhashini.py.",
+  "_method": "Not guessed. All 43 districts in data/admin_master.json were transliterated through the live Bhashini pipeline and matched against the master by exact-after-normalisation. 31 resolved on their own; the 12 entries in the first block below did not, and each is the exact miss it repairs, with the model's own output recorded alongside. With them the whole extract resolves. Matching is exact rather than fuzzy on purpose: a fuzzy match would rename a district instead of failing to find it, so 'Nasik' vs 'Nashik' and 'thhaane' vs 'Thane' belong here rather than in a similarity threshold.",
+  "_extending": "Add an entry only when transliteration genuinely fails for it. A name the model already gets right does not belong here, because a hand-maintained table is one more thing to keep correct as districts are renamed.",
+  "_scope": "The `not_yet_in_master` group covers major cities whose English names are equally underivable but whose districts are outside the current 8-state LGD extract. They resolve to nothing today and cost nothing; they become correct the moment the extract grows.",
+
+  "exonyms": {
+    "लखनऊ": "Lucknow",
+    "मेरठ": "Meerut",
+    "आगरा": "Agra",
+    "इंदौर": "Indore",
+    "ग्वालियर": "Gwalior",
+    "सूरत": "Surat",
+    "मैसूरु": "Mysuru",
+    "बेलगावी": "Belagavi",
+    "बेंगलुरु शहरी": "Bengaluru Urban",
+    "रीवा": "Rewa",
+    "नासिक": "Nashik",
+    "ठाणे": "Thane",
+
+    "दिल्ली": "Delhi",
+    "नई दिल्ली": "New Delhi",
+    "कोलकाता": "Kolkata",
+    "मुंबई": "Mumbai",
+    "चेन्नई": "Chennai",
+    "बेंगलुरु": "Bengaluru",
+    "हैदराबाद": "Hyderabad",
+    "कटक": "Cuttack",
+    "हावड़ा": "Howrah",
+    "देहरादून": "Dehradun",
+    "श्रीनगर": "Srinagar",
+    "पुडुचेरी": "Puducherry",
+    "तिरुवनंतपुरम": "Thiruvananthapuram",
+    "कोझिकोड": "Kozhikode",
+    "गुरुग्राम": "Gurugram"
+  },
+
+  "_model_output_for_the_measured_failures": {
+    "लखनऊ": "lakhanau",
+    "मेरठ": "merath",
+    "आगरा": "aagara",
+    "इंदौर": "indaur",
+    "ग्वालियर": "gwaliyar",
+    "सूरत": "soorat",
+    "मैसूरु": "maisuru",
+    "बेलगावी": "belgawi",
+    "बेंगलुरु शहरी": "bengaluru shahari",
+    "रीवा": "reeva",
+    "नासिक": "nasik",
+    "ठाणे": "thhaane"
+  }
+}

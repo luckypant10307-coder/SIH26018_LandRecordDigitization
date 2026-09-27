@@ -30,6 +30,50 @@ sys.path.insert(0, BACKEND)
 MIN_PYTHON = (3, 8)
 
 
+def load_env_file(path: str = None) -> int:
+    """
+    Read .env into the environment, if there is one. Returns how many names
+    were set.
+
+    This has to run BEFORE any backend module is imported, because several of
+    them read os.environ at import time to decide whether an optional service
+    is available - bhashini.py and llm_extractor.py both do. Every import in
+    this file is inside a function for exactly that reason; moving one to the
+    top would silently disable whatever the .env was meant to switch on.
+
+    Written by hand rather than with python-dotenv because the whole point of
+    this project is that `python3 run.py` works with nothing installed. An
+    existing environment variable always wins, so an operator can override one
+    for a single run without editing the file.
+    """
+    path = path or os.path.join(ROOT, ".env")
+    if not os.path.exists(path):
+        return 0
+    applied = 0
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            for raw in handle:
+                line = raw.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                name, _, value = line.partition("=")
+                name, value = name.strip(), value.strip()
+                # Quotes are stripped so a value with spaces can be written
+                # either way; anything after a '#' is kept, because a key can
+                # legitimately contain one.
+                if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+                    value = value[1:-1]
+                if name and name not in os.environ:
+                    os.environ[name] = value
+                    applied += 1
+    except OSError:
+        return applied
+    return applied
+
+
+load_env_file()
+
+
 def check_python() -> None:
     if sys.version_info < MIN_PYTHON:
         sys.exit(f"Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]}+ is required "
@@ -38,6 +82,7 @@ def check_python() -> None:
 
 def report() -> int:
     """Print what this machine can actually do, honestly."""
+    import bhashini
     import fact_checker
     import llm_extractor
     import ocr_engine
@@ -80,6 +125,18 @@ def report() -> int:
     else:
         print(f"  LLM field suggestions : off ({llm_extractor.unavailable_reason()})")
 
+    bh = bhashini.capabilities()
+    if bh["available"]:
+        print("  Script transliteration: ACTIVE (Bhashini) - Indic place names are "
+              "sent to a government service to be")
+        print("                          matched against the Latin admin master")
+        print(f"    Exonym table        : {bh['exonyms']} names transliteration cannot derive")
+        print(f"    Cached              : {bh['cached_names']} names (no repeat network calls)")
+    else:
+        print(f"  Script transliteration: off ({bh['reason']})")
+        print("                          Devanagari place names will not match the "
+              "Latin admin master.")
+
     samples = os.path.join(ROOT, "samples")
     count = len([f for f in os.listdir(samples)
                  if not f.startswith("_")]) if os.path.isdir(samples) else 0
@@ -108,8 +165,16 @@ def main() -> int:
 
     ap = argparse.ArgumentParser(add_help=True, description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--port", type=int, default=8000, help="port to listen on")
-    ap.add_argument("--host", default="127.0.0.1", help="interface to bind")
+    # A managed host (Render, Fly, Hugging Face Spaces, Cloud Run) assigns the
+    # port at runtime and requires the process to bind 0.0.0.0 - binding
+    # localhost there produces a container that passes its own health check and
+    # is unreachable from outside. So the environment supplies the default and
+    # an explicit flag still wins, which keeps `python3 run.py` private on a
+    # laptop exactly as before.
+    ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8000")),
+                    help="port to listen on (default: $PORT, else 8000)")
+    ap.add_argument("--host", default=os.environ.get("HOST", "127.0.0.1"),
+                    help="interface to bind (default: $HOST, else 127.0.0.1)")
     ap.add_argument("--samples", action="store_true", help="regenerate sample documents and exit")
     ap.add_argument("--check", action="store_true", help="print a capability report and exit")
     args = ap.parse_args()

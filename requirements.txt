@@ -1,0 +1,61 @@
+# Deployment dependencies for the hosted demo.
+#
+# NOTHING HERE IS REQUIRED TO RUN. The backend is Python standard library
+# (http.server + sqlite3) and every package below is probed at import time and
+# cleanly degraded when absent - `python3 run.py --check` prints exactly what a
+# given machine can do. This file is the set that makes the hosted demo show
+# the full rule-based pipeline inside a free tier's memory limit.
+#
+# Deliberately EXCLUDED, and what each costs:
+#
+#   torch          (534 MB)  BoundaryNet parcel segmentation. Cadastral maps
+#                            still vectorise and georeference without it; only
+#                            the learned boundary refinement is unavailable.
+#   onnxruntime     (46 MB)  TrOCR handwriting transcription. Handwriting is
+#                            still DETECTED and routed to a human, which is the
+#                            part that protects the record; only the machine
+#                            transcription of it is gone.
+#   spacy + model   (98 MB)  Named-entity cross-check on names and dates. The
+#                            rule-based extractor is unaffected.
+#   paddleocr                Table/layout analysis. Unavailable on Python 3.13+
+#                            anyway.
+#
+# Those four sum to ~680 MB and are what makes the difference between fitting a
+# 512 MB instance and being evicted by it. To run the full system locally,
+# install them too:
+#   pip install -r requirements.txt torch onnxruntime spacy
+#   python -m spacy download en_core_web_sm
+#
+# Versions are pinned. An unpinned build that worked in October and breaks
+# during a demo is the failure mode this project cannot afford.
+
+# --- Document reading -----------------------------------------------------
+# PDF text layer. This is the highest-accuracy extraction path and the one the
+# digital samples use, so it is the single most load-bearing package here.
+PyMuPDF==1.24.10
+
+# Tesseract bindings. The Tesseract BINARY and its language packs are system
+# packages, installed in the Dockerfile - pip cannot provide them.
+pytesseract==0.3.13
+
+# --- Image quality and preprocessing --------------------------------------
+# Deskew, denoise, binarise, blur measurement, seal/signature detection.
+# headless: the server has no display, and the GUI build pulls in X11.
+opencv-python-headless==4.10.0.84
+numpy==2.1.3
+
+# --- Validation and matching ----------------------------------------------
+# Isolation-forest anomaly detection and the TF-IDF registry fact-check.
+scikit-learn==1.5.2
+# Fuzzy matching for the gazetteer and duplicate detection.
+rapidfuzz==3.10.1
+
+# --- Sample corpus --------------------------------------------------------
+# tools/make_samples.py prints the demo documents. Needed at startup because a
+# fresh container has no samples directory.
+reportlab==4.2.5
+
+# --- TLS ------------------------------------------------------------------
+# Bhashini's host chains to the Indian emSign root, which is in certifi but not
+# in every base image's trust store. See backend/bhashini.py.
+certifi==2024.8.30

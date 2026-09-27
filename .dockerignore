@@ -1,0 +1,35 @@
+# Secrets. A .env copied into a layer is readable by anyone who can pull the
+# image, and deleting it in a later layer does not remove it from the history.
+.env
+.env.*
+!.env.example
+
+# Local state. The container builds its own, and shipping a laptop's database
+# would publish whatever documents were ingested during development.
+storage/
+*.db
+*.sqlite3
+server.log
+server-error.log
+
+# Version control and tooling
+.git/
+.github/
+.claude/
+.agents/
+.vscode/
+*.md
+!README.md
+
+# Python build artefacts
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Model weights that the deployment image deliberately does not use. These are
+# the torch/ONNX checkpoints; excluding them keeps the build context small.
+*.onnx
+*.pt
+*.pth

@@ -1,0 +1,78 @@
+# Render blueprint for the hosted demo.
+#
+# Deploy: push to GitHub, then on render.com choose New -> Blueprint and point
+# it at the repository. Render reads this file; no dashboard fields to fill in
+# except the Bhashini secrets below.
+#
+# ---------------------------------------------------------------------------
+# READ THIS BEFORE CHOOSING RENDER'S FREE TIER
+# ---------------------------------------------------------------------------
+# Two free-tier properties will affect a live demo:
+#
+# 1. MEMORY. A free instance has 512 MB. OpenCV, scikit-learn and numpy are
+#    ~250 MB resident before a document is opened, and rasterising a 13-page
+#    scanned PDF pushes past that. Expect the occasional out-of-memory restart
+#    on the heaviest sample. The full-corpus seed is the most exposed moment.
+#
+# 2. COLD STARTS. A free service sleeps after ~15 minutes idle and takes 50+
+#    seconds to wake. A judge clicking a link that appears dead for a minute is
+#    a bad first impression. Open the URL yourself a minute beforehand.
+#
+# If either matters, Hugging Face Spaces is free with 2 vCPU and 16 GB RAM and
+# no card required, which removes the memory risk entirely. It builds the same
+# Dockerfile; it needs YAML frontmatter at the very top of README.md:
+#
+#     ---
+#     title: Land Record Digitization
+#     sdk: docker
+#     app_port: 8000
+#     ---
+#
+# ---------------------------------------------------------------------------
+
+services:
+  - type: web
+    name: sih26018-land-records
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: singapore          # closest to India of Render's free regions
+    branch: main
+
+    # Cheap, dependency-free, and already returns real state. Render polls it
+    # to decide the instance is live.
+    healthCheckPath: /api/stats
+
+    envVars:
+      # run.py reads PORT; Render injects its own value, this is the fallback.
+      - key: PORT
+        value: 8000
+      # MUST be 0.0.0.0. Bound to localhost the container passes its own health
+      # check and is unreachable from the internet.
+      - key: HOST
+        value: 0.0.0.0
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      # The filesystem is wiped on every deploy, so ingest the bundled corpus on
+      # first boot. Without this a judge sees a dashboard of zeroes.
+      - key: AUTO_SEED
+        value: "1"
+
+      # --- Bhashini: set these in the Render dashboard, never in this file ---
+      # sync: false means "prompt me, do not store a value in git".
+      # Omit them entirely and the system still runs; Indic place names simply
+      # will not resolve against the Latin administrative master.
+      - key: BHASHINI_PROJECT_ID
+        sync: false
+      - key: BHASHINI_UDYAT_KEY
+        sync: false
+      - key: BHASHINI_INFERENCE_KEY
+        sync: false
+      - key: BHASHINI_CONSENT
+        value: "1"
+
+      # Language-model field suggestions stay OFF. Enabling them sends document
+      # text to a third party, which is a decision to take deliberately and not
+      # inherit from a config file.
+      - key: LLM_FIELD_EXTRACTION_CONSENT
+        value: "0"
