@@ -180,6 +180,11 @@ def _now() -> str:
 
 GENESIS_HASH = "0" * 64
 
+# Arbitrary but fixed: every appender must ask for the SAME advisory lock key
+# or the serialisation it provides is worthless. Scoped to the audit chain
+# alone so it never contends with ordinary document writes.
+_AUDIT_LOCK_KEY = 0x5A1D_AD17
+
 # The row fields the hash covers. `id` is excluded because SQLite assigns it
 # after the digest must already exist; row deletion is still caught, because
 # the following row's prev_hash then matches no surviving predecessor.
@@ -205,16 +210,106 @@ def _chain_digest(prev_hash: Optional[str], row: Any) -> str:
 
 
 class Database:
-    def __init__(self, path: str = DEFAULT_DB):
+    """
+    SQLite by default, PostgreSQL when DATABASE_URL is set.
+
+    WHY BOTH, RATHER THAN JUST MOVING TO POSTGRES
+
+    The project's standing promise is that `python3 run.py` works on a demo
+    laptop with nothing installed and no database server running - that is why
+    the backend is standard library only, and it is the property that makes the
+    offline fallback real rather than aspirational. Making Postgres mandatory
+    would trade that away.
+
+    So the engine is selected by environment: no DATABASE_URL and it is the
+    same single-file SQLite as before; set one and the identical schema and
+    queries run on Postgres, which is what a revenue department actually
+    deploys - concurrent writers, real backups, point-in-time recovery, and
+    room for PostGIS on the parcel geometry.
+
+        DATABASE_URL=postgresql://user:pass@host:5432/landrecords
+
+    WHAT DIFFERS, AND WHERE IT IS HANDLED
+
+    Queries are written once, in SQLite's dialect, and translated centrally in
+    q/one/run - so no caller anywhere else in the codebase knows which engine
+    it is talking to:
+
+      * placeholders   ? -> %s                     (_translate)
+      * autoincrement  INTEGER PRIMARY KEY AUTOINCREMENT -> BIGSERIAL PRIMARY KEY
+      * upsert         INSERT OR REPLACE -> INSERT ... ON CONFLICT DO UPDATE
+      * pragmas        dropped; WAL and foreign_keys are SQLite concepts
+      * lastrowid      -> RETURNING id
+      * rows           sqlite3.Row and psycopg's dict rows both index by name,
+                       which is why the rest of this file needed no changes
+
+    THE ONE REAL CORRECTNESS DIFFERENCE
+
+    The audit chain's single-writer guarantee came from a process-wide lock
+    over a single SQLite connection. That is no longer sufficient with Postgres,
+    where other processes - a second server instance, a psql session - can write
+    concurrently and would fork the chain. On Postgres the append therefore takes
+    a transaction-scoped advisory lock, which serialises writers across
+    connections and is released automatically at commit. See audit().
+    """
+
+    def __init__(self, path: str = DEFAULT_DB, url: Optional[str] = None):
+        self.url = url or os.environ.get("DATABASE_URL") or None
+        self.is_postgres = bool(self.url)
         self.path = os.path.abspath(path)
-        os.makedirs(os.path.dirname(self.path), exist_ok=True)
-        self._conn = sqlite3.connect(self.path, check_same_thread=False)
-        self._conn.row_factory = sqlite3.Row
+
+        if self.is_postgres:
+            import psycopg
+            from psycopg.rows import dict_row
+            self._conn = psycopg.connect(self.url, row_factory=dict_row,
+                                         autocommit=False)
+        else:
+            os.makedirs(os.path.dirname(self.path), exist_ok=True)
+            self._conn = sqlite3.connect(self.path, check_same_thread=False)
+            self._conn.row_factory = sqlite3.Row
+
         with _LOCK:
-            self._conn.executescript(SCHEMA)
+            self._apply_schema()
             self._conn.commit()
         self._migrate_audit_chain()
         self._seed_users()
+
+    # -- dialect ----------------------------------------------------------
+    def _translate(self, sql: str) -> str:
+        """
+        SQLite-dialect SQL to whatever this connection speaks.
+
+        Only the placeholder style differs in the statements this codebase
+        issues at runtime; schema-level differences are handled in
+        _apply_schema, which runs once. Splitting on "'" and rewriting only
+        the even-indexed segments keeps a literal question mark inside a
+        string from being mangled into a placeholder.
+        """
+        if not self.is_postgres:
+            return sql
+        parts = sql.split("'")
+        for i in range(0, len(parts), 2):
+            parts[i] = parts[i].replace("?", "%s")
+        return "'".join(parts)
+
+    def _apply_schema(self) -> None:
+        sql = SCHEMA
+        if self.is_postgres:
+            sql = sql.replace("INTEGER PRIMARY KEY AUTOINCREMENT",
+                              "BIGSERIAL PRIMARY KEY")
+            # PRAGMAs are SQLite's own knobs: WAL is its journal mode, and
+            # Postgres enforces foreign keys unconditionally.
+            sql = "\n".join(line for line in sql.splitlines()
+                            if not line.strip().upper().startswith("PRAGMA"))
+            cur = self._conn.cursor()
+            # psycopg refuses multiple statements in one execute only for
+            # prepared queries; a plain execute of the whole script is fine,
+            # but splitting keeps the error message pointed at one statement.
+            for statement in [s.strip() for s in sql.split(";") if s.strip()]:
+                cur.execute(statement)
+            cur.close()
+        else:
+            self._conn.executescript(sql)
 
     # -- schema migration -------------------------------------------------
     def _migrate_audit_chain(self) -> int:
@@ -226,6 +321,19 @@ class Database:
         an installation that already has an audit history needs the columns
         added explicitly or every later append would fail on a missing column.
         """
+        if self.is_postgres:
+            # information_schema is the portable equivalent of PRAGMA
+            # table_info, and ADD COLUMN IF NOT EXISTS makes the whole thing
+            # idempotent without a pre-check.
+            with _LOCK:
+                cur = self._conn.cursor()
+                for column in ("prev_hash", "entry_hash"):
+                    cur.execute("ALTER TABLE audit_log "
+                                f"ADD COLUMN IF NOT EXISTS {column} TEXT")
+                cur.close()
+                self._conn.commit()
+            return self._seal_unchained()
+
         with _LOCK:
             existing = {r["name"] for r in
                         self._conn.execute("PRAGMA table_info(audit_log)")}
@@ -249,8 +357,10 @@ class Database:
         as broken.
         """
         with _LOCK:
-            rows = self._conn.execute(
-                "SELECT * FROM audit_log ORDER BY id").fetchall()
+            cur = self._execute("SELECT * FROM audit_log ORDER BY id", ())
+            rows = cur.fetchall()
+            if self.is_postgres:
+                cur.close()
             previous = None
             updates = []
             for row in rows:
@@ -261,24 +371,67 @@ class Database:
                 updates.append((previous, digest, row["id"]))
                 previous = digest
             for prev_hash, entry_hash, row_id in updates:
-                self._conn.execute(
+                upd = self._execute(
                     "UPDATE audit_log SET prev_hash = ?, entry_hash = ? WHERE id = ?",
                     (prev_hash, entry_hash, row_id))
-            if updates:
-                self._conn.commit()
+                if self.is_postgres:
+                    upd.close()
+            self._conn.commit()
             return len(updates)
 
     # -- helpers ----------------------------------------------------------
-    def q(self, sql: str, params: tuple = ()) -> List[sqlite3.Row]:
-        with _LOCK:
-            return self._conn.execute(sql, params).fetchall()
+    #
+    # Every query in this codebase goes through these three, which is what
+    # makes one dialect enough: callers write SQLite SQL and never learn which
+    # engine answered. Rows index by column name on both engines
+    # (sqlite3.Row and psycopg's dict_row), so nothing downstream changed.
 
-    def one(self, sql: str, params: tuple = ()) -> Optional[sqlite3.Row]:
+    def _execute(self, sql: str, params: tuple):
+        sql = self._translate(sql)
+        if self.is_postgres:
+            cur = self._conn.cursor()
+            cur.execute(sql, params)
+            return cur
+        return self._conn.execute(sql, params)
+
+    def q(self, sql: str, params: tuple = ()) -> List[Any]:
+        with _LOCK:
+            cur = self._execute(sql, params)
+            rows = cur.fetchall()
+            if self.is_postgres:
+                cur.close()
+                # A read inside Postgres still opens a transaction; leaving it
+                # idle-in-transaction would hold locks and block the next
+                # writer, so close it here.
+                self._conn.commit()
+            return rows
+
+    def one(self, sql: str, params: tuple = ()) -> Optional[Any]:
         rows = self.q(sql, params)
         return rows[0] if rows else None
 
     def run(self, sql: str, params: tuple = ()) -> int:
         with _LOCK:
+            if self.is_postgres:
+                # Postgres has no lastrowid. Asking for the key back is the
+                # portable equivalent, and only an INSERT into a table with an
+                # id has one to return.
+                statement = self._translate(sql)
+                wants_id = (statement.lstrip()[:6].upper() == "INSERT"
+                            and "RETURNING" not in statement.upper())
+                if wants_id:
+                    statement += " RETURNING id"
+                cur = self._conn.cursor()
+                try:
+                    cur.execute(statement, params)
+                    row = cur.fetchone() if wants_id else None
+                except Exception:
+                    self._conn.rollback()
+                    raise
+                finally:
+                    cur.close()
+                self._conn.commit()
+                return int(row["id"]) if row else 0
             cur = self._conn.execute(sql, params)
             self._conn.commit()
             return cur.lastrowid
@@ -325,16 +478,32 @@ class Database:
         # prev_hash points at the same predecessor, forking the chain and
         # making an untampered log fail verification ever after. The server is
         # threaded, so this is a real race, not a theoretical one.
+        insert = ("INSERT INTO audit_log (at, user_id, username, role, action,"
+                  " document_id, field_key, old_value, new_value, detail,"
+                  " prev_hash, entry_hash) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)")
         with _LOCK:
-            tip = self._conn.execute(
-                "SELECT entry_hash FROM audit_log ORDER BY id DESC LIMIT 1").fetchone()
+            cur = self._conn.cursor() if self.is_postgres else self._conn
+            if self.is_postgres:
+                # The in-process lock above only serialises THIS process. On
+                # Postgres a second server instance, a migration script or a
+                # psql session can append concurrently, and two writers reading
+                # the same tip would fork the chain - making an untampered log
+                # fail verification permanently. A transaction-scoped advisory
+                # lock serialises appenders across every connection and is
+                # released automatically on commit, so a crashed writer cannot
+                # wedge the audit trail.
+                cur.execute("SELECT pg_advisory_xact_lock(%s)", (_AUDIT_LOCK_KEY,))
+            tip = self._execute(
+                "SELECT entry_hash FROM audit_log ORDER BY id DESC LIMIT 1",
+                ()).fetchone()
             prev_hash = tip["entry_hash"] if tip else None
             entry_hash = _chain_digest(prev_hash, entry)
-            self._conn.execute(
-                "INSERT INTO audit_log (at, user_id, username, role, action,"
-                " document_id, field_key, old_value, new_value, detail,"
-                " prev_hash, entry_hash) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-                tuple(entry[k] for k in _CHAINED_FIELDS) + (prev_hash, entry_hash))
+            params = tuple(entry[k] for k in _CHAINED_FIELDS) + (prev_hash, entry_hash)
+            if self.is_postgres:
+                cur.execute(self._translate(insert), params)
+                cur.close()
+            else:
+                self._conn.execute(insert, params)
             self._conn.commit()
 
     def verify_audit_chain(self, limit: Optional[int] = None) -> dict:
@@ -419,18 +588,43 @@ class Database:
             f"INSERT INTO documents ({','.join(cols)}, uploaded_at) "
             f"VALUES ({placeholders}, ?)", tuple(values) + (_now(),))
 
+    # Columns written by insert_field, in order. Named once because the
+    # Postgres upsert has to list them again in its DO UPDATE clause.
+    _FIELD_COLUMNS = ("document_id", "field_key", "display", "ai_value",
+                      "ai_confidence", "conf_label", "conf_pattern", "conf_ocr",
+                      "value", "status", "page", "bbox_json", "source_line",
+                      "notes_json", "extra_json")
+
     def insert_field(self, document_id: int, f: dict) -> None:
         cb = f.get("confidence_breakdown") or {}
+        params = (document_id, f["key"], f.get("display"), f.get("value"),
+                  f.get("confidence"), cb.get("label"), cb.get("pattern"), cb.get("ocr"),
+                  f.get("value"), f.get("status", "extracted"), f.get("page"),
+                  json.dumps(f.get("bbox") or []), f.get("source_line"),
+                  json.dumps(f.get("notes") or []), json.dumps(f.get("extra") or {}))
+        columns = ", ".join(self._FIELD_COLUMNS)
+        marks = ",".join("?" * len(self._FIELD_COLUMNS))
+
+        if not self.is_postgres:
+            self.run(f"INSERT OR REPLACE INTO fields ({columns}) VALUES ({marks})",
+                     params)
+            return
+
+        # SQLite's INSERT OR REPLACE deletes the old row and inserts a new one,
+        # so columns it does NOT name - corrected_by, corrected_at - go back to
+        # their defaults. ON CONFLICT DO UPDATE would instead leave them
+        # standing. They are reset explicitly here so re-ingesting a document
+        # means the same thing on both engines: a field re-read from the page
+        # is a machine value again, and no longer carries the attribution of a
+        # human who corrected the version it replaced.
+        assignments = ", ".join(f"{c} = EXCLUDED.{c}"
+                                for c in self._FIELD_COLUMNS
+                                if c not in ("document_id", "field_key"))
         self.run(
-            "INSERT OR REPLACE INTO fields (document_id, field_key, display, ai_value,"
-            " ai_confidence, conf_label, conf_pattern, conf_ocr, value, status, page,"
-            " bbox_json, source_line, notes_json, extra_json) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            (document_id, f["key"], f.get("display"), f.get("value"),
-             f.get("confidence"), cb.get("label"), cb.get("pattern"), cb.get("ocr"),
-             f.get("value"), f.get("status", "extracted"), f.get("page"),
-             json.dumps(f.get("bbox") or []), f.get("source_line"),
-             json.dumps(f.get("notes") or []), json.dumps(f.get("extra") or {})))
+            f"INSERT INTO fields ({columns}) VALUES ({marks}) "
+            f"ON CONFLICT (document_id, field_key) DO UPDATE SET {assignments}, "
+            "corrected_by = NULL, corrected_at = NULL",
+            params)
 
     def get_document(self, document_id: int) -> Optional[dict]:
         row = self.one("SELECT d.*, u.full_name AS uploader_name, "
@@ -582,13 +776,13 @@ class Database:
 
         by_district = [dict(r) for r in self.q(
             "SELECT COALESCE(f.value,'Unassigned') district, COUNT(*) c, "
-            "ROUND(AVG(d.trust_score),1) avg_trust FROM documents d "
+            "ROUND(CAST(AVG(d.trust_score) AS NUMERIC),1) avg_trust FROM documents d "
             "LEFT JOIN fields f ON f.document_id = d.id AND f.field_key='district' "
             "GROUP BY district ORDER BY c DESC LIMIT 12")]
 
         by_engine = [dict(r) for r in self.q(
             "SELECT COALESCE(ocr_engine,'unknown') engine, COUNT(*) c, "
-            "ROUND(AVG(trust_score),1) avg_trust FROM documents GROUP BY engine")]
+            "ROUND(CAST(AVG(trust_score) AS NUMERIC),1) avg_trust FROM documents GROUP BY engine")]
 
         # Field-level accuracy: how often the machine value survived review.
         field_acc = [dict(r) for r in self.q(
@@ -596,8 +790,12 @@ class Database:
             "SUM(CASE WHEN status='corrected' THEN 1 ELSE 0 END) corrected, "
             "SUM(CASE WHEN status='confirmed' THEN 1 ELSE 0 END) confirmed, "
             "SUM(CASE WHEN value IS NULL THEN 1 ELSE 0 END) missing, "
-            "ROUND(AVG(ai_confidence),4) avg_conf FROM fields "
-            "GROUP BY field_key ORDER BY corrected DESC")]
+            "ROUND(CAST(AVG(ai_confidence) AS NUMERIC),4) avg_conf FROM fields "
+            # `display` is grouped as well as selected: SQLite would happily
+            # pick an arbitrary value for it, Postgres refuses. Grouping both
+            # is correct on either engine - display is functionally dependent
+            # on field_key, so this cannot split a row.
+            "GROUP BY field_key, display ORDER BY corrected DESC")]
         for row in field_acc:
             reviewed = (row["corrected"] or 0) + (row["confirmed"] or 0)
             row["reviewed"] = reviewed
@@ -613,8 +811,11 @@ class Database:
         top_issues = sorted(issue_freq.values(), key=lambda x: -x["count"])[:10]
 
         daily = [dict(r) for r in self.q(
-            "SELECT substr(uploaded_at,1,10) day, COUNT(*) c FROM documents "
-            "GROUP BY day ORDER BY day DESC LIMIT 14")]
+            # "day" is a keyword to Postgres, so the alias is quoted - which
+            # SQLite also accepts, and which keeps the result key unchanged for
+            # the dashboard.
+            'SELECT substr(uploaded_at,1,10) AS "day", COUNT(*) c FROM documents '
+            'GROUP BY "day" ORDER BY "day" DESC LIMIT 14')]
 
         corrections_total = (self.one("SELECT COUNT(*) c FROM corrections") or {"c": 0})["c"]
         fields_reviewed = (self.one("SELECT COUNT(*) c FROM fields WHERE status IN "

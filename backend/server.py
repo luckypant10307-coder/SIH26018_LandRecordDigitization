@@ -68,7 +68,11 @@ SAMPLES_DIR = os.path.join(ROOT, "samples")
 for _d in (STORAGE_DIR, UPLOAD_DIR, WORK_DIR):
     os.makedirs(_d, exist_ok=True)
 
-DB = Database(os.path.join(STORAGE_DIR, "landrecords.db"))
+# LANDRECORDS_DB relocates the SQLite file - for a mounted volume, or to run
+# against a throwaway database without touching the real one. Ignored entirely
+# when DATABASE_URL selects Postgres, which carries its own location.
+DB = Database(os.environ.get("LANDRECORDS_DB")
+              or os.path.join(STORAGE_DIR, "landrecords.db"))
 
 # Windows MAX_PATH, third encounter in this codebase (after api_seed's whole
 # batch aborting on one long filename, and ocr_engine silently failing to

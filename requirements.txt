@@ -55,6 +55,15 @@ rapidfuzz==3.10.1
 # fresh container has no samples directory.
 reportlab==4.2.5
 
+# --- PostgreSQL (optional) -------------------------------------------------
+# Only needed when DATABASE_URL is set. With no DATABASE_URL the system uses
+# SQLite from the standard library and this package is never imported, which
+# is what keeps `python3 run.py` working on a machine with nothing installed
+# and no database server. Kept in this file because a hosted deployment that
+# must survive a redeploy needs a real database - a free tier's filesystem is
+# ephemeral, so SQLite there loses every ingested record on each deploy.
+psycopg[binary]==3.2.3
+
 # --- TLS ------------------------------------------------------------------
 # Bhashini's host chains to the Indian emSign root, which is in certifi but not
 # in every base image's trust store. See backend/bhashini.py.

@@ -513,6 +513,52 @@ record.
 Rights are enforced server-side on every route. The role switcher in the UI is
 a demo convenience; removing it does not remove the enforcement.
 
+### S8b. SQLite or PostgreSQL, chosen by environment
+
+The engine is selected by `DATABASE_URL`. Unset, it is the same single-file
+SQLite as always - standard library, no server, which is what makes
+`python3 run.py` work on a laptop with nothing installed. Set, the identical
+schema and queries run on Postgres:
+
+```bash
+DATABASE_URL=postgresql://user:pass@host:5432/landrecords python3 run.py
+```
+
+**Postgres was made optional rather than mandatory on purpose.** Requiring a
+database server would trade away the offline demo, which is the property that
+makes this project's degraded mode real rather than aspirational. But a hosted
+deployment needs it: a free tier's filesystem is ephemeral, so SQLite there
+loses every ingested record on redeploy.
+
+Queries are written once in SQLite's dialect and translated centrally in
+`q`/`one`/`run`, so **no caller anywhere else in the codebase knows which
+engine answered**. Five differences are handled:
+
+| Difference | Handling |
+| --- | --- |
+| `?` vs `%s` placeholders | rewritten outside string literals only |
+| `INTEGER PRIMARY KEY AUTOINCREMENT` | `BIGSERIAL PRIMARY KEY` |
+| `lastrowid` | `RETURNING id` |
+| `INSERT OR REPLACE` | `ON CONFLICT ... DO UPDATE` |
+| `PRAGMA` | dropped; WAL and FK enforcement are SQLite concepts |
+
+Three portability bugs were found by running it, not by reading it:
+Postgres has no `ROUND(double precision, int)` so the averages are cast to
+numeric; Postgres rejects selecting a non-aggregated `display` that SQLite
+would silently pick a value for; and `day` is a Postgres keyword, so that
+alias is quoted.
+
+One semantic difference is resolved rather than inherited. SQLite's
+`INSERT OR REPLACE` deletes the row, so `corrected_by`/`corrected_at` reset;
+`ON CONFLICT` would leave them standing. The Postgres path clears them
+explicitly, so on both engines **a field re-read from the page is a machine
+value again** and no longer carries the attribution of a human who corrected
+the version it replaced.
+
+**Verified by parity, not by inspection.** The same five documents ingested
+into a fresh database on each engine produce byte-identical decisions, trust
+scores, error and warning counts, status distribution and field-accuracy rows.
+
 ### S8a. Tamper-evident audit trail
 
 Every `audit_log` row stores the SHA-256 of its own content combined with the
@@ -531,7 +577,12 @@ Three implementation details are load-bearing:
 
 * **Reading the tip and appending happen inside one lock.** The server is
   threaded, so two writers reading the same tip would fork the chain and make
-  an honest log fail verification ever after.
+  an honest log fail verification ever after. On Postgres a process lock is no
+  longer sufficient - a second server instance or a `psql` session writes on
+  its own connection - so the append also takes a **transaction-scoped
+  advisory lock**, which serialises appenders across connections and releases
+  on commit, so a crashed writer cannot wedge the audit trail. Verified with
+  60 concurrent appends across four separate connections: chain intact.
 * **Sealing never recomputes a row that already has a hash**, which would
   quietly repair exactly what verification exists to report.
 * **Rows written before the chain existed are sealed on migration.** That
@@ -1675,7 +1726,7 @@ sih26018/
     validator.py             rules, identifier group, trust score            680
     handwriting.py           print-profile novelty detection (S12g)          595
     shapefile_import.py      .shp/.dbf/.prj reader, no GDAL (S12h)           495
-    db.py                    SQLite schema, hash-chained audit trail (S8a)    656
+    db.py                    SQLite/Postgres, hash-chained audit (S8a,S8b)    857
     bhashini.py              Indic script bridge + exonyms (S4a)             459
     ner_extractor.py         NER cross-check, English + Indic (S4b)          374
     topology.py              gaps/overlaps/containment/snap (S12i)           465
@@ -1729,7 +1780,8 @@ Run everything:
 PYTHONPATH=backend:tools python3 -m unittest discover -s tests -t tests -q
 ```
 
-**657 tests, 3 skipped, about a minute.** Or run one file at a time:
+**671 tests, 3 skipped, about a minute** (14 more skip unless
+`TEST_DATABASE_URL` points at a Postgres). Or run one file at a time:
 
 ```bash
 python3 tests/test_validator.py -v            # business rules, identifier group
@@ -1751,6 +1803,7 @@ python3 tests/test_ner_extractor.py -v        # NER cross-check, script routing
 python3 tests/test_ner_indic.py -v            # Indic NER: labels, floor, degradation
 python3 tests/test_bhashini.py -v             # script bridge, exonyms, authority
 python3 tests/test_audit_chain.py -v          # tamper detection, from the attacker's side
+python3 tests/test_postgres.py -v             # dialect boundary; skips without TEST_DATABASE_URL
 python3 tests/test_document_authenticity.py -v
 python3 tests/test_anomaly_detector.py -v
 python3 tests/test_table_structure.py -v
