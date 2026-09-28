@@ -67,6 +67,9 @@ _skimage_filters = _try_import("skimage.filters")
 _skimage_transform = _try_import("skimage.transform")
 _skimage_feature = _try_import("skimage.feature")
 _cnn_denoiser = _try_import("cnn_denoiser")
+# Office/web formats. Standard library only, so this import cannot fail for a
+# missing dependency - it is guarded the same way purely to keep one pattern.
+_office_reader = _try_import("office_reader")
 _handwriting = _try_import("handwriting")
 # Handwriting RECOGNITION, as distinct from detection above. Optional
 # and refuses non-Latin scripts before it runs - see trocr_htr.py.
@@ -1446,6 +1449,31 @@ def extract(path: str, work_dir: Optional[str] = None,
         lines = [Line(text=t.strip(), confidence=0.99, source="pdf_text")
                  for t in body.splitlines() if t.strip()]
         return ExtractionResult(lines=lines, engine="plain_text", page_count=1,
+                                quality={"legibility_score": 100.0})
+
+    # Office and web documents: .docx .odt .xlsx .ods .pptx .csv .tsv .html .rtf
+    #
+    # These carry real text rather than pixels, so they take the same path a
+    # PDF text layer does - full confidence, no OCR, no quality gate, because
+    # there is nothing to recognise and nothing that could have been misread.
+    # A revenue office holds far more of these than it does clean scans.
+    if _office_reader is not None and _office_reader.can_read(path):
+        text_lines, engine, warning = _office_reader.read(path)
+        lines = [Line(text=t, confidence=0.99, source="native_text")
+                 for t in text_lines if t]
+        warnings = [warning] if warning else []
+        if not lines:
+            # An empty read is a FAILURE, not an empty document: a corrupt or
+            # password-protected file must route to manual entry rather than
+            # be recorded as a successful extraction of nothing.
+            warnings.append(
+                f"No text could be read from this {ext} file. It may be "
+                f"password-protected, corrupt, or contain only images - if it "
+                f"is a scan, export it as PDF or an image so OCR can run.")
+            return ExtractionResult(engine="none", warnings=warnings,
+                                    page_count=1)
+        return ExtractionResult(lines=lines, engine=engine or "native_text",
+                                page_count=1, warnings=warnings,
                                 quality={"legibility_score": 100.0})
 
     return ExtractionResult(engine="none", warnings=[f"Unsupported file type: {ext}"])

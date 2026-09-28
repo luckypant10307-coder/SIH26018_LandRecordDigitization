@@ -168,6 +168,43 @@ corroboration is worse than an absent one.
 | `frontend/` | Ingest, queue, verification workspace, dashboard, learning, audit |
 | `tools/make_samples.py` | Generates the sample corpus with planted edge cases |
 
+### S4-formats. What you can upload, and why not Docling
+
+Uploads now accept **18 extensions**, not just PDFs and scans:
+
+| Path | Formats |
+| --- | --- |
+| OCR / text layer | `.pdf` `.png` `.jpg` `.jpeg` `.tif` `.tiff` `.bmp` `.webp` |
+| Native text | `.txt` `.md` `.docx` `.odt` `.xlsx` `.ods` `.pptx` `.csv` `.tsv` `.html` `.htm` `.rtf` |
+
+This matters because a revenue office holds far more office documents than
+clean scans: a clerk's khatauni extract is usually `.docx`, a district parcel
+list `.xlsx`, and offices running LibreOffice - which most Indian government
+installations do - produce `.odt` and `.ods`. Refusing those forced the one
+thing this project exists to avoid: re-typing a record by hand.
+
+**Docling was the obvious answer and was not used.** It handles all of these
+and is genuinely good, but it declares easyocr, ONNX Runtime and rapidocr as
+dependencies - an entire second OCR stack beside the Tesseract pipeline
+already measured at 99.3% precision, and enough weight to put the deployment
+image past a free tier. Its real value is layout analysis on complex PDFs, a
+problem already solved here by other means.
+
+None of the added formats need it. DOCX, XLSX, PPTX, ODT and ODS are ZIP
+archives full of XML carrying **real text rather than pixels** - there is
+nothing to recognise, only something to read. `zipfile` and `xml.etree` are
+standard library, so `backend/office_reader.py` costs **no dependency, no
+download and no deployment weight**, and works with no network. The 17-field
+structuring is unchanged: text comes out and the label-anchored extractor
+does the rest, exactly as for a PDF text layer.
+
+Two honest limits are enforced rather than papered over. A spreadsheet with
+several data rows extracts the FIRST parcel and warns that the rest were read
+but not structured, because a land record is one parcel and silently merging
+fifty would be a confident wrong answer. And a corrupt or password-protected
+file reports `engine=none` with an explicit reason, routing to manual entry
+rather than recording an empty success.
+
 ### S4a. The script bridge: Devanagari names against a Latin master
 
 `ocr_engine.py` reads place names in fourteen Indic scripts. The
@@ -1778,6 +1815,7 @@ sih26018/
     shapefile_import.py      .shp/.dbf/.prj reader, no GDAL (S12h)           495
     db.py                    SQLite/Postgres, hash-chained audit (S8a,S8b)    857
     bhashini.py              Indic script bridge + exonyms (S4a)             459
+    office_reader.py         docx/xlsx/odt/pptx/csv/html, stdlib only          391
     sam_fallback.py          last-resort parcel segmentation (S4c)           265
     ner_extractor.py         NER cross-check, English + Indic (S4b)          374
     topology.py              gaps/overlaps/containment/snap (S12i)           465

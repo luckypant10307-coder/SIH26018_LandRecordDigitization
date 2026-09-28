@@ -105,7 +105,18 @@ def _stored_upload_path(original_name: str) -> str:
     return stored
 
 MAX_UPLOAD_BYTES = 40 * 1024 * 1024
-ALLOWED_EXT = {".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp", ".txt"}
+ALLOWED_EXT = {
+    # Scans and native PDFs - the OCR and text-layer paths.
+    ".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp",
+    ".txt", ".md",
+    # Office and web documents, read by backend/office_reader.py with the
+    # standard library alone. A revenue office holds many more of these than
+    # it does clean scans: a clerk's khatauni extract is usually .docx, a
+    # district parcel list .xlsx, and offices running LibreOffice - which most
+    # government installations do - produce .odt and .ods.
+    ".docx", ".odt", ".xlsx", ".ods", ".pptx",
+    ".csv", ".tsv", ".html", ".htm", ".rtf",
+}
 
 ROLE_RIGHTS = {
     "operator": {"upload", "correct"},
