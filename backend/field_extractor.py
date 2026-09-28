@@ -675,8 +675,62 @@ def _best_label_hit(line: str, spec: FieldSpec,
         if len(head) <= 40:
             sim = _label_similarity(head, ll)
             if sim >= 0.68 and sim > best[0]:
+                # Does this text actually belong to a DIFFERENT field?
+                #
+                # The fuzzy gate alone was not enough. "खसरा संख्या" and
+                # "खाता संख्या" share the generic word संख्या ("number"), so a
+                # line reading "खसरा संख्या : 213/1" scored 0.700 for KHATA -
+                # above the 0.68 gate - and the khasra number was copied into
+                # khata_number as well. On a land record that is a fabricated
+                # khata number attached to a real parcel, which is exactly the
+                # confidently-wrong output this project exists to prevent.
+                #
+                # The literal-rival check further down cannot catch it: that
+                # one looks for another field's label appearing verbatim in
+                # the line, and here no such substring exists - the collision
+                # is between a fuzzy match and the true owner's own label.
+                #
+                # So ask who this text most resembles. If another field's
+                # label fits it clearly better, the text is that field's label
+                # and this field must not claim the value beside it.
+                owner_sim, owner_key = _fuzzy_label_owner(head)
+                if (owner_key is not None and owner_key != spec.key
+                        and owner_sim > sim + _FUZZY_OWNER_MARGIN):
+                    continue
                 best = (sim * 0.85, label, len(head) + 1)
     return best
+
+
+# How much better another field's label must fit before this field is refused
+# the match. Deliberately small: the case being stopped is a LANDSLIDE (the
+# true owner matches its own label at 1.000 against a rival's 0.700), so a
+# wide margin is unnecessary, and a wide one would start refusing legitimate
+# matches where two fields share vocabulary and the right one wins narrowly.
+_FUZZY_OWNER_MARGIN = 0.08
+
+
+def _fuzzy_label_owner(head: str) -> Tuple[float, Optional[str]]:
+    """
+    Which field's label does this text most resemble, and how strongly?
+
+    Cached: this runs per field per line, so without memoising it would be
+    17 x every line x 226 labels on every document.
+    """
+    cached = _FUZZY_OWNER_CACHE.get(head)
+    if cached is not None:
+        return cached
+    best_sim, best_key = 0.0, None
+    for lbl, key in _ALL_LABELS:
+        sim = _label_similarity(head, lbl)
+        if sim > best_sim:
+            best_sim, best_key = sim, key
+    if len(_FUZZY_OWNER_CACHE) > 4096:      # bounded; documents are not infinite
+        _FUZZY_OWNER_CACHE.clear()
+    _FUZZY_OWNER_CACHE[head] = (best_sim, best_key)
+    return best_sim, best_key
+
+
+_FUZZY_OWNER_CACHE: Dict[str, Tuple[float, Optional[str]]] = {}
 
 
 _STRIP_LEADING = re.compile(r"^[\s:：\-–—|=.,)\]}>]+")

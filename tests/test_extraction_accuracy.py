@@ -126,6 +126,50 @@ class RivalLabelTests(unittest.TestCase):
         self.assertEqual(got["registration_date"].value, "2019-07-09")
 
 
+class FuzzyLabelCollisionTests(unittest.TestCase):
+    """
+    A SECOND way two fields collided, which the rival check above cannot catch.
+
+    'खसरा संख्या' and 'खाता संख्या' share the generic word संख्या ("number"),
+    so a line carrying only a khasra scored 0.700 for KHATA on the fuzzy label
+    matcher - above its 0.68 gate - and the khasra number was copied into
+    khata_number as well. That is a fabricated khata number on a real parcel.
+
+    The rival check cannot see it: that one looks for another field's label
+    appearing VERBATIM in the line, and here no such substring exists. The
+    collision is between a fuzzy match and the true owner's own label, so the
+    fix asks which field the text most resembles before letting a field claim
+    the value beside it.
+    """
+
+    def test_khasra_alone_does_not_invent_a_khata_number(self):
+        got = extract("खसरा संख्या : 213/1")
+        self.assertEqual(got["khasra_number"].value, "213/1")
+        self.assertIsNone(got["khata_number"].value,
+                          "khasra's value must not be copied into khata")
+
+    def test_khata_alone_does_not_invent_a_khasra_number(self):
+        got = extract("खाता संख्या : 45")
+        self.assertEqual(got["khata_number"].value, "45")
+        self.assertIsNone(got["khasra_number"].value)
+
+    def test_both_are_still_read_when_both_are_present(self):
+        """The fix must refuse a false match, not suppress a true one."""
+        got = extract("खसरा संख्या : 213/1", "खाता संख्या : 45")
+        self.assertEqual(got["khasra_number"].value, "213/1")
+        self.assertEqual(got["khata_number"].value, "45")
+
+    def test_the_real_bhu_naksha_line_still_splits_correctly(self):
+        """
+        The shape the live UP portal prints, three fields on one line.
+        Verified against the real plot reports: khasra 184 with khata 00100.
+        """
+        got = extract("Khata No: 00100  Plot No: 184  Area : 1.6350 Hectare")
+        self.assertEqual(got["khata_number"].value, "00100")
+        self.assertEqual(got["khasra_number"].value, "184")
+        self.assertIsNotNone(got["area"].value)
+
+
 class ReviewThresholdTests(unittest.TestCase):
     """
     The threshold is a measured value (see field_extractor.REVIEW_THRESHOLD).
