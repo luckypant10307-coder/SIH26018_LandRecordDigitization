@@ -73,6 +73,13 @@ CREATE TABLE IF NOT EXISTS documents (
     signature       TEXT,
     issues_json     TEXT,
     summary_json    TEXT,
+    -- Where this record is on the earth, as structured data.
+    --
+    -- The geotag was previously computed and then thrown away: it reached the
+    -- issue list as a human-readable sentence and nothing else, so the map had
+    -- no coordinate to plot and the API returned no position. A sentence is
+    -- not a location.
+    geotag_json     TEXT,
     -- verification
     verified_by     INTEGER REFERENCES users(id),
     verified_at     TEXT,
@@ -272,7 +279,33 @@ class Database:
             self._apply_schema()
             self._conn.commit()
         self._migrate_audit_chain()
+        self._migrate_geotag_column()
         self._seed_users()
+
+    def _migrate_geotag_column(self) -> None:
+        """
+        Add documents.geotag_json to a database created before it existed.
+
+        CREATE TABLE IF NOT EXISTS leaves an existing table untouched, so
+        without this an installation with history would fail every insert on a
+        missing column. Existing rows keep a NULL geotag, which is truthful -
+        those documents were processed before the position was retained, and
+        re-deriving one now would invent a provenance they never had. They
+        pick one up on re-validation.
+        """
+        with _LOCK:
+            if self.is_postgres:
+                cur = self._conn.cursor()
+                cur.execute("ALTER TABLE documents "
+                            "ADD COLUMN IF NOT EXISTS geotag_json TEXT")
+                cur.close()
+            else:
+                existing = {r["name"] for r in
+                            self._conn.execute("PRAGMA table_info(documents)")}
+                if "geotag_json" not in existing:
+                    self._conn.execute(
+                        "ALTER TABLE documents ADD COLUMN geotag_json TEXT")
+            self._conn.commit()
 
     # -- dialect ----------------------------------------------------------
     def _translate(self, sql: str) -> str:
@@ -581,7 +614,7 @@ class Database:
                 "uploaded_by", "ocr_engine", "page_count", "mean_ocr_conf", "legibility",
                 "quality_json", "warnings_json", "full_text", "status", "decision",
                 "trust_score", "error_count", "warning_count", "signature",
-                "issues_json", "summary_json", "processing_ms")
+                "issues_json", "summary_json", "geotag_json", "processing_ms")
         values = [kw.get(c) for c in cols]
         placeholders = ",".join("?" for _ in cols)
         return self.run(
@@ -639,6 +672,10 @@ class Database:
         doc["warnings"] = json.loads(doc.pop("warnings_json") or "[]")
         doc["issues"] = json.loads(doc.pop("issues_json") or "[]")
         doc["summary"] = json.loads(doc.pop("summary_json") or "{}")
+        # None, not {} - "we could not place this record" and "it sits
+        # at 0,0" are different claims, and the UI must be able to tell
+        # them apart.
+        doc["geotag"] = json.loads(doc.pop("geotag_json") or "null")
         doc["fields"] = self.get_fields(document_id)
         return doc
 
@@ -742,14 +779,21 @@ class Database:
                 "new_value": old if confirm_only else new_value, "status": status}
 
     def set_document_validation(self, document_id: int, result: dict) -> None:
+        # The geotag is rewritten here too, not only at ingestion. Revalidation
+        # re-runs the geo pass, so correcting a misread village moves the
+        # record to where it actually is - leaving the old position would make
+        # the map disagree with the corrected record.
         self.run("UPDATE documents SET decision = ?, trust_score = ?, error_count = ?,"
-                 " warning_count = ?, signature = ?, issues_json = ?, status = ? "
+                 " warning_count = ?, signature = ?, issues_json = ?, status = ?,"
+                 " geotag_json = ? "
                  "WHERE id = ?",
                  (result["decision"], result["trust_score"], result["error_count"],
                   result["warning_count"], result["signature"],
                   json.dumps(result["issues"], ensure_ascii=False),
                   result["decision"] if result["decision"] != "auto_approved"
                   else "auto_approved",
+                  (json.dumps(result["geotag"], ensure_ascii=False)
+                   if result.get("geotag") else None),
                   document_id))
 
     def approve_document(self, document_id: int, user: dict) -> None:

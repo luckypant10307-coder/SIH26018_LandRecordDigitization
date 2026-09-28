@@ -828,6 +828,11 @@ def process_document(stored_path: str, original_name: str, user: dict) -> dict:
         signature=result["signature"],
         issues_json=json.dumps(result["issues"], ensure_ascii=False),
         summary_json=json.dumps(summary, ensure_ascii=False),
+        # The position, kept as data rather than only as a sentence in the
+        # issue list. null when the record could not be placed at all, which
+        # is a different statement from "placed at 0,0".
+        geotag_json=(json.dumps(result["geotag"], ensure_ascii=False)
+                     if result.get("geotag") else None),
         processing_ms=elapsed_ms,
     )
 
