@@ -234,6 +234,28 @@ class TestConfiguration(unittest.TestCase):
         self.assertFalse(auth.dev_mode())
         self.assertTrue(auth.auth_status()["enforced"])
 
+    def test_a_token_never_leaves_a_caller_worse_off_than_no_token(self):
+        """
+        With no secret configured the server cannot verify anything, so a
+        presented token must be IGNORED, not refused.
+
+        The first implementation refused it, reasoning that accepting an
+        unchecked assertion was dishonest. True, but the consequence was
+        worse: a returning operator still holds a Supabase session, so the
+        browser attaches a Bearer token, and /api/session answered 401 on a
+        request it would have accepted with no token at all. Presenting
+        credentials made you worse off than presenting none.
+
+        This asserts the CONFIGURATION that decides it, since _current_user
+        needs a live request to exercise: with no secret, dev_mode is on and
+        the header path is reachable regardless of any token sent.
+        """
+        os.environ.pop("SUPABASE_JWT_SECRET", None)
+        os.environ.pop("AUTH_DEV_MODE", None)
+        self.assertIsNone(auth.jwt_secret())
+        self.assertTrue(auth.dev_mode())
+        self.assertFalse(auth.auth_status()["enforced"])
+
     def test_dev_mode_flag_opens_it_again_and_says_so(self):
         os.environ["SUPABASE_JWT_SECRET"] = SECRET
         os.environ["AUTH_DEV_MODE"] = "1"

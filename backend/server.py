@@ -237,7 +237,7 @@ def _add_authenticity_issues(result: dict, values: Dict[str, dict],
         })
     else:
         result["issues"].append({
-            "rule": "SEAL_MISSING", "severity": "error", "field": None,
+            "rule": "SEAL_MISSING", "severity": "warning", "field": None,
             "message": "No department/management seal-like mark was detected on the page. "
                       "A seal is mandatory on land record documents.",
             "suggestion": "Confirm the source document actually bears an official seal; "
@@ -260,12 +260,32 @@ def _add_authenticity_issues(result: dict, values: Dict[str, dict],
             "suggestion": "Confirm the source document is actually signed.",
         })
 
-    # SEAL_MISSING is mandatory (blocking, like REQUIRED_MISSING); SIGNATURE_MISSING
-    # is the lighter, registration-gated warning it always was.
+    # A MISSING seal refers the record for review; it does not block it.
+    #
+    # This blocked, and was wrong for the reason its own detector documents:
+    # a miss may be a false negative, not proof there is no seal. Blocking
+    # asserts "this document has no seal" on evidence that only supports "we
+    # did not find one" - the exact move _add_handwriting_issue refuses to
+    # make a few lines below, where silence deliberately means "nothing stood
+    # out" rather than "certainly all print".
+    #
+    # Measured on the real Bhu-Naksha corpus: after the document-type fix
+    # removed every REQUIRED_MISSING error, SEAL_MISSING was the ONLY thing
+    # still blocking the scanned plot reports - and a Bhu-Naksha download is
+    # a digitally generated map extract that carries "Signatory/Officer" and
+    # a timestamp rather than an inked departmental seal. There is nothing
+    # for the detector to find, and the record is not defective for it.
+    #
+    # Review is the right destination: a verifier opens the page and looks,
+    # which is the only thing that can actually settle it.
     seal_missing_count = sum(1 for i in result["issues"] if i["rule"] == "SEAL_MISSING")
     if seal_missing_count:
-        result["error_count"] = result.get("error_count", 0) + seal_missing_count
-        result["decision"] = "blocked"
+        for issue in result["issues"]:
+            if issue["rule"] == "SEAL_MISSING":
+                issue["severity"] = "warning"
+        result["warning_count"] = result.get("warning_count", 0) + seal_missing_count
+        if result["decision"] == "auto_approved":
+            result["decision"] = "needs_review"
 
     signature_missing_count = sum(1 for i in result["issues"] if i["rule"] == "SIGNATURE_MISSING")
     if signature_missing_count:
@@ -1596,12 +1616,21 @@ class Handler(BaseHTTPRequestHandler):
                                  auth.role_from_claims(claims))
             return dict(row)
 
-        if token and not secret:
-            # A token was presented to a server that cannot check it. Refusing
-            # is the only honest answer: accepting it would treat an unchecked
-            # assertion as proof of identity.
-            raise ApiError(401, "This server cannot verify access tokens "
-                                "because no JWT secret is configured.")
+        # A token presented to a server with no secret is IGNORED, not
+        # refused.
+        #
+        # Refusing was the first implementation and it was wrong in a way
+        # that only showed up in a browser: a returning operator still holds
+        # a Supabase session, so the client attaches a Bearer token, and the
+        # server rejected it although it would have accepted the very same
+        # request with no token at all. Presenting credentials must never
+        # leave a caller worse off than presenting none.
+        #
+        # Ignoring is not the same as trusting. The token contributes nothing
+        # to the identity below - it is discarded, and the caller is
+        # identified exactly as an anonymous one would be. When a secret IS
+        # configured the branch above runs first and the token is verified
+        # properly, so this path cannot be used to bypass anything.
 
         if not auth.dev_mode():
             raise ApiError(401, "Sign-in required.")
@@ -1654,6 +1683,8 @@ class Handler(BaseHTTPRequestHandler):
         sub_match = re.match(r"^/api/documents/(\d+)/([a-z]+)$", path)
 
         if method == "GET":
+            if path == "/api/auth/status":
+                return self.api_auth_status
             if path == "/api/session":
                 return self.api_session
             if path == "/api/documents":
@@ -1721,6 +1752,23 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, fh.read(), ctype)
 
     # -- API: reads ---------------------------------------------------
+    def api_auth_status(self, query: dict) -> None:
+        """
+        Whether this server requires a signed-in user. Deliberately public.
+
+        The client has to be able to ask this BEFORE it can authenticate,
+        which is why it is the one route that does not call _current_user.
+        It discloses nothing an unauthenticated caller could not already
+        learn by making a request and reading the status code.
+
+        It exists because the frontend redirected to the sign-in page
+        unconditionally while the backend, with no JWT secret configured,
+        accepted the request anyway. On a laptop with nothing set up that
+        left the app unreachable behind a login it did not need - which
+        breaks the promise that `python3 run.py` just works offline.
+        """
+        self._json(auth.auth_status())
+
     def api_session(self, query: dict) -> None:
         user = self._current_user()
         self._json({

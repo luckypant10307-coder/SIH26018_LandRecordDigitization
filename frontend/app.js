@@ -1234,7 +1234,35 @@ async function loadAudit() {
  * Authentication with Supabase
  * ------------------------------------------------------------------ */
 
+/**
+ * Does this server actually require a signed-in user?
+ *
+ * Asked before the sign-in gate runs. A server with no JWT secret
+ * configured cannot verify a token and accepts the request anyway, so
+ * sending the operator to a login page it will not check is a gate with
+ * nothing behind it - and on a laptop with no Supabase project reachable
+ * it makes the whole application unopenable.
+ *
+ * Fails CLOSED: if the question cannot be answered, the gate runs. An
+ * unreachable server is not evidence that sign-in is unnecessary.
+ */
+async function authIsEnforced() {
+  try {
+    const res = await fetch("/api/auth/status", { cache: "no-store" });
+    if (!res.ok) return true;
+    const status = await res.json();
+    return status.enforced !== false;
+  } catch (e) {
+    return true;
+  }
+}
+
 async function checkAuthentication() {
+  if (!(await authIsEnforced())) {
+    console.log("Auth is not enforced by this server (no JWT secret "
+              + "configured); continuing without sign-in.");
+    return true;
+  }
   try {
     // Wait for Supabase to load
     let attempts = 0;
