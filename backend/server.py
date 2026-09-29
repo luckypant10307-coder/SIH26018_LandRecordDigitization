@@ -35,6 +35,7 @@ from typing import Any, Dict, List, Optional, Tuple
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import anomaly_detector
+import auth
 import bhashini
 import cadastral
 import document_authenticity
@@ -322,6 +323,44 @@ def _add_handwriting_issue(result: dict, extraction) -> None:
                       "trained on printed text and does not report failure on "
                       "handwriting - it returns plausible text instead.",
     })
+
+
+def _recover_places_from_prose(values: Dict[str, dict], lines) -> None:
+    """
+    Fill EMPTY place fields from names appearing in the document's prose.
+
+    Mutates `values` in place. A field that already holds a value is left
+    alone: a value printed in its own field outranks one mentioned in a
+    sentence, and silently replacing the first with the second would be a
+    downgrade disguised as an improvement.
+
+    Everything filled here is marked `recovered_from` so the provenance
+    survives into the UI and the audit trail - a reviewer must be able to
+    see that this district was inferred from a sentence about a past sale
+    rather than read off the record.
+    """
+    empty = [k for k in ("village", "tehsil", "district")
+             if not (values.get(k) or {}).get("value")]
+    if not empty:
+        return
+    try:
+        text = "\n".join(getattr(l, "text", str(l)) for l in (lines or []))
+        found = gazetteer.places_from_prose(text)
+    except Exception:
+        return
+    for key in empty:
+        hit = found.get(key)
+        if not hit:
+            continue
+        slot = values.setdefault(key, {"value": None, "confidence": 0.0, "extra": {}})
+        slot["value"] = hit["value"]
+        slot["confidence"] = hit["confidence"]
+        extra = slot.get("extra")
+        if not isinstance(extra, dict):
+            extra = {}
+        extra["recovered_from"] = hit["evidence"]
+        extra["source"] = "prose"
+        slot["extra"] = extra
 
 
 def _add_doc_type_issue(result: dict, doctype: dict) -> None:
@@ -753,6 +792,24 @@ def process_document(stored_path: str, original_name: str, user: dict) -> dict:
         d = f.to_dict()
         values[f.key] = {"value": d["value"], "confidence": d["confidence"],
                          "extra": d["extra"]}
+
+    # LAST RESORT for place fields: read them out of the running text.
+    #
+    # Measured on 20 genuine Bhu-Naksha downloads: village and district are
+    # not printed as fields on a plot report at all. Where they exist, they
+    # are inside the mutation-order prose -
+    #
+    #   "...सा0 मौजा अमारी, परगना गड़वारा, तहसील बदलापुर, जिला जौनपुर का..."
+    #
+    # which a label-anchored extractor cannot see, because there is no label
+    # and no colon. gazetteer.places_from_prose anchors on the administrative
+    # noun instead and confirms the candidate against the master, so an
+    # unrecognised word is discarded rather than guessed at.
+    #
+    # Only fills fields that are genuinely EMPTY - a value actually printed
+    # in its own field is better evidence than one mentioned in a sentence
+    # about a past transfer, and must never be overwritten by it.
+    _recover_places_from_prose(values, extraction.lines)
 
     # WHAT KIND of document is this? The answer changes which fields may
     # legitimately be demanded of it.
@@ -1509,6 +1566,46 @@ class Handler(BaseHTTPRequestHandler):
 
     # -- auth ---------------------------------------------------------
     def _current_user(self) -> dict:
+        """
+        Identify the caller, from a verified token where one is available.
+
+        Order matters. A Bearer token is always preferred and, once a secret
+        is configured, always verified - so a caller cannot downgrade
+        themselves to the header path by simply omitting the token. The
+        header path survives only where nothing can be verified anyway
+        (see auth.dev_mode), which keeps an offline demo working without
+        leaving a network-facing server open.
+        """
+        token = ""
+        header = self.headers.get("Authorization") or ""
+        if header.lower().startswith("bearer "):
+            token = header[7:].strip()
+
+        secret = auth.jwt_secret()
+
+        if token and secret:
+            try:
+                claims = auth.verify_token(token, secret)
+            except auth.AuthError as exc:
+                # The reason is safe to return here: the caller supplied the
+                # token, so it tells them nothing they did not already have.
+                raise ApiError(401, f"Sign-in required: {exc}")
+            username = auth.identity_from_claims(claims)
+            row = DB.ensure_user(username,
+                                 claims.get("email") or username,
+                                 auth.role_from_claims(claims))
+            return dict(row)
+
+        if token and not secret:
+            # A token was presented to a server that cannot check it. Refusing
+            # is the only honest answer: accepting it would treat an unchecked
+            # assertion as proof of identity.
+            raise ApiError(401, "This server cannot verify access tokens "
+                                "because no JWT secret is configured.")
+
+        if not auth.dev_mode():
+            raise ApiError(401, "Sign-in required.")
+
         username = self.headers.get("X-User") or "operator1"
         row = DB.get_user(username)
         if not row:

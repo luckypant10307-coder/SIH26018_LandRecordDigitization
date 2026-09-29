@@ -954,3 +954,192 @@ def describe() -> dict:
         "auto_apply_score": AUTO_APPLY_SCORE,
         "gazetteer_script": "romanised only - Devanagari values cannot be matched",
     }
+
+
+# ==========================================================================
+# Place names inside running text
+#
+# WHY: a Bhu-Naksha plot report has no village or district FIELD, but its
+# mutation-order paragraphs often name them in prose:
+#
+#   "...सा0 मौजा अमारी, परगना गड़वारा, तहसील बदलापुर, जिला जौनपुर का नाम
+#    बैनामा दिनांक 11.11.2020 के आधार पर..."
+#
+# Village Amari, tehsil Badlapur, district Jaunpur - correct, present, and
+# completely invisible to a label-anchored extractor, which looks for
+# "जिला : X" and finds "जिला जौनपुर का" mid-sentence with no colon.
+#
+# HOW, and why not just scan every token: this keys off the administrative
+# NOUN that Hindi revenue prose puts immediately before the name - जिला,
+# तहसील, मौजा, ग्राम. Scanning every token against the master instead would
+# match person names and stray words, and on a document naming twenty owners
+# that is a lot of confident nonsense. The keyword is the anchor; the master
+# is the check. A candidate that is not a known place is discarded, not
+# guessed at.
+#
+# This RECOVERS a value, it does not confirm one. Everything found here is
+# reported at reduced confidence and marked with how it was obtained, because
+# a name mentioned in a sentence about a past sale is weaker evidence than a
+# name printed in the document's own village field.
+# ==========================================================================
+
+# The administrative noun, per field, in both scripts. Ordered longest-first
+# within each field so "जनपद" cannot be shadowed by a shorter prefix.
+_PROSE_ANCHORS: Dict[str, List[str]] = {
+    "district": ["जिला", "ज़िला", "जनपद", "जिल्हा", "district", "distt", "dist"],
+    "tehsil":   ["तहसील", "तहसिल", "तालुका", "tehsil", "tahsil", "taluka", "taluk"],
+    "village":  ["मौजा", "मौज़ा", "ग्राम", "गाँव", "गांव", "village", "mauja", "gram"],
+}
+
+# A place name runs until the next punctuation or Hindi case-marker. "जौनपुर
+# का नाम" must yield "जौनपुर", not "जौनपुर का नाम" - these are the words that
+# end a name rather than belong to it.
+_PROSE_STOPWORDS = {
+    "का", "के", "की", "में", "से", "को", "पर", "व", "एवं", "तथा", "और",
+    "नाम", "निवासी", "निवास", "स्थान", "पुत्र", "पत्नी", "सा0", "नि0",
+    "of", "the", "in", "at", "and",
+}
+
+_PROSE_SPLIT = re.compile(r"[,;।|\n\t()\[\]{}:]+")
+
+
+def _prose_candidate(after: str, max_words: int = 3) -> List[str]:
+    """
+    The words that could form a place name, from the text after an anchor.
+
+    Returns progressively longer candidates ("अमारी", "अमारी खुर्द") so a
+    two-word village is reachable without assuming every name is two words.
+    """
+    segment = _PROSE_SPLIT.split(after.strip(), 1)[0]
+    words: List[str] = []
+    for word in segment.split():
+        bare = word.strip(".,:;-–—'\"")
+        if not bare or bare.lower() in _PROSE_STOPWORDS:
+            break
+        words.append(bare)
+        if len(words) >= max_words:
+            break
+    return [" ".join(words[:n]) for n in range(len(words), 0, -1)]
+
+
+def places_from_prose(text: str) -> Dict[str, dict]:
+    """
+    Recover village / tehsil / district named in running text.
+
+    Returns {field_key: {"value", "confidence", "source", "evidence"}} for
+    each field whose candidate is confirmed against the administrative
+    master. A field with no confirmed candidate is simply absent - an
+    unrecognised word is never returned as a place.
+    """
+    if not text or not GAZETTEER.loaded:
+        return {}
+
+    found: Dict[str, dict] = {}
+    for field_key, anchors in _PROSE_ANCHORS.items():
+        for anchor in anchors:
+            start = 0
+            while True:
+                idx = text.find(anchor, start)
+                if idx < 0:
+                    break
+                start = idx + len(anchor)
+                for candidate in _prose_candidate(text[start:]):
+                    canonical = _confirm_place(field_key, candidate)
+                    if canonical:
+                        found[field_key] = {
+                            "value": canonical,
+                            # Deliberately below the 0.80 auto-approve bar:
+                            # this was inferred from a sentence, not read from
+                            # a field, so a human should see it.
+                            "confidence": 0.62,
+                            "source": "prose",
+                            "evidence": f"{anchor} {candidate}".strip(),
+                        }
+                        break
+                if field_key in found:
+                    break
+            if field_key in found:
+                break
+    return found
+
+
+# Tehsils and villages are indexed BY PARENT DISTRICT in the master, because
+# their names are only unique within a parent. Confirming a name found in
+# prose has no parent to scope by, so these flat indexes are built once on
+# first use. A name that is ambiguous across districts still confirms as a
+# name - which is all this claims: that the word is a real place, not that
+# it is the only one so called.
+_FLAT_TEHSILS: Optional[Dict[str, str]] = None
+_FLAT_VILLAGES: Optional[Dict[str, str]] = None
+
+
+def _flat_indexes() -> Tuple[Dict[str, str], Dict[str, str]]:
+    global _FLAT_TEHSILS, _FLAT_VILLAGES
+    if _FLAT_TEHSILS is None or _FLAT_VILLAGES is None:
+        tehsils: Dict[str, str] = {}
+        villages: Dict[str, str] = {}
+        for names in GAZETTEER.tehsils_by_district.values():
+            for name in names:
+                tehsils.setdefault(_key(name), name)
+        for names in GAZETTEER.villages_by_district.values():
+            for name in names:
+                villages.setdefault(_key(name), name)
+        _FLAT_TEHSILS, _FLAT_VILLAGES = tehsils, villages
+    return _FLAT_TEHSILS, _FLAT_VILLAGES
+
+
+def _confirm_place(field_key: str, candidate: str) -> Optional[str]:
+    """
+    The master's canonical spelling for a candidate, or None if unknown.
+
+    Three attempts, cheapest first, because each is a different kind of
+    evidence and they fail differently:
+
+      1. Exact key match - the candidate is already the master's spelling.
+      2. Exact match on the romanised form - handles a Devanagari name whose
+         transliteration lands exactly on the master's spelling.
+      3. The same fuzzy/phonetic matcher the labelled fields use. Measured:
+         this bridges गोरखपुर -> "gorakhapura" -> Gorakhpur, and does NOT
+         bridge वाराणसी -> "vaaraanasii" -> Varanasi or आगरा -> "aagaraa" ->
+         Agra. Schwa retention is why, and it is the same gap bhashini.py
+         closes for labelled fields (0 of 43 districts -> 43 of 43). A
+         deployment with the Bhashini bridge enabled resolves the rest; one
+         without it recovers what transliteration alone can reach and stays
+         silent on the others rather than guessing.
+
+    Returning None is a real answer here. An unrecognised word is not a place.
+    """
+    if not candidate or len(candidate) < 3:
+        return None
+
+    tehsils, villages = _flat_indexes()
+    if field_key == "district":
+        table, names = GAZETTEER.districts, sorted(set(GAZETTEER.districts.values()))
+    elif field_key == "tehsil":
+        table, names = tehsils, sorted(set(tehsils.values()))
+    else:
+        table, names = villages, sorted(set(villages.values()))
+
+    attempts = [candidate]
+    romanised = romanise_devanagari(candidate)
+    if romanised and romanised != candidate:
+        attempts.append(romanised)
+
+    for attempt in attempts:
+        hit = table.get(_key(attempt))
+        if hit:
+            return hit
+
+    # Fuzzy/phonetic, on the romanised form - the Devanagari original cannot
+    # match a Latin master by any string measure.
+    for attempt in attempts:
+        try:
+            correction = match_in_scope(attempt, names, field_key, "India", True)
+        except Exception:
+            continue
+        value = getattr(correction, "value", None)
+        # match_in_scope returns the INPUT unchanged when nothing matched, so
+        # an unchanged value means "no match", not "confirmed as typed".
+        if value and _key(value) != _key(attempt) and table.get(_key(value)):
+            return table[_key(value)]
+    return None

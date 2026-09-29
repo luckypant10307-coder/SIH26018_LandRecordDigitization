@@ -59,6 +59,36 @@ SIGNALS: Dict[str, List[Tuple[str, float]]] = {
         ("land record", 2.0), ("भू-अभिलेख", 3.0), ("अधिकार अभिलेख", 4.0),
         ("hectare", 1.0), ("हेक्टेयर", 1.0), ("bigha", 1.0),
     ],
+    # A Bhu-Naksha PLOT REPORT, which is not a khatauni.
+    #
+    # Measured on 20 genuine Bhu-Naksha downloads: 18 were BLOCKED, almost
+    # entirely on REQUIRED_MISSING for village and district. Reading the
+    # extracted text showed why - a plot report is generated from the
+    # cadastral MAP and carries khasra, khata, area and the owner list, and
+    # simply has no village or district field on it. plot-report-183 contains
+    # no district anywhere; "निवास स्थान : नि.ग्राम" means "resident of the
+    # same village", which is a relative reference, not a place name.
+    #
+    # Demanding those fields was the same category error as demanding a
+    # khasra number from a Power of Attorney, and it is fixed the same way.
+    #
+    # The discriminator is the MAP SCALE. Every one of these prints
+    # "scale: 1:2292" because it is a map extract; a khatauni never does.
+    # The shared vocabulary is repeated here so the score clears
+    # record_of_rights by more than MIN_MARGIN rather than tying with it.
+    # The map scale carries most of the weight ON PURPOSE. A plot report
+    # shares almost all of its vocabulary with a khatauni, so listing those
+    # shared terms here only re-runs the same tie; what actually separates
+    # the two is that one is cut from a MAP and prints its scale. Weighting
+    # the shared terms instead made a real khatauni-style extract score 20
+    # against record_of_rights' 17 and stole it, which is why they are
+    # mostly absent below.
+    "plot_report": [
+        ("scale:", 7.0), ("plotinfo", 4.0), ("plot no", 2.0),
+        ("भूमि का विवरण", 4.0), ("plot information", 4.0),
+        ("owner details", 3.0), ("खसरा नंबर", 3.0), ("खसरा", 3.0),
+        ("khata no", 2.0), ("hectare", 1.0), ("हेक्टेयर", 1.0),
+    ],
     "power_of_attorney": [
         ("power of attorney", 5.0), ("attorney", 2.0), ("gpa", 3.0),
         ("मुख्तारनामा", 5.0), ("वसीयत", 1.0),
@@ -114,6 +144,7 @@ CARRIER_TYPES = {"stamp_certificate"}
 
 DISPLAY = {
     "record_of_rights": "Record of Rights / Khatauni",
+    "plot_report": "Bhu-Naksha Plot Report",
     "power_of_attorney": "Power of Attorney (GPA)",
     "sale_deed": "Sale Deed",
     "mutation_order": "Mutation Order",
@@ -131,6 +162,14 @@ DISPLAY = {
 APPLICABLE: Dict[str, Optional[set]] = {
     # None means "the full schema applies".
     "record_of_rights": None,
+    # A plot report carries the parcel, not the address. Village/tehsil/
+    # district remain APPLICABLE - they are worth capturing when the
+    # mutation-order prose names them - but see REQUIRED_BY_TYPE: they are
+    # not grounds to block.
+    "plot_report": {"khasra_number", "khata_number", "survey_number", "area",
+                    "owner_name", "father_name", "share", "village",
+                    "tehsil", "district", "state", "land_classification",
+                    "mutation_number", "mutation_date"},
     # A GPA DOES cite the land record of the property it concerns - measured
     # on the real Delhi document: "out OF KHATONI NO.214/248" alongside
     # "PLOT NO.55" and "LAND AREA MEAS. 57 SQ.YDS.". Excluding the identifier
@@ -175,6 +214,10 @@ APPLICABLE: Dict[str, Optional[set]] = {
 # Record-of-Rights behaviour exactly as documented.
 REQUIRED_BY_TYPE: Dict[str, Optional[set]] = {
     "record_of_rights": None,
+    # What a plot report genuinely must have to be usable: which parcel it
+    # is, and how big. Everything else on it is a bonus, and the village is
+    # recoverable from the cadastral sheet the report was cut from.
+    "plot_report": {"khasra_number", "area"},
     # A GPA must identify who granted it and over what property. Everything
     # else it may cite or omit.
     "power_of_attorney": {"owner_name", "village"},

@@ -487,6 +487,34 @@ class Database:
     def get_user(self, username: str) -> Optional[sqlite3.Row]:
         return self.one("SELECT * FROM users WHERE username = ?", (username,))
 
+    def ensure_user(self, username: str, full_name: str, role: str,
+                    office: Optional[str] = None) -> sqlite3.Row:
+        """
+        Find a user, creating them if this is their first sign-in.
+
+        Written as select-then-write rather than an upsert because SQLite's
+        INSERT OR REPLACE and PostgreSQL's ON CONFLICT DO UPDATE are not the
+        same statement and not the same semantics - REPLACE deletes the row
+        and reinserts it, which would issue a new id and orphan every audit
+        entry pointing at the old one. Two portable statements beat one
+        dialect-specific statement that silently rewrites history.
+
+        The role is refreshed on every sign-in so that a change made in the
+        identity provider takes effect here without a manual edit.
+        """
+        row = self.get_user(username)
+        if row is None:
+            self.run(
+                "INSERT INTO users (username, full_name, role, office, created_at) "
+                "VALUES (?,?,?,?,?)",
+                (username, full_name or username, role, office, _now()))
+            return self.get_user(username)
+        if row["role"] != role:
+            self.run("UPDATE users SET role = ? WHERE username = ?",
+                     (role, username))
+            return self.get_user(username)
+        return row
+
     def list_users(self) -> List[dict]:
         return [dict(r) for r in self.q("SELECT * FROM users ORDER BY id")]
 

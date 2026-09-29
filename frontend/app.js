@@ -23,9 +23,39 @@ const $$ = (sel) => Array.from(document.querySelectorAll(sel));
  * API helper
  * ------------------------------------------------------------------ */
 
-async function api(path, opts = {}) {
-  const headers = Object.assign({}, opts.headers || {});
+/**
+ * Headers that identify the caller to the API.
+ *
+ * The Bearer token is what the server actually verifies. X-User is still
+ * sent because an offline install with no JWT secret configured has nothing
+ * to verify a token against and falls back to it; a server that IS
+ * configured ignores it entirely, so sending both is not a way around the
+ * check.
+ *
+ * The token is read from the live session on every call rather than cached
+ * at sign-in: Supabase access tokens expire after about an hour, and the
+ * client refreshes them in the background, so a cached copy would start
+ * returning 401 partway through a long verification session.
+ */
+async function authHeaders() {
+  const headers = {};
   if (state.user) headers["X-User"] = state.user.username;
+  try {
+    if (typeof SupabaseAuth !== "undefined" && SupabaseAuth.getSession) {
+      const session = await SupabaseAuth.getSession();
+      if (session && session.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+    }
+  } catch (e) {
+    // No session to attach. The request still goes out, and the server
+    // decides whether that is allowed - the client does not pre-judge it.
+  }
+  return headers;
+}
+
+async function api(path, opts = {}) {
+  const headers = Object.assign({}, await authHeaders(), opts.headers || {});
   if (opts.json !== undefined) {
     headers["Content-Type"] = "application/json";
     opts.body = JSON.stringify(opts.json);
@@ -454,9 +484,9 @@ $("#searchInput").addEventListener("input", () => {
 });
 $("#statusFilter").addEventListener("change", loadDocuments);
 
-$("#exportCsvBtn").addEventListener("click", () => {
+$("#exportCsvBtn").addEventListener("click", async () => {
   const url = "/api/export/csv";
-  fetch(url, { headers: { "X-User": state.user.username } })
+  fetch(url, { headers: await authHeaders() })
     .then((r) => (r.ok ? r.blob() : r.json().then((j) => Promise.reject(new Error(j.error)))))
     .then((blob) => {
       const a = document.createElement("a");

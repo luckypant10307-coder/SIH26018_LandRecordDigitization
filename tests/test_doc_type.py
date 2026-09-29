@@ -35,9 +35,15 @@ GPA = ("INDIA NON JUDICIAL Government of National Capital Territory of Delhi "
        "Property Description VILLAGE NARELA, SABOLI ROAD, DELHI "
        "First Party RAJBIR SINGH Second Party PUSHPA Stamp Duty Paid By")
 
-ROR = ("भूमि का विवरण "
-       "Plot Information Khata No: 00620 Area: 0.3120 Hectare "
-       "खसरा नंबर : 50 Owner Details")
+# A khatauni, NOT a Bhu-Naksha plot report. The previous fixture was a plot
+# report with its scale line removed - "भूमि का विवरण / Plot Information /
+# Khata No / खसरा नंबर / Owner Details" is verbatim Bhu-Naksha web output -
+# so it was asserting plot-report vocabulary under a khatauni's name. Once
+# plot_report existed as a type it correctly claimed that text, and the only
+# honest fix was to make the fixture the document it claims to be.
+ROR = ("अधिकार अभिलेख खतौनी "
+       "खाता संख्या 00620 खसरा संख्या 50 "
+       "क्षेत्रफल 0.3120 हेक्टेयर भू-अभिलेख")
 
 SALE = ("This SALE DEED is made between the vendor and the vendee. "
         "Consideration price paid. The property is sold and transferred.")
