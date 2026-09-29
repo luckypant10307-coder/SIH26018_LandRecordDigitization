@@ -89,6 +89,139 @@ const STATUS_META = {
   processing:    { label: "Processing",     cls: "gray" },
 };
 
+/* ------------------------------------------------------------------ *
+ * How a document was read, in words an officer can act on.
+ *
+ * The backend records the engine that read each document as an internal
+ * identifier - "tesseract:hin+eng", "pdf_text_layer", "degraded_no_ocr".
+ * Those are the right names in a log and the wrong names on screen: they
+ * name our implementation instead of answering the question the reader
+ * actually has, which is "how much should I trust this text, and do I need
+ * to look at the original?"
+ *
+ * So the identifier is translated once, here, and nothing else in the UI
+ * prints a raw engine string.
+ * ------------------------------------------------------------------ */
+
+const LANGUAGE_NAMES = {
+  hin: "Hindi",    eng: "English",  mar: "Marathi",  ben: "Bengali",
+  tam: "Tamil",    tel: "Telugu",   kan: "Kannada",  mal: "Malayalam",
+  guj: "Gujarati", pan: "Punjabi",  ori: "Odia",     asm: "Assamese",
+  urd: "Urdu",     nep: "Nepali",   san: "Sanskrit", sat: "Santali",
+  kok: "Konkani",  mni: "Manipuri", div: "Dhivehi",  sin: "Sinhala",
+};
+
+function languageNames(codes) {
+  return (codes || [])
+    .map((c) => LANGUAGE_NAMES[String(c).trim()] || String(c).trim())
+    .filter(Boolean);
+}
+
+/**
+ * Split installed languages into the ones this system exists to read and
+ * everything else.
+ *
+ * A machine with the full language set installed has ~124 packs, and listing
+ * the alphabetically-first six gives "afr, amh, ara, aze" - true, useless,
+ * and it buries the fact that Hindi is supported. Indian languages are
+ * listed by name in their own order; the rest are summarised as a count,
+ * because "and 118 other languages" is the whole of what they are worth
+ * saying here.
+ */
+function indianLanguages(codes) {
+  const order = Object.keys(LANGUAGE_NAMES);
+  const set = new Set((codes || []).map((c) => String(c).trim()));
+  const indian = order.filter((c) => set.has(c)).map((c) => LANGUAGE_NAMES[c]);
+  return { indian, otherCount: set.size - indian.length };
+}
+
+/**
+ * Translate an internal engine identifier into a source description.
+ *
+ * Returns { label, detail, cls } - label is short enough for a table cell,
+ * detail expands it for a tooltip, and cls marks the ones that mean "a human
+ * still has to look at this".
+ */
+function readingMethod(engine) {
+  const raw = String(engine || "").trim();
+  if (!raw || raw === "none") {
+    return { label: "Not read", cls: "red",
+             detail: "No text could be extracted from this file." };
+  }
+  if (raw.startsWith("tesseract")) {
+    const codes = (raw.split(":")[1] || "").split("+").filter(Boolean);
+    const names = languageNames(codes);
+    return {
+      label: "Scanned",
+      cls: "orange",
+      detail: names.length
+        ? "Read by character recognition (" + names.join(", ") + ")."
+        : "Read by character recognition from a scanned image.",
+    };
+  }
+  if (raw === "trocr" || raw.startsWith("trocr")) {
+    return { label: "Handwritten", cls: "orange",
+             detail: "Handwriting recognition - verify against the original." };
+  }
+  if (raw === "pdf_text_layer" || raw === "pdf_text" || raw === "native_text") {
+    return { label: "Digital PDF", cls: "green",
+             detail: "Text taken directly from the file, not recognised from an image." };
+  }
+  if (raw === "plain_text") {
+    return { label: "Digital text", cls: "green",
+             detail: "Text taken directly from the file." };
+  }
+  // Office and web documents. All are read as text rather than recognised
+  // from an image, so all are equally reliable - but naming the kind of
+  // document is more use to the reader than a single "Office document".
+  const DIRECT = {
+    word_docx:          "Word document",
+    opendocument_text:  "OpenDocument text",
+    excel_xlsx:         "Excel workbook",
+    opendocument_sheet: "OpenDocument sheet",
+    powerpoint_pptx:    "Presentation",
+    delimited_text:     "Spreadsheet export",
+    html:               "Web page",
+    rich_text:          "Rich text",
+  };
+  if (DIRECT[raw]) {
+    return { label: DIRECT[raw], cls: "green",
+             detail: "Text taken directly from the document, "
+                   + "not recognised from an image." };
+  }
+  if (raw === "degraded_no_ocr") {
+    return { label: "Manual entry needed", cls: "red",
+             detail: "No recognition engine was available for this file, so it is queued "
+                   + "for manual entry rather than recorded as empty." };
+  }
+  // An identifier we have no translation for is shown as-is rather than
+  // hidden: an unexplained blank in this column would be worse than a name
+  // the reader does not recognise.
+  return { label: raw, cls: "gray", detail: "" };
+}
+
+/**
+ * Issue counts as two labelled figures rather than "0e / 18w".
+ *
+ * The shorthand is compact and unreadable: nothing on screen says what "e"
+ * and "w" stand for, and errors and warnings route a record differently, so
+ * the distinction has to survive being displayed.
+ */
+function issueCounts(errors, warnings) {
+  const e = errors || 0, w = warnings || 0;
+  if (!e && !w) return `<span class="ic-clear">None</span>`;
+  const parts = [];
+  if (e) parts.push(`<span class="ic-error">${e} error${e === 1 ? "" : "s"}</span>`);
+  if (w) parts.push(`<span class="ic-warn">${w} warning${w === 1 ? "" : "s"}</span>`);
+  return parts.join('<span class="ic-sep">·</span>');
+}
+
+function readingBadge(engine) {
+  const m = readingMethod(engine);
+  return `<span class="badge ${m.cls}"${m.detail ? ` title="${esc(m.detail)}"` : ""}>`
+       + `${esc(m.label)}</span>`;
+}
+
 function statusBadge(status) {
   const m = STATUS_META[status] || { label: status || "\u2014", cls: "gray" };
   return `<span class="badge ${m.cls}">${esc(m.label)}</span>`;
@@ -174,19 +307,35 @@ $("#userSelect").addEventListener("change", async (e) => {
 
 function renderCapabilities(caps, masterLoaded, samples) {
   caps = caps || {};
+  const langs = indianLanguages(caps.tesseract_languages || []);
+  // Named by what the office gets, not by the library that provides it. The
+  // panel's job is to tell an officer which kinds of document this
+  // installation can handle today - a dependency name answers a question
+  // they did not ask.
   const items = [
-    { on: caps.pdf_text_layer, name: "Native PDF text layer",
-      note: caps.pdf_text_layer ? "PyMuPDF available" : "PyMuPDF missing" },
-    { on: caps.image_preprocessing, name: "Image quality assessment",
-      note: caps.image_preprocessing ? "OpenCV deskew + denoise" : "OpenCV missing" },
-    { on: caps.tesseract, name: "Tesseract OCR",
+    { on: caps.pdf_text_layer, name: "Digital PDF records",
+      note: caps.pdf_text_layer
+        ? "Text read directly from the file"
+        : "Unavailable - digital PDFs fall back to scanning" },
+    { on: caps.image_preprocessing, name: "Scan restoration",
+      note: caps.image_preprocessing
+        ? "Deskew, denoise and contrast correction"
+        : "Unavailable - scans are read without correction" },
+    { on: caps.tesseract, name: "Scanned document recognition",
       note: caps.tesseract
-        ? "Languages: " + (caps.tesseract_languages || []).slice(0, 6).join(", ")
-        : "Not installed \u2014 scans queue for manual entry" },
-    { on: masterLoaded, name: "LGD administrative master",
-      note: masterLoaded ? "District / tehsil cross-check active" : "Master data missing" },
-    { on: (samples || []).length > 0, name: "Sample corpus",
-      note: (samples || []).length + " documents bundled" },
+        ? (langs.indian.length
+            ? langs.indian.slice(0, 5).join(", ")
+              + (langs.indian.length > 5
+                  ? ` and ${langs.indian.length - 5} more Indian languages`
+                  : "")
+            : "Available")
+        : "Unavailable - scans are queued for manual entry" },
+    { on: masterLoaded, name: "Administrative directory",
+      note: masterLoaded
+        ? "District and tehsil cross-check active"
+        : "Unavailable - place names are not cross-checked" },
+    { on: (samples || []).length > 0, name: "Demonstration records",
+      note: (samples || []).length + " sample documents bundled" },
   ];
   $("#capList").innerHTML = items.map((i) => `
     <li>
@@ -256,7 +405,7 @@ $("#uploadBtn").addEventListener("click", async () => {
 });
 
 $("#seedBtn").addEventListener("click", async () => {
-  $("#uploadStatus").innerHTML = `<p class="status-note"><span class="spinner"></span> Ingesting the bundled sample corpus\u2026</p>`;
+  $("#uploadStatus").innerHTML = `<p class="status-note"><span class="spinner"></span> Loading the sample records\u2026</p>`;
   try {
     const out = await api("/api/seed", { method: "POST" });
     renderLastRun(out);
@@ -280,10 +429,10 @@ function renderLastRun(out) {
     const s = r.summary || {};
     html += `<tr>
       <td class="cell-trunc">${esc(r.filename)}</td>
-      <td><span class="badge gray">${esc(r.engine)}</span></td>
+      <td>${readingBadge(r.engine)}</td>
       <td class="num">${s.fields_extracted || 0}/${s.fields_total || 0}</td>
       <td class="num">${(r.trust_score || 0).toFixed(0)}</td>
-      <td class="num">${(r.error_count || 0)}e / ${(r.warning_count || 0)}w</td>
+      <td class="issues-cell">${issueCounts(r.error_count, r.warning_count)}</td>
       <td>${statusBadge(r.decision)}</td>
     </tr>`;
   });
@@ -341,9 +490,9 @@ function renderQueue() {
       <td class="cell-trunc">${esc(d.owner_name || "\u2014")}</td>
       <td>${esc(d.khasra_number || "\u2014")}</td>
       <td>${esc(d.district || "\u2014")}</td>
-      <td><span class="badge gray">${esc(d.ocr_engine || "\u2014")}</span></td>
+      <td>${readingBadge(d.ocr_engine)}</td>
       <td class="num">${d.trust_score === null ? "\u2014" : Number(d.trust_score).toFixed(0)}</td>
-      <td class="num">${d.error_count || 0}e / ${d.warning_count || 0}w</td>
+      <td class="issues-cell">${issueCounts(d.error_count, d.warning_count)}</td>
       <td>${statusBadge(d.status)}</td>
       <td><button class="btn tiny" data-open="${d.id}">Open</button></td>
     </tr>`).join("");
@@ -369,7 +518,7 @@ async function openDocument(id) {
   $("#wsTitle").textContent = doc.filename;
   const q = doc.quality || {};
   $("#wsMeta").innerHTML =
-    `Document #${doc.id} &middot; ${esc(doc.ocr_engine || "\u2014")} &middot; ` +
+    `Document #${doc.id} &middot; ${esc(readingMethod(doc.ocr_engine).label)} &middot; ` +
     `${doc.page_count || 1} page(s) &middot; uploaded ${fmtTime(doc.uploaded_at)} ` +
     `&middot; ${statusBadge(doc.status)}`;
 
@@ -606,27 +755,58 @@ function parcelColor(linked) {
   return cssColor("--blue", "#5AB0F2");
 }
 
+/* Popup geometry, shared by every layer on the map.
+ *
+ * Leaflet pans the map to bring a popup fully into view. With the default
+ * 5px padding a popup opened near an edge slides the whole sheet far enough
+ * that the parcels end up against the opposite border - the map appears to
+ * jump away from the parcel the user just clicked. Padding it away from the
+ * edges keeps that pan small, and clear of the zoom buttons in the corner.
+ */
+const PARCEL_POPUP_OPTS = {
+  maxWidth: 300,
+  minWidth: 210,
+  autoPanPadding: [58, 34],
+  closeButton: true,
+};
+
 function parcelPopup(props) {
   const linked = props.linked_document;
-  let body = `<b>Parcel ${esc(props.parcel_id)}</b><br>`
-    + `Khasra: ${esc(props.khasra_number || "— (label not read)")}`;
+  const rows = [];
+  const add = (k, v) => rows.push(
+    `<dt>${esc(k)}</dt><dd>${v}</dd>`);
+
+  add("Khasra", props.khasra_number
+    ? esc(props.khasra_number)
+    : `<span class="pp-absent">Label not legible</span>`);
+
   if (props.area_m2) {
-    body += `<br>Measured area: ${Number(props.area_m2).toLocaleString()} m²`
-      + ` (${(props.area_m2 / 10000).toFixed(3)} ha)`;
-  }
-  if (props.centroid_lat != null) {
-    body += `<br><span class="muted small">${props.centroid_lat.toFixed(5)},`
-      + ` ${props.centroid_lon.toFixed(5)}</span>`;
+    add("Area", `${(props.area_m2 / 10000).toFixed(3)} ha`
+      + `<span class="pp-sub">${Number(props.area_m2).toLocaleString()} m&sup2;</span>`);
   }
   if (linked) {
-    body += `<br>${statusBadge(linked.status)}`
-      + `<br>Owner: ${esc(linked.owner_name || "—")}`
-      + `<br>Trust: ${linked.trust_score != null ? Math.round(linked.trust_score) : "—"}`
-      + `<br><a href="#workspace/${linked.document_id}">Open in verification workspace &rarr;</a>`;
-  } else {
-    body += `<br><span class="muted small">No uploaded document matched to this parcel yet.</span>`;
+    add("Owner", linked.owner_name
+      ? esc(linked.owner_name)
+      : `<span class="pp-absent">Not recorded</span>`);
+    add("Status", statusBadge(linked.status));
+    if (linked.trust_score != null) {
+      add("Trust", `${Math.round(linked.trust_score)}<span class="pp-sub">of 100</span>`);
+    }
   }
-  return body;
+  if (props.centroid_lat != null) {
+    add("Centre", `<span class="pp-coord">${props.centroid_lat.toFixed(5)}, `
+      + `${props.centroid_lon.toFixed(5)}</span>`);
+  }
+
+  const head = `<div class="pp-head">`
+    + `<span class="pp-id">Parcel ${esc(props.parcel_id)}</span></div>`;
+  const foot = linked
+    ? `<a class="pp-link" href="#workspace/${linked.document_id}">`
+      + `Open in verification workspace &rarr;</a>`
+    : `<p class="pp-none">No digitised record is linked to this parcel yet.</p>`;
+
+  return `<div class="parcel-popup">${head}`
+    + `<dl class="pp-grid">${rows.join("")}</dl>${foot}</div>`;
 }
 
 /* ---- Thematic layer: land classification -------------------------------
@@ -711,8 +891,21 @@ async function loadCadastralMap() {
   const features = geojson.features || [];
   const linkedCount = features.filter((f) => f.properties.linked_document).length;
   const geo = geojson._georeferencing || {};
-  metaEl.textContent = `${features.length} parcel(s), ${linkedCount} linked to an uploaded document`
-    + (geo.max_residual_deg != null ? ` · max residual ${geo.max_residual_deg.toFixed(6)}°` : "");
+  // Three facts, in the order a revenue officer needs them: how big the sheet
+  // is, how much of it is digitised, and how well it is placed on the earth.
+  const parts = [
+    `${features.length} ${features.length === 1 ? "parcel" : "parcels"}`,
+    `${linkedCount} linked to a record`,
+  ];
+  if (geo.rms_metres != null) {
+    parts.push(`placed to ±${geo.rms_metres.toFixed(1)} m`);
+  } else if (geo.method === "imported") {
+    // An imported transform carries no residuals to report - it was fitted
+    // elsewhere - so the honest statement is how it was placed, not a
+    // precision figure we do not have.
+    parts.push("aligned to a georeferenced sheet");
+  }
+  metaEl.textContent = parts.join(" · ");
 
   if (!features.length) return;
 
@@ -733,7 +926,8 @@ async function loadCadastralMap() {
       const c = parcelColor(linked);
       return { color: c, weight: 2, fillColor: c, fillOpacity: linked ? 0.35 : 0.1 };
     },
-    onEachFeature: (f, layer) => layer.bindPopup(parcelPopup(f.properties || {})),
+    onEachFeature: (f, layer) =>
+      layer.bindPopup(parcelPopup(f.properties || {}), PARCEL_POPUP_OPTS),
   });
 
   // --- Layer 2: land classification, from the linked record's own field ---
@@ -748,8 +942,13 @@ async function loadCadastralMap() {
     },
     onEachFeature: (f, layer) => {
       const linked = f.properties.linked_document;
-      layer.bindPopup(`<b>Parcel ${esc(f.properties.parcel_id)}</b><br>`
-        + `Land classification: ${esc((linked && linked.land_classification) || "— no linked record")}`);
+      const cls = linked && linked.land_classification;
+      layer.bindPopup(`<div class="parcel-popup">`
+        + `<div class="pp-head"><span class="pp-id">Parcel `
+        + `${esc(f.properties.parcel_id)}</span></div>`
+        + `<dl class="pp-grid"><dt>Classification</dt><dd>`
+        + (cls ? esc(cls) : `<span class="pp-absent">No linked record</span>`)
+        + `</dd></dl></div>`, PARCEL_POPUP_OPTS);
     },
   });
 
@@ -764,9 +963,16 @@ async function loadCadastralMap() {
                fillColor: cssColor("--red", "#F2796B"),
                fillOpacity: 0.3, dashArray: "5,4" },
       onEachFeature: (f, layer) => layer.bindPopup(
-        `<b>Parcel ${esc(f.properties.parcel_id)}</b><br>`
-        + `Khasra: ${esc(f.properties.khasra_number || "— (label not read)")}<br>`
-        + `<span class="muted small">No digitised record for this parcel yet.</span>`),
+        `<div class="parcel-popup">`
+        + `<div class="pp-head"><span class="pp-id">Parcel `
+        + `${esc(f.properties.parcel_id)}</span></div>`
+        + `<dl class="pp-grid"><dt>Khasra</dt><dd>`
+        + (f.properties.khasra_number
+            ? esc(f.properties.khasra_number)
+            : `<span class="pp-absent">Label not legible</span>`)
+        + `</dd></dl>`
+        + `<p class="pp-none">No digitised record for this parcel yet.</p></div>`,
+        PARCEL_POPUP_OPTS),
     });
 
   // --- Layer 4: khasra number labels ---
@@ -786,9 +992,12 @@ async function loadCadastralMap() {
   const gcpLayer = L.layerGroup(gcps.map((p, i) =>
     L.circleMarker([p.lat, p.lon], {
       radius: 6, color: "#B18CE0", fillColor: "#B18CE0", fillOpacity: 0.9, weight: 2,
-    }).bindPopup(`<b>Ground control point ${i + 1}</b><br>`
-      + `lat ${p.lat}, lon ${p.lon}<br>`
-      + `<span class="muted small">Illustrative demo anchor, not a real survey point.</span>`)));
+    }).bindPopup(`<div class="parcel-popup">`
+      + `<div class="pp-head"><span class="pp-id">Control point ${i + 1}</span></div>`
+      + `<dl class="pp-grid"><dt>Position</dt><dd><span class="pp-coord">`
+      + `${p.lat}, ${p.lon}</span></dd></dl>`
+      + `<p class="pp-none">Demonstration anchor, not a surveyed monument.</p></div>`,
+        PARCEL_POPUP_OPTS)));
 
   // --- Optional basemap. Off by default and labelled as such: every other
   // part of this project works with no internet, and a tile layer silently
@@ -811,9 +1020,9 @@ async function loadCadastralMap() {
       "Record status": statusLayer,
       "Land classification": landUseLayer,
       [`Missing records (${missing.length})`]: missingLayer,
-      "Khasra labels": labelLayer,
-      [`Ground control points (${gcps.length})`]: gcpLayer,
-      "OpenStreetMap basemap (needs internet)": osm,
+      "Khasra numbers": labelLayer,
+      [`Control points (${gcps.length})`]: gcpLayer,
+      "Basemap (needs internet)": osm,
     },
     { collapsed: false }
   ).addTo(cadastralMap);
@@ -836,8 +1045,13 @@ async function loadCadastralMap() {
     }
   });
 
-  cadastralMap.fitBounds(statusLayer.getBounds(), { padding: [20, 20] });
+  // invalidateSize BEFORE fitBounds, not after. This tab is display:none
+  // until it is opened, so on first visit Leaflet still believes the
+  // container is the size it was when hidden; fitting to a stale size picks
+  // the wrong zoom and centre, and invalidating afterwards keeps that wrong
+  // view. Measuring first means the fit is computed against the real box.
   cadastralMap.invalidateSize();
+  cadastralMap.fitBounds(statusLayer.getBounds(), { padding: [24, 24] });
 }
 
 $("#cadastralMapSelect").addEventListener("change", (e) => {
@@ -888,7 +1102,7 @@ async function loadDashboard() {
 
   barChart($("#chartEngine"),
     (s.by_engine || []).map((e) => ({
-      label: e.engine, value: e.c,
+      label: readingMethod(e.engine).label, value: e.c,
       display: `${e.c} \u00b7 ${Number(e.avg_trust || 0).toFixed(0)}`,
     })));
 
@@ -953,7 +1167,7 @@ async function loadLearning() {
       <td class="cell-trunc">${esc(c.ai_value || "\u2014")}</td>
       <td class="cell-trunc">${esc(c.human_value || "\u2014")}</td>
       <td class="num">${c.ai_confidence === null ? "\u2014" : (Number(c.ai_confidence) * 100).toFixed(0) + "%"}</td>
-      <td class="muted small">${esc(c.ocr_engine || "\u2014")}</td></tr>`).join("")
+      <td class="muted small">${esc(readingMethod(c.ocr_engine).label)}</td></tr>`).join("")
       : `<tr><td colspan="6" class="muted">No corrections recorded yet.</td></tr>`) + "</tbody>";
 }
 

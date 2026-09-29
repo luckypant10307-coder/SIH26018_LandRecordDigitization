@@ -4,8 +4,12 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Land Record Digitization &amp; Validation System</title>
-<link rel="stylesheet" href="styles.css" />
+<!-- Vendor styles first, ours second: Leaflet ships white panels and a #ddd
+     map ground, and with equal specificity the LAST sheet wins. Loaded the
+     other way round, every dark-theme override in styles.css lost silently -
+     which is what made the map a grey rectangle with a white popup. -->
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+<link rel="stylesheet" href="styles.css" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="vendor/leaflet/leaflet.js"></script>
@@ -46,9 +50,9 @@
   <div class="grid-2">
     <div class="card">
       <h2>Upload land records</h2>
-      <p class="muted">Scanned PDFs, images, or digital record extracts. Multilingual (Hindi / English) documents are supported.</p>
+      <p class="muted">Scanned records, digital PDFs, and office documents — Word, Excel, OpenDocument, spreadsheets and plain text. Records in Hindi, English and other Indian languages are read in their own script.</p>
       <div class="dropzone" id="dropzone">
-        <input type="file" id="fileInput" multiple accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.bmp,.webp,.txt" hidden />
+        <input type="file" id="fileInput" multiple accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.bmp,.webp,.txt,.md,.docx,.odt,.xlsx,.ods,.pptx,.csv,.tsv,.html,.htm,.rtf" hidden />
         <div class="dropzone-inner">
           <div class="dz-icon">↑</div>
           <p class="dz-title">Drop documents here</p>
@@ -57,24 +61,26 @@
       </div>
       <div class="row gap">
         <button class="btn primary" id="uploadBtn" disabled>Process documents</button>
-        <button class="btn" id="seedBtn">Load sample corpus</button>
+        <button class="btn" id="seedBtn">Load sample records</button>
       </div>
       <ul class="filelist" id="fileList"></ul>
       <div id="uploadStatus"></div>
     </div>
 
     <div class="card">
-      <h2>Extraction capability</h2>
-      <p class="muted">The pipeline reports what it can actually do on this machine rather than assuming an engine is present.</p>
+      <h2>Processing capability</h2>
+      <p class="muted">What this installation can handle today. A capability that is unavailable is stated as such, so a clean result never hides a check that was never run.</p>
       <ul class="caplist" id="capList"></ul>
       <div class="pipeline">
         <h3>Processing pipeline</h3>
         <ol class="steps">
-          <li><b>Quality assessment</b><span>Sharpness, contrast, skew, ink coverage</span></li>
-          <li><b>Text extraction</b><span>Native PDF layer &rarr; OCR &rarr; honest degraded mode</span></li>
-          <li><b>Field classification</b><span>17 land-record fields, bilingual label matching</span></li>
-          <li><b>Validation</b><span>10 rule families, LGD cross-check, duplicate detection</span></li>
-          <li><b>Routing</b><span>Auto-approve, human review, or block</span></li>
+          <li><b>Intake</b><span>Duplicate check against every record already held</span></li>
+          <li><b>Quality assessment</b><span>Sharpness, contrast, skew and ink coverage; unusable scans are returned for rescan</span></li>
+          <li><b>Reading</b><span>Digital text where the file has it, character recognition where it does not, manual queue where neither works</span></li>
+          <li><b>Field identification</b><span>17 land-record fields located by their labels, in Hindi or English</span></li>
+          <li><b>Script and vocabulary</b><span>Place names resolved to the administrative directory’s official spelling</span></li>
+          <li><b>Validation</b><span>63 checks in three directions: within the record, against other records, against the registry</span></li>
+          <li><b>Routing</b><span>Auto-approve, refer for review, or block — decided by severity, not by score alone</span></li>
         </ol>
       </div>
     </div>
@@ -108,12 +114,12 @@
       <table class="data-table" id="queueTable">
         <thead><tr>
           <th>ID</th><th>Document</th><th>Owner</th><th>Khasra</th><th>District</th>
-          <th>Engine</th><th>Trust</th><th>Issues</th><th>Status</th><th></th>
+          <th>Source</th><th>Trust</th><th>Issues</th><th>Status</th><th></th>
         </tr></thead>
         <tbody></tbody>
       </table>
     </div>
-    <p class="muted small" id="queueEmpty" hidden>No documents yet. Load the sample corpus from the Ingest tab.</p>
+    <p class="muted small" id="queueEmpty" hidden>No records yet. Upload documents, or load the sample records, from the Ingest tab.</p>
   </div>
 </section>
 
@@ -176,17 +182,28 @@
         <span class="muted small" id="cadastralMeta">&mdash;</span>
       </div>
     </div>
-    <p class="muted">Georeferenced parcel geometry produced by <code>backend/cadastral.py</code> (vectorization + affine georeferencing), rendered here with Leaflet - vendored locally, not loaded from a CDN, so the map still works with no internet connection.</p>
+    <p class="muted">Parcel boundaries traced from the village cadastral sheet and
+      placed on the earth from surveyed control points. Select a parcel for its
+      record. Works without an internet connection.</p>
     <div id="cadastralDisclaimer" class="callout" hidden></div>
     <div id="cadastralMap" class="cadastral-map"></div>
     <div id="cadastralLegend" class="map-legend" hidden></div>
-    <p class="muted small" style="margin-top:8px">
-      Layers are listed at the top-right of the map. <b>Record status</b> shows each parcel
-      coloured by its linked document's workflow state; <b>Land classification</b> re-colours
-      by what the record itself says the land is; <b>Missing records</b> highlights parcels with
-      no digitised document at all. The basemap is off by default because it is the only part
-      of this page that needs an internet connection.
-    </p>
+    <details class="map-help">
+      <summary>About the map layers</summary>
+      <dl>
+        <dt>Record status</dt>
+        <dd>Each parcel coloured by the stage its record has reached.</dd>
+        <dt>Land classification</dt>
+        <dd>Re-coloured by the land class the record itself states.</dd>
+        <dt>Missing records</dt>
+        <dd>Parcels on the sheet with no digitised record — the register’s own gaps.</dd>
+        <dt>Control points</dt>
+        <dd>The surveyed positions the sheet was aligned to.</dd>
+        <dt>Basemap</dt>
+        <dd>Off by default: it is the only part of this page that needs an
+          internet connection.</dd>
+      </dl>
+    </details>
   </div>
 </section>
 
@@ -199,7 +216,7 @@
   </div>
   <div class="grid-2">
     <div class="card"><h3>Most frequent validation errors</h3><div id="chartIssues" class="chart"></div></div>
-    <div class="card"><h3>Extraction engine mix</h3><div id="chartEngine" class="chart"></div></div>
+    <div class="card"><h3>How records were read</h3><div id="chartEngine" class="chart"></div></div>
   </div>
   <div class="card">
     <h3>Per-field extraction quality</h3>
@@ -212,7 +229,7 @@
 <section class="panel-view" id="view-learning">
   <div class="card">
     <div class="card-head">
-      <h2>AI-driven learning</h2>
+      <h2>Continuous learning</h2>
       <button class="btn primary" id="retrainBtn">Retrain from corrections</button>
     </div>
     <p class="muted">Every human correction is a training signal. The system mines three things from them: character confusions, value aliases, and per-field confidence calibration. Rules only activate once enough evidence has accumulated, so a single typo never reshapes the model.</p>

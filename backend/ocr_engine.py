@@ -109,6 +109,23 @@ SKIMAGE_AVAILABLE = (
 )
 
 
+# Tesseract identifies languages by ISO 639-2 code. Those codes are correct
+# in a command line and meaningless in a warning a revenue officer reads, so
+# anything user-facing goes through this first.
+_LANGUAGE_NAMES = {
+    "hin": "Hindi",    "eng": "English",  "mar": "Marathi",  "ben": "Bengali",
+    "tam": "Tamil",    "tel": "Telugu",   "kan": "Kannada",  "mal": "Malayalam",
+    "guj": "Gujarati", "pan": "Punjabi",  "ori": "Odia",     "asm": "Assamese",
+    "urd": "Urdu",     "nep": "Nepali",   "san": "Sanskrit", "sat": "Santali",
+    "kok": "Konkani",  "mni": "Manipuri",
+}
+
+
+def _language_name(code: str) -> str:
+    """Language name for a Tesseract code, falling back to the code itself."""
+    return _LANGUAGE_NAMES.get(str(code).strip().lower(), str(code).strip())
+
+
 def tesseract_available() -> bool:
     """True only if BOTH the python wrapper and the native binary exist."""
     if _try_import("pytesseract") is None:
@@ -379,7 +396,8 @@ def assess_and_preprocess(image_path: str, out_dir: str) -> Tuple[Optional[str],
     """
     warnings: List[str] = []
     if _cv2 is None or _numpy is None:
-        return None, {}, ["OpenCV unavailable - image preprocessing skipped."]
+        return None, {}, ["Scan restoration is not available on this "
+                          "installation, so this image was read uncorrected."]
 
     cv2, np = _cv2, _numpy
     img = cv2.imread(image_path, cv2.IMREAD_COLOR)
@@ -1195,9 +1213,12 @@ def _extract_tesseract(image_paths: List[str], out_dir: str,
     result = ExtractionResult(engine=f"tesseract:{lang_arg}", page_count=len(image_paths))
     missing = [l for l in requested if l not in avail]
     if missing and not auto:
+        # Named by language, not by package: the reader needs to know which
+        # language could not be read, not what an administrator must install.
         result.warnings.append(
-            "Tesseract language pack(s) not installed: " + ", ".join(missing)
-            + ". Install tesseract-langpack-hin for Devanagari records."
+            "Language support not available on this installation: "
+            + ", ".join(_language_name(l) for l in missing)
+            + ". Text in that language may be read incorrectly."
         )
 
     # Script is decided once per document, from the first page's RAW image -
@@ -1206,7 +1227,8 @@ def _extract_tesseract(image_paths: List[str], out_dir: str,
     if auto and image_paths:
         selected, diag = select_languages(image_paths[0], avail, out_dir)
         if selected is None:
-            result.warnings.append("No usable Tesseract language pack installed.")
+            result.warnings.append(
+                "No language support is available, so this scan could not be read.")
         else:
             lang_arg = selected
             result.engine = f"tesseract:{lang_arg}"

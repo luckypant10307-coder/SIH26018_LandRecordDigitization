@@ -523,8 +523,9 @@ def explain(result: dict) -> str:
                  f"filled-in entry rather than the label.")
     return (f"This line may be handwritten: {why} "
             f"({name} is {result.get('worst_z')} standard deviations from "
-            f"printed text)." + where + " Tesseract is trained on print, so "
-            f"any text read here is unreliable and has not been trusted.")
+            f"printed text)." + where + " Character recognition is trained on "
+            f"print, so text read here is unreliable and has not been "
+            f"trusted. Check it against the original document.")
 
 
 def inspect_line(gray, profile: Optional[dict] = None,

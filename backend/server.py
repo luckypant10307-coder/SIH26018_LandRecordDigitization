@@ -1032,8 +1032,9 @@ def _cadastral_geojson(map_id: Optional[str] = None) -> dict:
     if target is None:
         result = {"type": "FeatureCollection", "features": [],
                   "_error": (f"No cadastral map named '{map_id}'." if map_id else
-                             "No cadastral map available. Run tools/make_cadastral_map.py "
-                             "for the demo map, or add a real one under storage/cadastral/.")}
+                             "No cadastral map has been loaded. A georeferenced "
+                             "village sheet must be added before parcels can be "
+                             "shown on the map.")}
         _CADASTRAL_CACHE[key] = result
         return result
 

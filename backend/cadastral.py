@@ -53,9 +53,14 @@ _numpy = _try_import("numpy")
 
 CV_AVAILABLE = _cv2 is not None and _numpy is not None
 
+# Shown to the reader on the map itself. It must keep saying that these
+# coordinates are not real - that is the whole point of it - while naming
+# neither the generator script nor any other internal path, because this
+# string is read by revenue staff, not by us.
 DEMO_DISCLAIMER = (
-    "Synthetic demo map and illustrative (not surveyed) ground control "
-    "points - see tools/make_cadastral_map.py. Coordinates are not real."
+    "Demonstration sheet. Parcel boundaries and control points are "
+    "illustrative, not surveyed, and the coordinates are not real ground "
+    "positions."
 )
 
 
@@ -530,6 +535,12 @@ def vectorize_and_georeference(
             # three GCPs always fit exactly, so a zero here means "not
             # over-determined", not "accurate".
             "max_residual_deg": max(residuals) if residuals else None,
+            # Degrees are not a unit a revenue officer can hold a tolerance
+            # in, so the same figures are published in metres as well. The UI
+            # shows only these.
+            "rms_metres": round(rms_metres(residuals), 3) if residuals else None,
+            "max_residual_m": (round(rms_metres([max(residuals)]), 3)
+                               if residuals else None),
             "transform": transform.to_dict(),
         }
     else:

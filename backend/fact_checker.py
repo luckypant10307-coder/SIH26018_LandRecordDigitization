@@ -173,8 +173,10 @@ def check(values: Dict[str, dict]) -> List[Issue]:
     if not _SKLEARN_OK:
         return [Issue(
             "FACT_CHECK_UNAVAILABLE", "info", None,
-            "scikit-learn is not installed; external registry fact-check was skipped.",
-            "Install scikit-learn to enable ML-based cross-registry verification.",
+            "This record was not cross-checked against the external registry, "
+            "because that check is not available on this installation.",
+            "Verify the owner name and plot identifier against the registry "
+            "manually before approving.",
         )]
     if not _REGISTRY.loaded:
         return [Issue(

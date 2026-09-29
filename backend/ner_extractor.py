@@ -288,9 +288,9 @@ def cross_check(values: Dict[str, dict]) -> List[Issue]:
     if not ner_available() and not indic_ner_available():
         return [Issue(
             "NER_UNAVAILABLE", "info", None,
-            "Neither spaCy ('en_core_web_sm') nor a multilingual NER model is "
-            "installed; NER cross-check of person/date fields was skipped.",
-            "Install with: pip install spacy && python -m spacy download en_core_web_sm",
+            "Owner names and dates were not independently cross-checked, "
+            "because that check is not available on this installation.",
+            "Confirm the owner name and dates against the original document.",
         )]
 
     issues: List[Issue] = []

@@ -242,10 +242,18 @@ main { padding: 24px 32px 64px; max-width: 1400px; margin: 0 auto; }
 }
 
 .cadastral-map {
-  height: 520px;
-  border-radius: var(--r);
+  /* Tall enough that a village sheet is readable without scrolling, but
+     bounded by the viewport so it never pushes the legend off screen. */
+  height: clamp(420px, 62vh, 680px);
+  border-radius: var(--r-lg);
   border: 1px solid var(--border);
   background: var(--surface-2);
+  /* The faint grid reads as survey paper under the parcels instead of a
+     flat empty panel where no basemap is loaded. */
+  background-image:
+    linear-gradient(var(--ink-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ink-line) 1px, transparent 1px);
+  background-size: 48px 48px, 48px 48px;
 }
 
 .map-legend {
@@ -263,10 +271,12 @@ main { padding: 24px 32px 64px; max-width: 1400px; margin: 0 auto; }
 .legend-item { display: inline-flex; align-items: center; gap: 7px; }
 
 .legend-swatch {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  border: 1px solid rgba(44, 44, 43, .18);
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  /* A swatch sits on the panel, so its rim comes from the palette. The old
+     value was the light theme's near-black and vanished on this ground. */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .22);
 }
 
 /* Khasra number labels drawn over parcels. Pointer events are disabled in JS
@@ -896,3 +906,201 @@ body {
 /* A scanned page is white paper and must STAY white paper - inverting a
    document preview to match the furniture would misrepresent the record. */
 .preview-holder img { background: #FFFFFF; }
+
+/* ==================================================================== *
+ * Parcel popup
+ *
+ * Selecting a parcel is the map's primary action, so its result is laid out
+ * as a small record card rather than a run of <br>-separated sentences.
+ * Labels and values are a two-column grid so figures line up down the left
+ * edge and the eye can find "Owner" without reading the whole card.
+ * ==================================================================== */
+
+/* Leaflet's defaults centre the text and add asymmetric margins, both of
+   which fight a tabular layout. */
+.leaflet-popup-content-wrapper { border-radius: var(--r-lg); padding: 0; }
+.leaflet-popup-content { margin: 0; width: auto !important; min-width: 214px; }
+.leaflet-popup-content p { margin: 0; }
+.leaflet-container a.leaflet-popup-close-button { color: var(--text-2); }
+.leaflet-container a.leaflet-popup-close-button:hover { color: var(--text); }
+
+.parcel-popup { padding: 12px 14px 13px; font-size: 13px; color: var(--text); }
+
+.pp-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 8px;
+  margin-bottom: 9px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pp-id {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+/* Label column sized to the longest label so values share one left edge. */
+.pp-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  margin: 0;
+  align-items: baseline;
+}
+
+.pp-grid dt {
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.pp-grid dd {
+  margin: 0;
+  font-weight: 600;
+  /* Areas, trust scores and coordinates all line up as columns of digits. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* A secondary unit belongs with its figure, not on its own row. */
+.pp-sub {
+  display: block;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-coord {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+/* "Not recorded" is a finding, not a value, so it never looks like data. */
+.pp-absent { font-weight: 400; font-style: italic; color: var(--text-2); }
+
+.pp-none {
+  margin: 10px 0 0;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.pp-link {
+  display: inline-block;
+  margin-top: 11px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+  width: 100%;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue-text);
+  text-decoration: none;
+}
+.pp-link:hover { text-decoration: underline; }
+
+/* The popup's status badge sits inside a value cell, so it must not inherit
+   the card's own badge margins. */
+.parcel-popup .badge { margin: 0; }
+
+/* ---- Map layer help ------------------------------------------------- *
+ * Reference material, needed once and then never again, so it collapses
+ * instead of standing between the map and the legend.
+ * -------------------------------------------------------------------- */
+.map-help { margin-top: 12px; font-size: 13px; }
+
+.map-help summary {
+  cursor: pointer;
+  color: var(--blue-text);
+  font-weight: 600;
+  font-size: 13px;
+  width: fit-content;
+}
+.map-help summary:hover { text-decoration: underline; }
+
+.map-help dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 5px 16px;
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface-2);
+}
+
+.map-help dt { font-weight: 600; color: var(--text); white-space: nowrap; }
+.map-help dd { margin: 0; color: var(--text-2); }
+
+@media (max-width: 620px) {
+  .map-help dl { grid-template-columns: 1fr; gap: 2px; }
+  .map-help dd { margin-bottom: 8px; }
+}
+
+/* ==================================================================== *
+ * Leaflet furniture, continued
+ *
+ * Everything below overrides a light default that the vendor sheet sets.
+ * It only works because leaflet.css is loaded BEFORE this file in
+ * index.html - with the order reversed these rules lose on source order.
+ * ==================================================================== */
+
+/* The map's own ground. Leaflet paints #ddd here, which on a dark page reads
+   as a blank grey slab where the sheet should be. */
+.leaflet-container {
+  background: var(--surface-2);
+  font: inherit;
+}
+
+/* The layer switcher is a control panel, not a page element: same card
+   treatment as everything else in the furniture. */
+.leaflet-control-layers {
+  border-radius: var(--r);
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+}
+
+.leaflet-control-layers-list { font-size: 13px; }
+
+.leaflet-control-layers label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 3px 0;
+  cursor: pointer;
+}
+
+.leaflet-control-layers input[type="checkbox"],
+.leaflet-control-layers input[type="radio"] {
+  accent-color: var(--green);
+  margin: 0;
+}
+
+.leaflet-control-layers-separator { border-top-color: var(--border); }
+
+/* Zoom buttons: Leaflet sets a white face and a near-black glyph. */
+.leaflet-touch .leaflet-bar,
+.leaflet-touch .leaflet-control-layers { border: 1px solid var(--border); }
+
+.leaflet-bar a { border-bottom: 1px solid var(--border); }
+
+/* Khasra labels are drawn straight onto the sheet, so they get no box. */
+.leaflet-div-icon { background: transparent; border: 0; }
+
+/* The popup tail must match the card it hangs from, or it reads as a
+   white notch under a dark panel. */
+.leaflet-popup-tip { background: var(--canvas); border: 0; }
+
+/* Issue counts in the queue and last-run tables. Errors and warnings route a
+   record differently, so they are coloured differently even in a count. */
+.issues-cell { white-space: nowrap; font-size: 13px; }
+.ic-error { color: var(--red-text); font-weight: 600; }
+.ic-warn  { color: var(--orange-text); }
+.ic-clear { color: var(--text-2); }
+.ic-sep   { color: var(--text-2); margin: 0 6px; }
