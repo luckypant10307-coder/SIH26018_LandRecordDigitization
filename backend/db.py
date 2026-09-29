@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS documents (
     -- no coordinate to plot and the API returned no position. A sentence is
     -- not a location.
     geotag_json     TEXT,
+    owners_json     TEXT,
     -- verification
     verified_by     INTEGER REFERENCES users(id),
     verified_at     TEXT,
@@ -279,8 +280,37 @@ class Database:
             self._apply_schema()
             self._conn.commit()
         self._migrate_audit_chain()
-        self._migrate_geotag_column()
+        self._migrate_optional_columns()
         self._seed_users()
+
+    def _migrate_optional_columns(self) -> None:
+        """
+        Add columns introduced after this database was first created.
+
+        CREATE TABLE IF NOT EXISTS leaves an existing table untouched, so an
+        installation with history would otherwise fail every insert on a
+        column its schema predates. Existing rows keep NULL, which is
+        truthful: those documents were processed before the value was
+        retained, and back-filling one now would invent a provenance they
+        never had. They pick one up on re-validation.
+        """
+        for column in ("geotag_json", "owners_json"):
+            self._add_column_if_missing("documents", column, "TEXT")
+
+    def _add_column_if_missing(self, table: str, column: str, ddl: str) -> None:
+        with _LOCK:
+            if self.is_postgres:
+                cur = self._conn.cursor()
+                cur.execute(f"ALTER TABLE {table} "
+                            f"ADD COLUMN IF NOT EXISTS {column} {ddl}")
+                cur.close()
+            else:
+                existing = {r["name"] for r in
+                            self._conn.execute(f"PRAGMA table_info({table})")}
+                if column not in existing:
+                    self._conn.execute(
+                        f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
+            self._conn.commit()
 
     def _migrate_geotag_column(self) -> None:
         """
@@ -642,7 +672,8 @@ class Database:
                 "uploaded_by", "ocr_engine", "page_count", "mean_ocr_conf", "legibility",
                 "quality_json", "warnings_json", "full_text", "status", "decision",
                 "trust_score", "error_count", "warning_count", "signature",
-                "issues_json", "summary_json", "geotag_json", "processing_ms")
+                "issues_json", "summary_json", "geotag_json", "owners_json",
+                "processing_ms")
         values = [kw.get(c) for c in cols]
         placeholders = ",".join("?" for _ in cols)
         return self.run(
@@ -704,6 +735,7 @@ class Database:
         # at 0,0" are different claims, and the UI must be able to tell
         # them apart.
         doc["geotag"] = json.loads(doc.pop("geotag_json") or "null")
+        doc["owners"] = json.loads(doc.pop("owners_json") or "null")
         doc["fields"] = self.get_fields(document_id)
         return doc
 
