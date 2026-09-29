@@ -6,171 +6,185 @@
 <title>Login - Land Record Digitization System</title>
 <link rel="stylesheet" href="styles.css" />
 <style>
-  body {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  }
+/* ----------------------------------------------------------------------
+   Signing in is the first thing anyone sees, so it has to look like the
+   same system as everything behind it.
 
-  .login-container {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    max-width: 450px;
-    width: 90%;
-    padding: 40px;
-  }
+   This page previously loaded styles.css and then overrode all of it with
+   a hardcoded indigo gradient, a white card and slate-grey text - so the
+   operator signed in to one product and landed in another. Every colour
+   below is a token from styles.css instead, which means the login page
+   follows any future theme change with no edit to this file.
 
-  .login-header {
-    text-align: center;
-    margin-bottom: 30px;
-  }
+   Note what is NOT set: body has no background of its own. That lets the
+   application's own surveyed-sheet ground show through, so the parcels
+   behind the card are the same ones behind the workspace.
+   ---------------------------------------------------------------------- */
 
-  .login-header .brand-mark {
-    width: 60px;
-    height: 60px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 12px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    font-weight: 700;
-    margin-bottom: 16px;
-  }
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
 
-  .login-header h1 {
-    font-size: 24px;
-    margin: 0 0 8px 0;
-    color: #1a202c;
-  }
+.login-container {
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lift);
+  max-width: 420px;
+  width: 100%;
+  padding: 36px 34px 30px;
+  animation: sheet-settle .7s var(--ease) both;
+}
 
-  .login-header p {
-    margin: 0;
-    color: #718096;
-    font-size: 14px;
-  }
+.login-header { text-align: center; margin-bottom: 26px; }
 
-  .form-group {
-    margin-bottom: 20px;
-  }
+/* The same green mark the application header carries, at the same weight. */
+.login-header .brand-mark {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(145deg, var(--green) 0%, var(--green-edge) 100%);
+  color: #06140D;
+  border-radius: var(--r-lg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  box-shadow: 0 6px 18px rgba(79, 201, 138, .22);
+}
 
-  .form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: #2d3748;
-    font-size: 14px;
-  }
+.login-header h1 {
+  font-size: 21px;
+  margin: 0 0 7px;
+  color: var(--text);
+  letter-spacing: -.01em;
+}
 
-  .form-group input {
-    width: 100%;
-    padding: 12px 16px;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    font-size: 14px;
-    transition: border-color 0.2s;
-    box-sizing: border-box;
-  }
+.login-header p {
+  margin: 0 auto;
+  max-width: 30ch;
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.45;
+}
 
-  .form-group input:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-  }
+.form-group { margin-bottom: 17px; }
 
-  .form-group select {
-    width: 100%;
-    padding: 12px 16px;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    font-size: 14px;
-    background: white;
-    cursor: pointer;
-  }
+.form-group label {
+  display: block;
+  margin-bottom: 7px;
+  font-weight: 600;
+  color: var(--text);
+  font-size: 13px;
+}
 
-  .btn-primary {
-    width: 100%;
-    padding: 12px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color .18s var(--ease), box-shadow .18s var(--ease);
+}
 
-  .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-  }
+.form-group input::placeholder { color: var(--text-2); }
 
-  .btn-primary:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-  }
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-soft);
+}
 
-  .toggle-form {
-    text-align: center;
-    margin-top: 20px;
-    color: #718096;
-    font-size: 14px;
-  }
+.form-group select { cursor: pointer; }
 
-  .toggle-form a {
-    color: #667eea;
-    text-decoration: none;
-    font-weight: 600;
-    cursor: pointer;
-  }
+/* Green is this system's action colour everywhere else; the sign-in button
+   is the same action, so it is the same green rather than a second accent. */
+.btn-primary {
+  width: 100%;
+  padding: 12px;
+  margin-top: 4px;
+  background: var(--green);
+  color: #06140D;
+  border: none;
+  border-radius: var(--r);
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform .18s var(--ease), box-shadow .18s var(--ease),
+              background .18s var(--ease);
+}
 
-  .toggle-form a:hover {
-    text-decoration: underline;
-  }
+.btn-primary:hover:not(:disabled) {
+  background: var(--green-deep);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(79, 201, 138, .26);
+}
 
-  .alert {
-    padding: 12px 16px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-    font-size: 14px;
-  }
+.btn-primary:active:not(:disabled) { transform: translateY(0); }
 
-  .alert-error {
-    background: #fee;
-    color: #c53030;
-    border: 1px solid #fc8181;
-  }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 
-  .alert-success {
-    background: #f0fff4;
-    color: #2f855a;
-    border: 1px solid #68d391;
-  }
+.toggle-form {
+  text-align: center;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  color: var(--text-2);
+  font-size: 13px;
+}
 
-  .forgot-password {
-    text-align: right;
-    margin-top: 8px;
-  }
+.toggle-form a,
+.forgot-password a {
+  color: var(--blue-text);
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+}
 
-  .forgot-password a {
-    color: #667eea;
-    text-decoration: none;
-    font-size: 13px;
-  }
+.toggle-form a:hover,
+.forgot-password a:hover { text-decoration: underline; }
 
-  .forgot-password a:hover {
-    text-decoration: underline;
-  }
+.forgot-password { text-align: right; margin-top: 8px; }
+.forgot-password a { font-weight: 500; font-size: 12px; }
 
-  #signupForm {
-    display: none;
-  }
+/* Status messages reuse the palette's reserved signal colours, so red and
+   green mean the same thing here as they do on a validation finding. */
+.alert {
+  padding: 11px 14px;
+  border-radius: var(--r);
+  margin-bottom: 18px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.alert-error {
+  background: var(--red-soft);
+  color: var(--red-text);
+  border: 1px solid var(--red-edge);
+}
+
+.alert-success {
+  background: var(--green-soft);
+  color: var(--green-text);
+  border: 1px solid var(--green-edge);
+}
+
+#signupForm { display: none; }
+
+@media (max-width: 460px) {
+  .login-container { padding: 28px 22px 24px; }
+}
 </style>
 </head>
 <body>
