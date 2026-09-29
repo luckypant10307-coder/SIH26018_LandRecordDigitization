@@ -12,9 +12,9 @@ Every figure here was measured on the running system, not estimated.
 | --- | --- |
 | Backend modules | 25 |
 | Backend lines | 15,248 |
-| Tests | 685 across 28 files |
+| Tests | 722 across 31 files |
 | Fields extracted | 17 |
-| Validation rules | 63 |
+| Validation rules | 66 |
 | Upload formats accepted | 20 |
 
 ---
@@ -194,7 +194,7 @@ Optional layers listed with their real state rather than their intended state.
 | Bhashini script bridge | **Opt-in** | Sends place names to a government service; off without consent |
 | Indic NER | **Local only** | Needs PyTorch, excluded from the deployment image |
 | SAM parcel fallback | **Off** | Fires only when contour tracing finds zero parcels |
-| PostGIS | **Unverified** | Written but never run against a live PostGIS |
+| PostGIS | **Verified** | Exercised against PostGIS 3.4: geodesic area, OGC validity, overlap and overlapping-claim detection |
 | Donut | **Not used** | Its vocabulary maps Devanagari to `<unk>` |
 | Live portal integration | **None** | Export is file-based: CSV, JSON, GeoJSON |
 
