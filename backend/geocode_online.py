@@ -170,6 +170,23 @@ def lookup(village: Optional[str], tehsil: Optional[str],
     """
     if not ENABLED:
         return None
+
+    # A QUERY MUST BE ANCHORED BY A DISTRICT OR A STATE. A bare village name
+    # is never sent.
+    #
+    # This is not a tuning preference, it is the module's refusal property.
+    # geocode.py returns nothing for "Atlantis", "Springfield", "Zzzyx" and
+    # for pure address furniture like "TEHSIL DISTRICT", and its own tests
+    # say why: "a wrong pin is worse than a blank, so these matter more than
+    # the positive cases." A general gazetteer will cheerfully find SOMETHING
+    # for any of those, so querying on an unanchored name traded a blank for
+    # a wrong pin - exactly the trade this system exists not to make.
+    #
+    # Anchored, the same lookup is sound: "Amari, Jaunpur, Uttar Pradesh"
+    # scopes the search to a real administrative unit, and a stray name
+    # inside a real district resolves no further than that district.
+    if not (district or state):
+        return None
     if not any((village, district, state)):
         return None
 
@@ -181,8 +198,6 @@ def lookup(village: Optional[str], tehsil: Optional[str],
     attempts = []
     if village and district:
         attempts.append(([village, tehsil, district, state], "locality"))
-    if village and not district:
-        attempts.append(([village, state], "locality"))
     if district:
         attempts.append(([district, state], "district"))
     if state:

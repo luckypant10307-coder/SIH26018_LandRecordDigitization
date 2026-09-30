@@ -65,11 +65,42 @@ class MapRegistryTests(unittest.TestCase):
         with open(os.path.join(d, "map.png"), "wb") as fh:
             fh.write(b"\x89PNG\r\n\x1a\n")
         with open(os.path.join(d, "control_points.json"), "w", encoding="utf-8") as fh:
+            # THREE points, not one. An affine fit needs three, so a map
+            # carrying fewer can never be georeferenced and listing it
+            # advertises something that fails the moment anyone asks for its
+            # parcels. The fixture used a single point while the registry
+            # checked only that the FILE existed; once the registry started
+            # checking that the points were usable, this stub stopped
+            # representing a map that could actually be served.
             json.dump({"village": village, "village_aliases": aliases,
                        "district": district,
-                       "control_points": [{"pixel": [0, 0], "lon": 1.0, "lat": 1.0}]},
+                       "control_points": [
+                           {"pixel": [0, 0], "lon": 1.0, "lat": 1.0},
+                           {"pixel": [100, 0], "lon": 1.001, "lat": 1.0},
+                           {"pixel": [0, 100], "lon": 1.0, "lat": 0.999},
+                       ]},
                       fh, ensure_ascii=False)
         return d
+
+    def test_a_map_awaiting_its_coordinates_is_not_advertised(self):
+        """
+        tools/map_from_document.py writes the pixel corners with null lon/lat
+        - a form to complete, not a guess to correct. Before the registry
+        checked, such a map was LISTED and then raised a raw numpy casting
+        error when its parcels were requested. Advertising a map that cannot
+        be served is worse than not advertising it.
+        """
+        d = os.path.join(self.tmp, "awaiting")
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, "map.png"), "wb") as fh:
+            fh.write(b"\x89PNG\r\n\x1a\n")
+        with open(os.path.join(d, "control_points.json"), "w", encoding="utf-8") as fh:
+            json.dump({"village": "Awaiting", "control_points": [
+                {"pixel": [0, 0], "lon": None, "lat": None},
+                {"pixel": [600, 0], "lon": None, "lat": None},
+                {"pixel": [0, 600], "lon": None, "lat": None},
+            ]}, fh)
+        self.assertNotIn("awaiting", [m["id"] for m in server.list_cadastral_maps()])
 
     def test_added_maps_are_discovered(self):
         self._add_map("barkhedi", "बरखेडी", ["बरखेडी", "Barkhedi"], "Bhopal")

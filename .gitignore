@@ -15,3 +15,4 @@ server.log
 server-error.log
 
 storage/geocode_cache.json
+storage/cadastral/

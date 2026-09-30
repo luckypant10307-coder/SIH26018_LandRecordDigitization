@@ -1258,6 +1258,30 @@ MAP_IMAGE_EXT = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"}
 _CADASTRAL_CACHE: Dict[str, dict] = {}
 
 
+def _has_usable_control_points(path: str) -> bool:
+    """
+    Whether this file holds enough real coordinates to fit a transform.
+
+    Three is the minimum an affine fit needs. Points whose lon or lat is
+    null are counted as absent rather than treated as zero, because 0,0 is
+    a real place in the Gulf of Guinea and the difference between "not yet
+    known" and "the origin" is the whole point.
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            payload = json.load(fh)
+    except Exception:
+        return False
+    usable = 0
+    for point in (payload.get("control_points") or []):
+        if not isinstance(point, dict):
+            continue
+        lon, lat = point.get("lon"), point.get("lat")
+        if isinstance(lon, (int, float)) and isinstance(lat, (int, float)):
+            usable += 1
+    return usable >= 3
+
+
 def _read_map_metadata(control_points_path: str) -> dict:
     try:
         with open(control_points_path, "r", encoding="utf-8") as fh:
@@ -1310,6 +1334,18 @@ def list_cadastral_maps() -> List[dict]:
         # geometry but not the village name records are matched on.
         shapefile = shapefile_import.find_shapefile(folder)
         if not os.path.exists(cp) or not (images or shapefile):
+            continue
+        # A raster map also needs USABLE control points, not merely a file
+        # containing some. tools/map_from_document.py writes the pixel
+        # corners with null lon/lat - a form to complete rather than a guess
+        # - and without this check that map was LISTED as available and then
+        # raised a raw numpy casting error the moment anyone asked for its
+        # parcels. Advertising a map that cannot be served is worse than not
+        # advertising it, and the failure surfaced as a stack trace rather
+        # than an explanation.
+        #
+        # A shapefile carries its own coordinates, so it needs none of this.
+        if not shapefile and not _has_usable_control_points(cp):
             continue
         meta = _read_map_metadata(cp)
         maps.append({

@@ -335,3 +335,32 @@ class PrecisionHonestyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+@unittest.skipUnless(os.environ.get("ONLINE_GEOCODING") == "1",
+                     "ONLINE_GEOCODING=1 not set")
+class OnlineRefusalTests(unittest.TestCase):
+    """
+    The refusal property has to survive the online path being switched on.
+
+    Adding an online gazetteer broke exactly these cases the first time:
+    Nominatim finds SOMETHING for "Atlantis" and "Springfield", so a lookup
+    on a bare village name turned a blank into a wrong pin - the one trade
+    RefusalTests above exists to prevent. The fix was to refuse any query
+    that is not anchored by a district or a state, and this is what holds
+    that line when the flag is on.
+    """
+
+    def test_an_unanchored_village_is_never_sent_online(self):
+        import geocode_online
+        for probe in ("Atlantis", "Springfield", "Zzzyx", "qwertyuiop"):
+            self.assertIsNone(geocode_online.lookup(probe, None, None, None),
+                              probe)
+
+    def test_unknown_places_still_resolve_to_nothing(self):
+        for probe in ("nowhere at all", "Zzzyx", "Atlantis", "Springfield"):
+            self.assertIsNone(gc.resolve(_v(village=probe)), probe)
+
+    def test_address_furniture_still_resolves_to_nothing(self):
+        for probe in ("VILLAGE", "TEHSIL DISTRICT", "ROAD, COLONY, SECTOR"):
+            self.assertIsNone(gc.resolve(_v(village=probe)), probe)
