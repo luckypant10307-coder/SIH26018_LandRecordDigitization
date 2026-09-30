@@ -346,6 +346,40 @@ def _add_handwriting_issue(result: dict, extraction) -> None:
     })
 
 
+# Label fragments that have no business INSIDE a value. Each is a label for
+# some OTHER field, so finding one inside this field's value means the
+# extractor ran past the end of the value and into the next label:pair on
+# the same line.
+#
+# Measured on the real corpus, both of these reached the workspace and sat
+# there looking like data:
+#     Father  : "प्रदीप कुमार सिंह पिता का"   - a name plus the next label
+#     Village : "अमारी, परगना गड़वारा, तहसील बदलापुर" - three levels in one
+#
+# Grounding cannot catch this. Every one of those characters IS in the
+# document, verbatim - the value is contaminated, not invented, and
+# is_grounded is a test for invention.
+_LABEL_FRAGMENTS = (
+    "संरक्षक", "पिता का", "पति का", "निवास स्थान", "निवास", "नाम :",
+    "परगना", "तहसील", "जिला", "जनपद", "खाता", "खसरा", "गाटा",
+    "father", "husband", "tehsil", "district", "khata", "khasra",
+)
+
+
+def _looks_contaminated(value) -> bool:
+    """
+    Whether this value has another field's label inside it.
+
+    Used to decide whether a clean alternative may REPLACE what the rules
+    produced. A longer rule value is not a better one when the extra length
+    is the next label.
+    """
+    if not value or not isinstance(value, str):
+        return False
+    low = value.lower()
+    return any(fragment.lower() in low for fragment in _LABEL_FRAGMENTS)
+
+
 def _put_recovered(fields, values: Dict[str, dict], key: str, value: str,
                    confidence: float, source: str, evidence: str = "") -> None:
     """
@@ -424,7 +458,7 @@ def _recover_from_prose(fields, values: Dict[str, dict], lines) -> None:
         # one rather than trading a good value for a guess.
         current = by_key.get(key)
         current = current.value if current else None
-        if not current:
+        if not current or _looks_contaminated(current):
             replace = True
         else:
             try:
@@ -536,7 +570,9 @@ def _apply_structured_llm(fields, values: Dict[str, dict], lines) -> Optional[di
         first = owners[0]
         current_owner = (by_key.get("owner_name") or None)
         current_owner = current_owner.value if current_owner else None
-        if empty("owner_name") or _looks_like_residence_marker(current_owner):
+        if (empty("owner_name")
+                or _looks_like_residence_marker(current_owner)
+                or _looks_contaminated(current_owner)):
             put("owner_name", first["name"])
         if first.get("father_name"):
             current_father = by_key.get("father_name")
@@ -546,6 +582,7 @@ def _apply_structured_llm(fields, values: Dict[str, dict], lines) -> Optional[di
             # better one. Replace when the model's answer is a clean prefix of
             # what the rules produced, or when there was nothing.
             if (empty("father_name")
+                    or _looks_contaminated(current_father)
                     or (current_father or "").startswith(first["father_name"])):
                 put("father_name", first["father_name"])
 
@@ -558,7 +595,9 @@ def _apply_structured_llm(fields, values: Dict[str, dict], lines) -> Optional[di
         # Same reasoning: "अमारी, परगना गड़वारा, तहसील बदलापुर" is the village
         # plus two more administrative levels, and the model's "अमारी" is the
         # village. A rule value that merely CONTAINS the model's is worse.
-        if empty(key) or (current and value in current and current != value):
+        if (empty(key)
+                or _looks_contaminated(current)
+                or (current and value in current and current != value)):
             put(key, value)
 
     return structured

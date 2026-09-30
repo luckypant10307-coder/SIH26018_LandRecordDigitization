@@ -1104,3 +1104,91 @@ body {
 .ic-warn  { color: var(--orange-text); }
 .ic-clear { color: var(--text-2); }
 .ic-sep   { color: var(--text-2); margin: 0 6px; }
+
+/* ==================================================================== *
+ * Record detail: co-owners, the parcel on the map, and the geotag
+ *
+ * These show facts the record actually carries. They are hidden when it
+ * carries none, because an empty panel is furniture and furniture is what
+ * makes a working screen read like a brochure.
+ * ==================================================================== */
+
+/* Geotag, on the record's own header where its accuracy is read with it. */
+.geotag-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+
+/* Parcel-grade and place-name are different claims and must never look
+   alike: one is the plot, the other is the district it sits in. */
+.geo-grade {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.geo-grade.parcel {
+  background: var(--green-soft);
+  color: var(--green-text);
+  border: 1px solid var(--green-edge);
+}
+.geo-grade.approximate {
+  background: var(--orange-soft);
+  color: var(--orange-text);
+  border: 1px solid var(--orange-edge);
+}
+
+.geo-coord {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.geo-spread { color: var(--text-2); font-variant-numeric: tabular-nums; }
+.geo-name   { color: var(--text-2); }
+
+/* Label/value pairs in the parcel panel. */
+.kv {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 9px 18px;
+  margin: 0;
+  align-items: baseline;
+}
+.kv dt { color: var(--text-2); font-size: 13px; white-space: nowrap; }
+.kv dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Adjoining khasra numbers. Small, countable, and not a sentence. */
+.pill {
+  display: inline-block;
+  margin: 0 5px 5px 0;
+  padding: 2px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The capability list is a status readout, not prose. */
+.caplist { list-style: none; margin: 0; padding: 0; }
+.caplist li {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.caplist li:last-child { border-bottom: 0; }
+.cap-dot { width: 8px; height: 8px; border-radius: 50%; }
+.cap-dot.on  { background: var(--green); }
+.cap-dot.off { background: var(--text-2); }
+.cap-name { color: var(--text); }
+.cap-note { color: var(--text-2); font-size: 13px; text-align: right; }

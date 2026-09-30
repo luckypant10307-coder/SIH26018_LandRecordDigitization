@@ -50,7 +50,7 @@
   <div class="grid-2">
     <div class="card">
       <h2>Upload land records</h2>
-      <p class="muted">Scanned records, digital PDFs, and office documents — Word, Excel, OpenDocument, spreadsheets and plain text. Records in Hindi, English and other Indian languages are read in their own script.</p>
+      <p class="muted">PDF, scans, Word, Excel, OpenDocument, CSV and plain text. Hindi and English.</p>
       <div class="dropzone" id="dropzone">
         <input type="file" id="fileInput" multiple accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.bmp,.webp,.txt,.md,.docx,.odt,.xlsx,.ods,.pptx,.csv,.tsv,.html,.htm,.rtf" hidden />
         <div class="dropzone-inner">
@@ -68,21 +68,11 @@
     </div>
 
     <div class="card">
-      <h2>Processing capability</h2>
-      <p class="muted">What this installation can handle today. A capability that is unavailable is stated as such, so a clean result never hides a check that was never run.</p>
-      <ul class="caplist" id="capList"></ul>
-      <div class="pipeline">
-        <h3>Processing pipeline</h3>
-        <ol class="steps">
-          <li><b>Intake</b><span>Duplicate check against every record already held</span></li>
-          <li><b>Quality assessment</b><span>Sharpness, contrast, skew and ink coverage; unusable scans are returned for rescan</span></li>
-          <li><b>Reading</b><span>Digital text where the file has it, character recognition where it does not, manual queue where neither works</span></li>
-          <li><b>Field identification</b><span>17 land-record fields located by their labels, in Hindi or English</span></li>
-          <li><b>Script and vocabulary</b><span>Place names resolved to the administrative directory’s official spelling</span></li>
-          <li><b>Validation</b><span>63 checks in three directions: within the record, against other records, against the registry</span></li>
-          <li><b>Routing</b><span>Auto-approve, refer for review, or block — decided by severity, not by score alone</span></li>
-        </ol>
+      <div class="card-head">
+        <h2>This installation</h2>
+        <span class="muted small" id="capSummary">&mdash;</span>
       </div>
+      <ul class="caplist" id="capList"></ul>
     </div>
   </div>
 
@@ -134,6 +124,7 @@
       <div>
         <h2 id="wsTitle">&mdash;</h2>
         <p class="muted small" id="wsMeta">&mdash;</p>
+        <p class="geotag-line" id="wsGeotag" hidden></p>
       </div>
       <div class="ws-actions">
         <div class="trust-badge" id="wsTrust"><span class="tb-value">0</span><span class="tb-label">trust</span></div>
@@ -159,6 +150,27 @@
           <span class="muted small">Click a value to correct it</span>
         </div>
         <div id="fieldList" class="field-list"></div>
+      </div>
+    </div>
+
+    <!-- Everything below appears only when the record has it. A parcel with
+         one owner shows no co-owner table; a document with no map shows no
+         map panel. An empty section is furniture, not information. -->
+    <div class="grid-2">
+      <div class="card" id="ownersCard" hidden>
+        <div class="card-head">
+          <h3>Co-owners</h3>
+          <span class="muted small" id="ownersCount"></span>
+        </div>
+        <div class="table-wrap"><table class="data-table" id="ownersTable"></table></div>
+      </div>
+
+      <div class="card" id="parcelCard" hidden>
+        <div class="card-head">
+          <h3>Parcel on the map</h3>
+          <span class="muted small" id="parcelSource"></span>
+        </div>
+        <dl class="kv" id="parcelFacts"></dl>
       </div>
     </div>
 

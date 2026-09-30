@@ -338,40 +338,34 @@ $("#userSelect").addEventListener("change", async (e) => {
 function renderCapabilities(caps, masterLoaded, samples) {
   caps = caps || {};
   const langs = indianLanguages(caps.tesseract_languages || []);
-  // Named by what the office gets, not by the library that provides it. The
-  // panel's job is to tell an officer which kinds of document this
-  // installation can handle today - a dependency name answers a question
-  // they did not ask.
+  // Named by what the office gets, not by the library behind it - a
+  // dependency name answers a question an operator did not ask.
   const items = [
-    { on: caps.pdf_text_layer, name: "Digital PDF records",
-      note: caps.pdf_text_layer
-        ? "Text read directly from the file"
-        : "Unavailable - digital PDFs fall back to scanning" },
-    { on: caps.image_preprocessing, name: "Scan restoration",
-      note: caps.image_preprocessing
-        ? "Deskew, denoise and contrast correction"
-        : "Unavailable - scans are read without correction" },
+    { on: caps.pdf_text_layer, name: "Digital PDF records" },
+    { on: caps.image_preprocessing, name: "Scan restoration" },
     { on: caps.tesseract, name: "Scanned document recognition",
-      note: caps.tesseract
-        ? (langs.indian.length
-            ? langs.indian.slice(0, 5).join(", ")
-              + (langs.indian.length > 5
-                  ? ` and ${langs.indian.length - 5} more Indian languages`
-                  : "")
-            : "Available")
-        : "Unavailable - scans are queued for manual entry" },
-    { on: masterLoaded, name: "Administrative directory",
-      note: masterLoaded
-        ? "District and tehsil cross-check active"
-        : "Unavailable - place names are not cross-checked" },
+      note: langs.indian.length
+        ? langs.indian.slice(0, 3).join(", ")
+          + (langs.indian.length > 3 ? ` +${langs.indian.length - 3}` : "")
+        : "" },
+    { on: masterLoaded, name: "Administrative directory" },
     { on: (samples || []).length > 0, name: "Demonstration records",
-      note: (samples || []).length + " sample documents bundled" },
+      note: (samples || []).length ? String((samples || []).length) : "" },
   ];
+  // The summary carries the count so the list does not have to carry a
+  // sentence explaining itself.
+  const ready = items.filter((i) => i.on).length;
+  const summary = $("#capSummary");
+  if (summary) {
+    summary.textContent = ready === items.length
+      ? "all capabilities available"
+      : `${ready} of ${items.length} available`;
+  }
   $("#capList").innerHTML = items.map((i) => `
     <li>
       <span class="cap-dot ${i.on ? "on" : "off"}"></span>
       <span class="cap-name">${esc(i.name)}</span>
-      <span class="cap-note">${esc(i.note)}</span>
+      <span class="cap-note">${i.on ? esc(i.note || "") : "unavailable"}</span>
     </li>`).join("");
 }
 
@@ -538,6 +532,83 @@ function renderQueue() {
  * Verification workspace
  * ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ *
+ * What the record carries beyond its 17 fields
+ *
+ * Each of these was already being computed and stored and had nowhere to
+ * appear. The co-owner list is the starkest: a parcel with sixteen
+ * claimants was being shown as one name, because the schema holds one
+ * owner_name and the list lived only in the database.
+ *
+ * All three hide when empty. A parcel with a single owner shows no
+ * co-owner table and a document with no map shows no map panel - an empty
+ * panel is furniture, and furniture is what makes a working screen look
+ * like a brochure.
+ * ------------------------------------------------------------------ */
+
+function renderGeotag(geo) {
+  const el = $("#wsGeotag");
+  if (!geo || geo.lat == null || geo.lon == null) { el.hidden = true; return; }
+  el.hidden = false;
+  const metres = Number(geo.accuracy_m || 0);
+  // Stated in the unit a reader can act on. "300000 m" invites nobody to
+  // notice that the record has been placed 300 km from the parcel.
+  const spread = metres >= 1000
+    ? `±${Math.round(metres / 1000)} km`
+    : `±${metres} m`;
+  // Parcel-grade and place-name are different claims and must never look
+  // alike: one is the plot, the other is the district it sits in.
+  const grade = metres <= 100 ? "parcel" : "approximate";
+  el.innerHTML =
+    `<span class="geo-grade ${grade}">${grade === "parcel" ? "Parcel" : "Approximate"}</span>`
+    + `<span class="geo-coord">${Number(geo.lat).toFixed(5)}, ${Number(geo.lon).toFixed(5)}</span>`
+    + `<span class="geo-spread">${spread}</span>`
+    + (geo.name ? `<span class="geo-name">${esc(geo.name)}</span>` : "");
+}
+
+function renderOwners(owners) {
+  const card = $("#ownersCard");
+  if (!owners || owners.length < 2) { card.hidden = true; return; }
+  card.hidden = false;
+  $("#ownersCount").textContent =
+    `${owners.length} claimants on this parcel`;
+  $("#ownersTable").innerHTML =
+    `<thead><tr><th>#</th><th>Name</th><th>Father / guardian</th></tr></thead><tbody>`
+    + owners.map((o, i) => `<tr>
+        <td class="num">${i + 1}</td>
+        <td>${esc(o.name || "—")}</td>
+        <td>${o.father_name ? esc(o.father_name)
+                            : `<span class="muted">—</span>`}</td>
+      </tr>`).join("")
+    + `</tbody>`;
+}
+
+function renderParcelMap(pm) {
+  const card = $("#parcelCard");
+  if (!pm || (!pm.subject_label && !(pm.neighbour_labels || []).length)) {
+    card.hidden = true;
+    return;
+  }
+  card.hidden = false;
+  $("#parcelSource").textContent = "read from the document's own map";
+  const rows = [];
+  if (pm.subject_label) rows.push(["Khasra on the map", esc(pm.subject_label)]);
+  if (pm.subject_area_px) {
+    // Pixels, said plainly. These maps carry no scale, so converting to
+    // square metres would be inventing a measurement.
+    rows.push(["Traced area", `${Math.round(pm.subject_area_px).toLocaleString()} px`]);
+  }
+  if ((pm.subject_polygon || []).length) {
+    rows.push(["Boundary", `${pm.subject_polygon.length} vertices`]);
+  }
+  if ((pm.neighbour_labels || []).length) {
+    rows.push(["Adjoining plots",
+      pm.neighbour_labels.map((n) => `<span class="pill">${esc(n)}</span>`).join("")]);
+  }
+  $("#parcelFacts").innerHTML = rows
+    .map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v}</dd>`).join("");
+}
+
 async function openDocument(id) {
   state.currentId = id;
   const doc = await api(`/api/documents/${id}`);
@@ -567,6 +638,10 @@ async function openDocument(id) {
     $("#previewText").hidden = false;
     $("#previewText").textContent = "No image preview available for this document.";
   };
+
+  renderGeotag(doc.geotag);
+  renderOwners(doc.owners);
+  renderParcelMap(doc.parcel_map);
 
   const chips = [];
   if (q.legibility_score !== undefined && q.legibility_score !== null)
