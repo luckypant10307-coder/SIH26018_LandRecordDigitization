@@ -1130,6 +1130,23 @@ def _confirm_place(field_key: str, candidate: str) -> Optional[str]:
         if hit:
             return hit
 
+    # FUZZY MATCHING IS FOR DISTRICTS ONLY.
+    #
+    # Measured: "मौजा अमारी" - village Amari - fuzzy-matched to "Amara", a
+    # different village that happens to be in the master. The bundled extract
+    # holds 5,609 villages out of roughly 600,000 in India, so for any given
+    # document the true village is almost certainly ABSENT while some
+    # near-neighbour of its name is present. Fuzzy matching under those odds
+    # does not resolve the village, it replaces it with a plausible stranger -
+    # and a wrong village on a land record is worse than no village, because
+    # a blank invites a human to look and a confident wrong answer does not.
+    #
+    # Districts are different in kind: Uttar Pradesh's 75 are now complete, so
+    # a district read off a UP document is expected to BE in the master and a
+    # near match is far more likely to be the same place misspelled.
+    if field_key != "district":
+        return None
+
     # Fuzzy/phonetic, on the romanised form - the Devanagari original cannot
     # match a Latin master by any string measure.
     for attempt in attempts:

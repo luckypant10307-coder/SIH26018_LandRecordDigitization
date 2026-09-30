@@ -959,6 +959,396 @@
               "Baram Pura"
             ]
           }
+        },
+        "Aligarh": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Ambedkar Nagar": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Amethi": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Amroha": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Auraiya": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Azamgarh": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Baghpat": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Bahraich": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Ballia": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Balrampur": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Banda": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Barabanki": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Bareilly": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Basti": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Bhadohi": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Bijnor": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Budaun": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Bulandshahr": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Chandauli": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Chitrakoot": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Deoria": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Etah": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Etawah": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Farrukhabad": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Fatehpur": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Firozabad": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Gautam Buddha Nagar": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Ghazipur": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Gonda": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Hamirpur": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Hapur": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Hardoi": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Hathras": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Jalaun": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Jaunpur": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Kannauj": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Kanpur Dehat": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Kasganj": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Kaushambi": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Kheri": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Kushinagar": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Lalitpur": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Maharajganj": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Mahoba": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Mainpuri": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Mathura": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Mau": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Mirzapur": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Moradabad": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Muzaffarnagar": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Pilibhit": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Pratapgarh": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Raebareli": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Rampur": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Saharanpur": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Sambhal": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Sant Kabir Nagar": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Shahjahanpur": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Shamli": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Shravasti": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Siddharthnagar": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Sitapur": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Sonbhadra": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Sultanpur": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
+        },
+        "Unnao": {
+          "lgd_code": null,
+          "name_only": true,
+          "tehsils": [],
+          "villages": {}
         }
       }
     },
@@ -8201,5 +8591,8 @@
         }
       }
     }
+  },
+  "_provenance": {
+    "name_only_districts": "Districts marked name_only carry no LGD code, tehsil or village data - they are present so a district NAME read off a document can be recognised and normalised, not to stand in for the official record. Load the LGD export to replace them with authoritative rows."
   }
 }

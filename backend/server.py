@@ -345,42 +345,236 @@ def _add_handwriting_issue(result: dict, extraction) -> None:
     })
 
 
-def _recover_places_from_prose(values: Dict[str, dict], lines) -> None:
+def _put_recovered(fields, values: Dict[str, dict], key: str, value: str,
+                   confidence: float, source: str, evidence: str = "") -> None:
     """
-    Fill EMPTY place fields from names appearing in the document's prose.
+    Record a value recovered from the document's prose.
 
-    Mutates `values` in place. A field that already holds a value is left
-    alone: a value printed in its own field outranks one mentioned in a
-    sentence, and silently replacing the first with the second would be a
-    downgrade disguised as an improvement.
-
-    Everything filled here is marked `recovered_from` so the provenance
-    survives into the UI and the audit trail - a reviewer must be able to
-    see that this district was inferred from a sentence about a past sale
-    rather than read off the record.
+    Writes to BOTH stores, because they are not the same store and only one
+    of them is persisted. `values` feeds the validator; the rows that are
+    saved and shown come from `fields`. Two separate recovery paths were
+    written against `values` alone, so their results changed the validation
+    decision and then vanished before anything was stored - the workspace
+    kept showing the original misreading and the recovery looked like it had
+    never run.
     """
-    empty = [k for k in ("village", "tehsil", "district")
-             if not (values.get(k) or {}).get("value")]
-    if not empty:
+    by_key = {f.key: f for f in fields}
+    field = by_key.get(key)
+    if field is not None:
+        field.value = value
+        field.confidence = confidence
+        field.status = "needs_review"
+        field.extra = dict(field.extra or {})
+        field.extra["source"] = source
+        if evidence:
+            field.extra["recovered_from"] = evidence
+        field.notes = list(field.notes or []) + [
+            f"Recovered from the document's running text ({source}), not read "
+            f"from a labelled field - confirm it against the original."]
+    slot = values.setdefault(key, {})
+    slot["value"] = value
+    slot["confidence"] = confidence
+    slot["extra"] = dict(slot.get("extra") or {},
+                         source=source, recovered_from=evidence)
+
+
+def _recover_from_prose(fields, values: Dict[str, dict], lines) -> None:
+    """
+    Fill EMPTY fields from names and dates appearing in the document's prose.
+
+    A Bhu-Naksha plot report prints the parcel, and puts everything else in
+    the mutation-order paragraphs underneath. Measured on 20 real documents:
+    a date field was extracted from 7, while one document alone contains six
+    dates; village and district were extracted from 5-6, while the orders
+    name them in full.
+
+    Only ever fills what is EMPTY. A value printed in its own field outranks
+    one mentioned in a sentence about a past transfer, and replacing the
+    first with the second would be a downgrade disguised as an improvement.
+    """
+    text = "\n".join(getattr(l, "text", str(l)) for l in (lines or []))
+    if not text.strip():
         return
+    by_key = {f.key: f for f in fields}
+
+    def empty(key):
+        field = by_key.get(key)
+        return not (field and field.value)
+
     try:
-        text = "\n".join(getattr(l, "text", str(l)) for l in (lines or []))
-        found = gazetteer.places_from_prose(text)
+        places = gazetteer.places_from_prose(text)
     except Exception:
-        return
-    for key in empty:
-        hit = found.get(key)
+        places = {}
+    for key in ("village", "tehsil", "district"):
+        hit = places.get(key)
         if not hit:
             continue
-        slot = values.setdefault(key, {"value": None, "confidence": 0.0, "extra": {}})
-        slot["value"] = hit["value"]
-        slot["confidence"] = hit["confidence"]
-        extra = slot.get("extra")
-        if not isinstance(extra, dict):
-            extra = {}
-        extra["recovered_from"] = hit["evidence"]
-        extra["source"] = "prose"
-        slot["extra"] = extra
+        # A value CONFIRMED against the administrative master outranks one
+        # that is not, even when the unconfirmed one was read from a label.
+        #
+        # This is why an "only fill what is empty" rule was not enough. On the
+        # real corpus the rules DO produce a district - "जौनपुर का", the name
+        # with the following postposition glued on, because the owner line
+        # carries three label:value pairs and the boundary lands in the wrong
+        # place. The field is not empty, so recovery never ran, and the record
+        # kept a value that matches nothing in the LGD list. Prose recovery
+        # only ever returns names it has already confirmed against the master,
+        # so preferring it here trades an unverifiable string for a verified
+        # one rather than trading a good value for a guess.
+        current = by_key.get(key)
+        current = current.value if current else None
+        if not current:
+            replace = True
+        else:
+            try:
+                replace = gazetteer._confirm_place(key, current) is None
+            except Exception:
+                replace = False
+        if replace:
+            _put_recovered(fields, values, key, hit["value"],
+                           hit["confidence"], "prose", hit.get("evidence", ""))
+
+    try:
+        dates = field_extractor.dates_from_prose(text)
+    except Exception:
+        dates = {}
+    for key in ("mutation_date", "registration_date"):
+        hit = dates.get(key)
+        if hit and empty(key):
+            _put_recovered(fields, values, key, hit["value"],
+                           hit["confidence"], "prose", hit.get("evidence", ""))
+
+
+def _apply_structured_llm(fields, values: Dict[str, dict], lines) -> Optional[dict]:
+    """
+    Ask the model for the document's real shape, and take what it grounds.
+
+    This exists for a shape problem, not an accuracy one. A Bhu-Naksha plot
+    report lists every co-owner of the parcel - measured across 20 genuine
+    documents, 162 owner rows - and the 17-field schema holds exactly one
+    owner_name. Each owner line carries three label:value pairs, so the
+    label-anchored extractor takes the last colon and returns
+    "नि.ग्रााम", the residence marker, instead of a name.
+
+    What is taken, and what is not:
+      * owners        - the list, in full, persisted separately. This is the
+                        thing rules cannot express at all.
+      * owner_name /
+        father_name   - filled from the FIRST owner, only when the rule
+                        extractor produced nothing usable, so the single-value
+                        schema stops holding a residence marker.
+      * village /
+        tehsil /
+        district      - only when empty. These are in the mutation-order
+                        prose, which the gazetteer path cannot confirm when
+                        the district is outside the bundled 43.
+
+    Identifier fields are deliberately NOT overwritten: khasra, khata and
+    area are where the rules already measure 0.94-0.95, and a model is not
+    given the chance to disagree with a number the document prints plainly.
+
+    Everything stored here has already passed llm_extractor's grounding
+    check, so it is text that demonstrably appears in the document.
+    """
+    # Silent when the path is simply off - that is the default, and a line
+    # per document saying so is noise. Everything AFTER this point is
+    # reported, because once the call is actually attempted its outcome
+    # matters: it is a 90-second remote request whose failure would
+    # otherwise be indistinguishable from the model finding nothing.
+    if not llm_extractor.LLM_AVAILABLE:
+        return None
+    text = "\n".join(getattr(l, "text", str(l)) for l in (lines or []))
+    if not text.strip():
+        return None
+    try:
+        structured = llm_extractor.extract_structured(text)
+    except Exception as exc:
+        print(f"[llm] FAILED {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+        return None
+    if not structured:
+        print("[llm] returned nothing usable", file=sys.stderr, flush=True)
+        return None
+    print("[llm] ok: %d owners, %d dropped" % (
+        len(structured.get("owners") or []),
+        len(structured.get("_dropped") or [])), file=sys.stderr, flush=True)
+
+    owners = structured.get("owners") or []
+    by_key = {f.key: f for f in fields}
+
+    def empty(key):
+        field = by_key.get(key)
+        return not (field and field.value)
+
+    def put(key, value):
+        """
+        Write to the FIELD OBJECT, not only to `values`.
+
+        The two are not the same store: `values` feeds the validator, while
+        the rows that are persisted and shown come from `fields` (see the
+        insert_field loop). The first version of this only updated `values`,
+        so the model's answer changed the validation and then vanished - the
+        workspace still showed "नि.ग्रााम" and nothing was saved.
+        """
+        field = by_key.get(key)
+        if field is None:
+            return
+        field.value = value
+        field.confidence = 0.70
+        field.status = "needs_review"
+        field.extra = dict(field.extra or {})
+        field.extra["source"] = structured["_provider"]
+        field.notes = list(field.notes or []) + [
+            f"Read by {structured['_provider']}; every value is checked to "
+            f"appear verbatim in the document before it is accepted."]
+        slot = values.setdefault(key, {})
+        slot["value"] = value
+        slot["confidence"] = 0.70
+        slot["extra"] = field.extra
+
+    if owners:
+        first = owners[0]
+        current_owner = (by_key.get("owner_name") or None)
+        current_owner = current_owner.value if current_owner else None
+        if empty("owner_name") or _looks_like_residence_marker(current_owner):
+            put("owner_name", first["name"])
+        if first.get("father_name"):
+            current_father = by_key.get("father_name")
+            current_father = current_father.value if current_father else None
+            # The rules return the father's name with the next label glued on
+            # ("प्रदीप कुमार सिंह पिता का"), so a longer rule value is not a
+            # better one. Replace when the model's answer is a clean prefix of
+            # what the rules produced, or when there was nothing.
+            if (empty("father_name")
+                    or (current_father or "").startswith(first["father_name"])):
+                put("father_name", first["father_name"])
+
+    for key in ("village", "tehsil", "district"):
+        value = structured.get(key)
+        if not value:
+            continue
+        current = by_key.get(key)
+        current = current.value if current else None
+        # Same reasoning: "अमारी, परगना गड़वारा, तहसील बदलापुर" is the village
+        # plus two more administrative levels, and the model's "अमारी" is the
+        # village. A rule value that merely CONTAINS the model's is worse.
+        if empty(key) or (current and value in current and current != value):
+            put(key, value)
+
+    return structured
+
+
+# "नि.ग्राम" / "नि0ग्राम" means "resident of the same village". It is the
+# tail of every owner line and the value the extractor currently returns for
+# owner_name on these documents, so it is recognised explicitly rather than
+# left to look like a person.
+_RESIDENCE_MARKERS = ("नि.ग्राम", "नि0ग्राम", "निग्राम", "नि.ग्रााम")
+
+
+def _looks_like_residence_marker(value) -> bool:
+    if not value:
+        return False
+    squeezed = re.sub(r"[\s​-‍]", "", str(value))
+    return any(m.replace(" ", "") in squeezed for m in _RESIDENCE_MARKERS)
 
 
 def _add_doc_type_issue(result: dict, doctype: dict) -> None:
@@ -829,7 +1023,13 @@ def process_document(stored_path: str, original_name: str, user: dict) -> dict:
     # Only fills fields that are genuinely EMPTY - a value actually printed
     # in its own field is better evidence than one mentioned in a sentence
     # about a past transfer, and must never be overwritten by it.
-    _recover_places_from_prose(values, extraction.lines)
+    _recover_from_prose(fields, values, extraction.lines)
+
+    # Runs AFTER the rules and the prose recovery, so it only ever fills what
+    # they left empty - the deterministic paths keep first refusal on every
+    # value, and the model is the last resort rather than the default.
+    structured = _apply_structured_llm(fields, values, extraction.lines)
+    _structured_owners = (structured or {}).get("owners") or []
 
     # WHAT KIND of document is this? The answer changes which fields may
     # legitimately be demanded of it.
@@ -881,6 +1081,7 @@ def process_document(stored_path: str, original_name: str, user: dict) -> dict:
                 pass
 
     elapsed_ms = int((time.time() - started) * 1000)
+    result["owners"] = _structured_owners
 
     doc_id = DB.insert_document(
         filename=original_name,
@@ -910,6 +1111,12 @@ def process_document(stored_path: str, original_name: str, user: dict) -> dict:
         # is a different statement from "placed at 0,0".
         geotag_json=(json.dumps(result["geotag"], ensure_ascii=False)
                      if result.get("geotag") else None),
+        # Every co-owner, which the 17-field schema cannot hold. Stored as
+        # data rather than folded into one owner_name, because a parcel with
+        # sixteen co-owners is a fact about the parcel and flattening it to
+        # the first name loses fifteen people who have a claim on the land.
+        owners_json=(json.dumps(result["owners"], ensure_ascii=False)
+                     if result.get("owners") else None),
         processing_ms=elapsed_ms,
     )
 

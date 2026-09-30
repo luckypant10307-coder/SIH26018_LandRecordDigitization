@@ -48,7 +48,11 @@ class LoadTests(unittest.TestCase):
     def test_the_bundled_gazetteer_loads(self):
         self.assertTrue(gz.GAZETTEER.loaded)
         report = gz.describe()
-        self.assertEqual(report["districts"], 43)
+        # 108: the original 43-district snapshot plus Uttar Pradesh completed
+        # to its 75. The added rows are name-only - no LGD code, tehsils or
+        # villages - because the corpus this system is measured on is from UP
+        # and a district name it cannot recognise is a blocked record.
+        self.assertEqual(report["districts"], 108)
         self.assertEqual(report["tehsils"], 453)
         self.assertEqual(report["villages"], 6516)
 
@@ -79,15 +83,21 @@ class DistrictTests(unittest.TestCase):
         out = by_field(gz.correct_record(values(district="Lucknov")))
         self.assertTrue(out["district"].needs_review)
 
+    # Kohima, not Barabanki. Barabanki was the stand-in for "a district the
+    # extract does not carry" until Uttar Pradesh was completed and it became
+    # a listed district - at which point these two tests were asserting the
+    # opposite of what they were written to check. The replacement is from
+    # Nagaland, a state the extract does not cover at all, so it cannot
+    # quietly become listed the same way.
     def test_an_unlisted_district_is_not_invented(self):
-        out = by_field(gz.correct_record(values(district="Barabanki")))
+        out = by_field(gz.correct_record(values(district="Kohima")))
         self.assertEqual(out["district"].outcome, "not_found")
-        self.assertEqual(out["district"].value, "Barabanki")
+        self.assertEqual(out["district"].value, "Kohima")
         self.assertFalse(out["district"].applied)
 
     def test_absence_is_not_reported_as_proof_of_error(self):
         """The extract is a partial snapshot; saying otherwise would be a lie."""
-        out = by_field(gz.correct_record(values(district="Barabanki")))
+        out = by_field(gz.correct_record(values(district="Kohima")))
         self.assertIn("partial", out["district"].message)
 
 

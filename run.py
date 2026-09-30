@@ -118,8 +118,11 @@ def report() -> int:
     else:
         print("  Table/layout (PaddleOCR): no (optional, install paddleocr[doc-parser] + paddlepaddle)")
     if llm_extractor.LLM_AVAILABLE:
-        provider = ("Anthropic" if llm_extractor.ANTHROPIC_API_KEY
-                    else "OpenAI" if llm_extractor.OPENAI_API_KEY else "NVIDIA")
+        # Ask the module which provider it will ACTUALLY use rather than
+        # re-deriving it here. The two answers diverged: this line reported
+        # NVIDIA while _provider() had been changed to prefer Sarvam, so the
+        # status line described a call that was never going to be made.
+        provider = (llm_extractor._provider() or "none").capitalize()
         print(f"  LLM field suggestions : ACTIVE ({provider}) - document text is sent "
               "to a third party for fields the rule-based extractor could not read")
     else:

@@ -1253,3 +1253,127 @@ def summarise(fields: List[ExtractedField]) -> dict:
         "low_confidence_fields": low_conf,
         "mean_field_confidence": mean_conf,
     }
+
+
+# ==========================================================================
+# Dates inside running text
+#
+# WHY: measured on 20 genuine Bhu-Naksha documents, a date FIELD was
+# extracted from 7 of them - while the text of a single one of those
+# documents contains six:
+#
+#   "...बैनामा दिनांक 11.11.2020 के आधार पर..."
+#   "...वाद संख्या 20201419400982000106/08.10.2020 को आदेश हुआ..."
+#   "...नाम बतौर वारिस दर्ज हो। 27.07.2021"
+#
+# They are missed for the same reason the place names were: a mutation order
+# is prose, the dates sit mid-sentence, and a label-anchored extractor is
+# looking for "दिनांक :" with a colon that is never there.
+#
+# THE TRAP THIS HAS TO AVOID: a revenue case number carries a date inside it -
+# "20221419400982004768/02.10.2022" - and that date is part of an identifier,
+# not the date of the order. A scan that takes every date-shaped string reads
+# case numbers as dates. So a candidate preceded by a long digit run is
+# marked embedded and is never promoted to a field.
+# ==========================================================================
+
+# Left-to-right: a date, optionally preceded by the digits of a case number.
+_PROSE_DATE = re.compile(
+    r"(?P<lead>\d{6,}\s*/\s*)?"
+    r"(?P<date>\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b|\b\d{4}-\d{2}-\d{2}\b)")
+
+# The word that makes a date the date OF something, rather than a number that
+# happens to look like one.
+_DATE_ANCHORS = ("दिनांक", "दिनाँक", "दिनांक", "dated", "dinank")
+
+# Which kind of date this is, from the words around it. A mutation order and
+# a sale deed both print dates and they are not the same field.
+_DATE_CONTEXT = (
+    ("registration_date", ("बैनामा", "रजिस्ट्री", "पंजीकरण", "विक्रय", "registr")),
+    ("mutation_date", ("आदेश", "वाद", "नामांतरण", "दाखिल", "वारिस", "निरस्त")),
+)
+
+_PROSE_DATE_WINDOW = 60          # characters either side that count as context
+
+
+def _nearest_marker(text: str, at: int, markers) -> Optional[int]:
+    """Distance from `at` to the closest occurrence of any marker, or None."""
+    best = None
+    for marker in markers:
+        idx = text.rfind(marker, 0, at)          # nearest to the LEFT
+        if idx >= 0:
+            best = min(best, at - idx) if best is not None else at - idx
+        idx = text.find(marker, at)              # and to the right
+        if idx >= 0:
+            d = idx - at
+            best = min(best, d) if best is not None else d
+    return best
+
+
+def dates_from_prose(text: str) -> Dict[str, dict]:
+    """
+    Recover mutation / registration dates named in running text.
+
+    Every candidate is scored against every kind and the CLOSEST wins, rather
+    than the first kind that matches anywhere in a window. First-match-wins
+    was measurably wrong: "...वारिस दर्ज हो। 27.07.2021 विक्रेता ... बैनामा
+    दिनांक 11.11.2020..." put the word बैनामा from the FOLLOWING sentence
+    inside the window of a date whose own clause says वारिस, and the mutation
+    date was filed as a registration date. In a land record that is not a
+    near miss - it is the wrong fact about when ownership changed.
+
+    Returns {field_key: {"value", "iso", "confidence", "evidence"}}. A date
+    that cannot be attributed is not returned: an unattributed date is a
+    number, and guessing its field is worse than leaving the field empty.
+    """
+    if not text:
+        return {}
+
+    candidates = []
+    for match in _PROSE_DATE.finditer(text):
+        if match.group("lead"):
+            continue                       # a date inside a case number
+        raw = match.group("date")
+        parsed = parse_date(raw)
+        if not parsed:
+            continue
+        at = match.start("date")
+        # "दिनांक" immediately before is the document naming this date, which
+        # is stronger evidence than the date merely sitting near the topic.
+        before = text[max(0, at - 25):at]
+        anchored = any(a in before for a in _DATE_ANCHORS)
+        candidates.append((at, raw, parsed["iso"], anchored))
+
+    found: Dict[str, dict] = {}
+    for field_key, markers in _DATE_CONTEXT:
+        best = None
+        for at, raw, iso, anchored in candidates:
+            distance = _nearest_marker(text, at, markers)
+            if distance is None or distance > _PROSE_DATE_WINDOW:
+                continue
+            # Anchored candidates are preferred outright; among equals, the
+            # one whose clause the marker actually belongs to is the nearest.
+            score = (0 if anchored else 1, distance)
+            if best is None or score < best[0]:
+                best = (score, at, raw, iso, anchored, distance)
+        if best is None:
+            continue
+        _, at, raw, iso, anchored, distance = best
+        found[field_key] = {
+            "value": raw,
+            "iso": iso,
+            # Neither reaches the 0.80 auto-approve bar: both were inferred
+            # from a sentence rather than read from a labelled field.
+            "confidence": 0.66 if anchored else 0.55,
+            "evidence": text[max(0, at - 40):at + 40].strip(),
+        }
+
+    # The same date cannot be two different kinds of event. If one candidate
+    # won both, keep it for the kind whose marker is closer and drop the other
+    # rather than record the same day as both the sale and the mutation.
+    if (len(found) == 2
+            and found.get("registration_date", {}).get("value")
+            == found.get("mutation_date", {}).get("value")):
+        keep = max(found, key=lambda k: found[k]["confidence"])
+        found = {keep: found[keep]}
+    return found
