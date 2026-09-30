@@ -1,3 +1,12 @@
+> **SUPERSEDED for presentation use — see `PRESENTATION.md`.**
+>
+> This file is the corrected SEVEN-STAGE diagram and it remains accurate for
+> what it covers. It predates three things that changed the architecture:
+> the map pipeline (a third reader), the merge step that reconciles the
+> readers, and PostGIS moving from unverified to verified. Its rule count of
+> 63 is now 68. Use PRESENTATION.md for slides; keep this for the stage
+> diagram itself.
+
 # System Architecture Diagram — content specification
 
 Paste-ready text for the seven-stage horizontal diagram. Keep the existing
