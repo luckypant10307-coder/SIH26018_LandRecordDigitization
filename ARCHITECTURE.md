@@ -4,17 +4,17 @@
 Smart India Hackathon 2026 · Problem Statement 26018 · Ministry of Rural Development, DoLR
 
 How a land record travels from an uploaded file to a verified entry in the
-register, and which of the 25 backend modules touches it on the way.
+register, and which of the 30 backend modules touches it on the way.
 
 Every figure here was measured on the running system, not estimated.
 
 | | |
 | --- | --- |
-| Backend modules | 25 |
-| Backend lines | 15,248 |
-| Tests | 722 across 31 files |
+| Backend modules | 30 |
+| Backend lines | 17,492 |
+| Tests | 699 across 30 files (722 with a live PostGIS) |
 | Fields extracted | 17 |
-| Validation rules | 66 |
+| Validation rules | 68 |
 | Upload formats accepted | 20 |
 
 ---
@@ -38,8 +38,28 @@ No build, no CDN, no network required.
 
 ## 2. The document journey
 
-Fourteen stages in a genuine sequence: a document enters at one and leaves at
-fourteen. Stages marked *optional* skip cleanly when their dependency is absent.
+**It is no longer one line.** A Bhu-Naksha plot report is four kinds of
+content in one file - structured text, a table of co-owners, mutation orders
+in prose, and the parcel map itself - so three readers run over the SAME
+document and a merge reconciles what they return. Fan-out, not routing.
+
+```
+                         ONE DOCUMENT
+                              │
+          ┌───────────────────┼───────────────────┐
+     ① TEXT               ② MAP              ③ HANDWRITING
+     01-10 below          11 below           05-06 below
+          └───────────────────┼───────────────────┘
+                              │
+                        12 · MERGE
+                verified > grounded > unverified
+                   disagreement = a finding
+                              │
+                     13-16 · validate, place, persist
+```
+
+Sixteen stages, numbered in the order a document meets them. Stages marked
+*optional* skip cleanly when their dependency is absent.
 
 ### 01 · Intake — `db.py`
 SHA-256 hash, checked against every previous upload. A duplicate does not stop
@@ -94,22 +114,62 @@ resolution from **0 of 43 to 43 of 43**.
 Closed-vocabulary repair against the LGD master, land classes and identifier
 shapes, before the rules see the text.
 
-### 11 · Classify the document — `doc_type.py`
-Five types plus an explicit unknown, by weighted keyword scoring. Scoping
+### 10b · Recover from prose — `gazetteer.py`, `field_extractor.py`
+A mutation order is prose, and its dates and places sit mid-sentence with no
+label. A label-anchored extractor cannot see them. Anchoring on the
+administrative noun instead - `जिला`, `तहसील`, `नि0` for *resident of* - took
+dates from 7 of 20 to 20 of 20 and villages from 0 to 10. A date inside a
+case number is an identifier, not a date, and is excluded.
+
+### 11 · Read the parcel map — `parcel_map.py`
+**The second reader.** A plot report embeds its own map, and 20 of 20 real
+documents carry one. `cadastral.py` returns zero parcels on these: Otsu picks
+a threshold that classifies the light blue boundary lines as background.
+A portal map is a vector render, not ink on paper, so ink is detected by
+COLOUR - saturated or dark - which took ink from 0.15% of pixels to 6.9%.
+
+The subject parcel is drawn FILLED, so it needs no closed boundary: 24,229 px
+and 22 vertices on a real report. Its khasra label and its neighbours are read
+by isolating dark-unsaturated text, which took Tesseract from `['a,', 'Sr)']`
+to six of seven plot numbers.
+
+### 11b · Structured extraction — `llm_extractor.py` *(opt-in)*
+For the shape rules cannot express. 162 owner rows across 20 documents face a
+schema holding one `owner_name`. Sarvam returns the owner LIST; every value
+must appear verbatim in the source or it is dropped.
+
+### 12 · Merge — `server.py`
+Where the readers are reconciled. A value CONFIRMED against the administrative
+master outranks one that is not; a grounded value outranks a
+label-contaminated one. The map's khasra is compared with the text's - the two
+readers take it from different places, so agreement is evidence neither gives
+alone.
+
+### 12b · Classify the document — `doc_type.py`
+Six types plus an explicit unknown, by weighted keyword scoring. A Bhu-Naksha **plot report** is its own type: it is cut from the map and carries no village or district, and demanding them blocked 18 of 20 real documents. Scoping
 required fields to the detected type took a real Power of Attorney from 4
 spurious errors and trust 27.4, to 1 real error and trust 69.4.
 
-### 12 · Validate — `validator.py`
+### 13 · Validate — `validator.py`
 13 rule functions, scoped by document type, plus duplicate detection against
 every ingested record.
 
-### 13 · Enrich and place — `geocode.py`, `cadastral.py`
+### 14 · Enrich and place — `geocode.py`, `geocode_online.py`, `cadastral.py`
 Seal and signature presence, table structure, geotagging, anomaly detection.
 Each appends issues rather than replacing them.
 
-### 14 · Persist and route — `db.py`
-Document, then every field, then a hash-chained audit entry. Auto-approved,
-needs review, or blocked.
+### 15 · Persist and route — `db.py`
+Document, then every field, then a hash-chained audit entry. The co-owner
+list and the map reading are stored as data of their own, because a parcel
+with sixteen claimants flattened to one name loses fifteen people with a
+claim on the land. Auto-approved, needs review, or blocked.
+
+### 16 · Authenticate the caller — `auth.py`
+Not a stage a document passes, but the gate every request does. The API read
+its caller from an `X-User` header anyone could set; the Supabase access
+token is now verified in stdlib HMAC-SHA256, HS256 only, other algorithms
+refused by name. With no secret configured nothing can be verified, so the
+header path remains and `run.py --check` says so.
 
 ---
 
@@ -135,17 +195,17 @@ matched.
 
 ## 4. Modules by role
 
-Twenty-five backend modules. The ones that carry the most weight are not the
+Thirty backend modules. The ones that carry the most weight are not the
 largest.
 
 | Role | Modules | Lines |
 | --- | --- | --- |
-| **Serving** | `server.py`, `db.py` | 3,048 |
-| **Reading documents** | `ocr_engine.py`, `office_reader.py`, `handwriting.py`, `trocr_htr.py`, `cnn_denoiser.py` | 2,840 |
-| **Structuring** | `field_extractor.py`, `gazetteer.py`, `doc_type.py` | 2,509 |
-| **Geospatial** | `cadastral.py`, `shapefile_import.py`, `topology.py`, `georeference.py`, `geocode.py`, `boundary_net.py`, `sam_fallback.py`, `postgis.py` | 3,181 |
-| **Validating** | `validator.py`, `fact_checker.py`, `document_authenticity.py`, `ner_extractor.py` | 1,647 |
-| **Improving** | `learning.py`, `bhashini.py`, `llm_extractor.py` | 1,142 |
+| **Serving** | `server.py`, `db.py`, `auth.py` | 3,798 |
+| **Reading documents** | `ocr_engine.py`, `office_reader.py`, `handwriting.py`, `trocr_htr.py`, `cnn_denoiser.py`, `table_structure.py` | 3,587 |
+| **Structuring** | `field_extractor.py`, `gazetteer.py`, `doc_type.py` | 2,932 |
+| **Geospatial** | `cadastral.py`, `parcel_map.py`, `shapefile_import.py`, `topology.py`, `georeference.py`, `geocode.py`, `geocode_online.py`, `boundary_net.py`, `sam_fallback.py`, `postgis.py` | 3,982 |
+| **Validating** | `validator.py`, `fact_checker.py`, `document_authenticity.py`, `ner_extractor.py`, `anomaly_detector.py` | 1,837 |
+| **Improving** | `learning.py`, `bhashini.py`, `llm_extractor.py` | 1,356 |
 
 ---
 
@@ -191,11 +251,17 @@ Optional layers listed with their real state rather than their intended state.
 | Tesseract OCR | **Active** | 14 Indic language packs |
 | PDF text layer | **Active** | PyMuPDF |
 | Fact check, anomaly detection | **Active** | scikit-learn |
+| Embedded parcel map | **Active** | Read from the document itself on 20 of 20 real reports |
+| Supabase token verification | **Active when configured** | Without a JWT secret nothing can be verified, so the header path remains and `--check` says so |
+| Satellite basemap | **Off by default** | Esri public tiles, no API key. Off because every other part of the map works with no internet |
+| Online geocoding | **Opt-in** | `ONLINE_GEOCODING=1`. Takes a district from 300 km to 40 km; villages still out of reach |
+| Structured LLM extraction | **Opt-in** | Sarvam. The co-owner list; every value must appear verbatim in the source |
 | Bhashini script bridge | **Opt-in** | Sends place names to a government service; off without consent |
 | Indic NER | **Local only** | Needs PyTorch, excluded from the deployment image |
 | SAM parcel fallback | **Off** | Fires only when contour tracing finds zero parcels |
 | PostGIS | **Verified** | Exercised against PostGIS 3.4: geodesic area, OGC validity, overlap and overlapping-claim detection |
 | Donut | **Not used** | Its vocabulary maps Devanagari to `<unk>` |
+| LayoutLMv3 / LayoutXLM | **Not used** | LayoutLMv3 shreds Devanagari into 61 byte fragments; LayoutXLM needs a fine-tune that has not run |
 | Live portal integration | **None** | Export is file-based: CSV, JSON, GeoJSON |
 
 ---
