@@ -54,7 +54,21 @@ the pipelines do not divide documents between them, they all read the
                  └──────────────┬───────────────┘
                                 │
                   auto-approve · review · block
+                                │
+                                ▼
+                      officer corrects a field
+                                │
+                                ▼
+                     teaches the EXTRACTOR
+              character confusions · value aliases ·
+                  confidence calibration
 ```
+
+Separately, and NOT from those corrections, the merge's own LLM output is
+reused offline to label a corpus for a small local model — see Slide 7. The
+two learning paths are independent: one learns from the officer, the other
+from the teacher model. Keeping them apart matters, because only the first
+is grounded in a human decision.
 
 **The merge is the part to dwell on.** Reader ① and reader ② take the
 khasra number from different places — one from a printed field, one from a
@@ -73,6 +87,7 @@ them is evidence neither can give alone.
 | **Prose recovery** | Dates and places from mutation orders | The data was always there; nothing was reading sentences |
 | **Real authentication** | Supabase token verified server-side | The API was previously open to anyone |
 | **Spatial database** | PostGIS: geodesic area, overlapping claims | Answers "do two documents claim the same ground?" |
+| **Self-generated training data** | Sarvam labels a corpus for LayoutXLM | The system produces its own ground truth instead of waiting for annotators |
 
 ---
 
@@ -133,13 +148,55 @@ fragments** of raw UTF-8, and its Devanagari predictions were incoherent.
 That last one has a follow-up worth saying out loud, because it is the
 obvious next question: **LayoutXLM** — the multilingual sibling — tokenises
 the same text into **13 real words**, so it is the right base for this
-problem. We have NOT used it. It ships with no task head, it needs labelled
-Devanagari training data we do not yet have, and its licence is
-research-only. It is on the roadmap, not in the system.
+problem. It is not in the system yet: `layoutxlm-base` ships with no task
+head, and its licence is research-only.
+
+What changed is the reason it was blocked. It needed token-level labels
+with bounding boxes for Indian land records, which nobody has — and we now
+generate them rather than wait for annotators. See the next slide.
 
 ---
 
-## SLIDE 7 — Indian technology stack
+## SLIDE 7 — The system generates its own training data
+
+Two mechanisms, and neither needs an annotator.
+
+**① Every officer correction teaches the extractor.** Three artefacts are
+derived from the corrections table: a character-confusion map, a value-alias
+table, and per-field confidence calibration. Measured: `'4' → '1'` learned
+from 6 corrections; `Naharpur → Narharpur` from 4, at 100% agreement.
+
+Nothing is stored as opaque learned state — all three are rebuilt on demand
+from the **audit-backed** corrections, so every adjustment traces to the
+corrections that justify it. In a government context that is the difference
+between "the model learned it" and a list of named corrections.
+
+**② Sarvam labels a corpus for LayoutXLM.** This one does NOT come from
+officer corrections - it reuses the extraction the merge already performed,
+offline. The expensive cloud model teaches a small local one:
+
+```
+  Sarvam (grounded truth)  +  PDF word boxes  →  BIO tags with geometry
+       90 s / document              exact          a training example
+```
+
+Measured on one real report: **15 owners, 15 fathers, village and district —
+32 labelled spans across 506 words.** Every document put through the
+pipeline becomes a training example, automatically.
+
+**Why that shape is the right one.** Sarvam is accurate and costs 90 seconds
+a document over a network, with the record's text leaving the machine.
+LayoutXLM would be ~125M parameters running on CPU in milliseconds, fully
+local. Using the slow one once, offline, to teach the fast one is how you
+get both.
+
+Stated honestly on the slide: **Sarvam is the teacher, so any systematic
+mistake it makes is what the student learns.** The labels are meant to be
+spot-checked before training, and the tool says so in its own output.
+
+---
+
+## SLIDE 8 — Indian technology stack
 
 | Layer | Choice | Why |
 | --- | --- | --- |
@@ -153,7 +210,7 @@ land ownership records to a US provider?"* — before it is asked.
 
 ---
 
-## SLIDE 8 — Honest limits
+## SLIDE 9 — Honest limits
 
 Put these on a slide. Judges trust a team that names them first.
 
@@ -167,6 +224,10 @@ Put these on a slide. Judges trust a team that names them first.
   background job, not a blocking upload.
 - **Devanagari handwriting** is detected and routed to a human, not
   transcribed. TrOCR's checkpoints are English.
+- **LayoutXLM is not trained yet.** The dataset is generated and the boxes
+  are exact, but no fine-tune has run — there is no CUDA on the development
+  machine, so it goes to Kaggle. Its licence is research-only, which a
+  department deployment would have to resolve.
 
 ---
 
