@@ -128,8 +128,14 @@ village — so fuzzy matching is now districts only.
 **We measured and rejected three models.** SAM: 4/6 plots, 861 vertices
 against tracing's 4–11, 64.5 s against 0.09 s. MuRIL: 5/8 where chance is
 4/8. LayoutLMv3: its tokenizer shreds `भूमि का विवरण` into **61 byte
-fragments**; LayoutXLM produces 13 real words. That comparison is worth a
-slide of its own if you have room.
+fragments** of raw UTF-8, and its Devanagari predictions were incoherent.
+
+That last one has a follow-up worth saying out loud, because it is the
+obvious next question: **LayoutXLM** — the multilingual sibling — tokenises
+the same text into **13 real words**, so it is the right base for this
+problem. We have NOT used it. It ships with no task head, it needs labelled
+Devanagari training data we do not yet have, and its licence is
+research-only. It is on the roadmap, not in the system.
 
 ---
 
@@ -186,4 +192,6 @@ Put these on a slide. Judges trust a team that names them first.
 - Not "blockchain" — say **tamper-evident**. Hash-chained, no consensus.
 - Not "99.3% accurate" without saying **on the digital corpus**. On real
   Bhu-Naksha documents the honest numbers are in Slide 4.
-- Not LayoutLMv3, Donut or GeoPandas — none are used.
+- Not LayoutLMv3, **LayoutXLM**, Donut or GeoPandas — none are used. Only
+  LayoutXLM's TOKENIZER was run, to measure the comparison above. If asked
+  "do you use LayoutXLM?", the answer is no, and the reason is worth giving.
