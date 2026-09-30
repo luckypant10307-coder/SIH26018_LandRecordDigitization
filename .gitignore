@@ -16,3 +16,5 @@ server-error.log
 
 storage/geocode_cache.json
 storage/cadastral/
+storage/layout_teacher_cache.json
+layout_dataset.jsonl
