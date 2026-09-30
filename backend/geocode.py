@@ -39,6 +39,7 @@ import difflib
 import json
 import os
 import re
+import geocode_online
 from dataclasses import dataclass, asdict
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -311,6 +312,28 @@ _FIELD_LEVELS = {
 }
 
 
+def _resolve_online(values: Dict[str, dict]) -> Optional[PlaceMatch]:
+    """Ask the configured online gazetteer. Never raises."""
+    def get(key):
+        v = (values.get(key) or {}).get("value")
+        return v.strip() if isinstance(v, str) and v.strip() else None
+    try:
+        hit = geocode_online.lookup(get("village"), get("tehsil"),
+                                    get("district"), get("state"))
+    except Exception:
+        return None
+    if not hit:
+        return None
+    return PlaceMatch(
+        name=hit.get("matched") or "online result",
+        level=hit["level"], lat=hit["lat"], lon=hit["lon"],
+        accuracy_m=int(hit["accuracy_m"]),
+        matched_from="online gazetteer",
+        matched_text=(get("village") or get("district") or get("state") or ""),
+        exact=False,                     # a gazetteer match is not a table hit
+        state=get("state"), district=get("district"))
+
+
 def resolve(values: Dict[str, dict]) -> Optional[PlaceMatch]:
     """
     Best approximate coordinate for a record, or None.
@@ -339,6 +362,27 @@ def resolve(values: Dict[str, dict]) -> Optional[PlaceMatch]:
                         matched_from=field, matched_text=token, exact=exact,
                         state=rec.get("state"), district=rec.get("district")))
                 break        # this token resolved; do not also match it coarser
+
+    # An online gazetteer, when one is configured, before settling for what
+    # the bundled table can reach.
+    #
+    # The table is a demo extract: measured on the real corpus it answered
+    # "Jaunpur" with the centroid of Uttar Pradesh, 300 km away. Asking a
+    # real gazetteer first turns that into the district, 40 km. Village level
+    # is NOT reached this way and the code does not pretend otherwise -
+    # OpenStreetMap has no entry for the revenue villages in this corpus
+    # (Amari, Bikapur, Narharpur all return nothing), so an installation
+    # wanting village centroids must point GEOCODER_URL at a gazetteer that
+    # carries them, such as Bhuvan.
+    #
+    # It runs only when the offline path did WORSE, so enabling it can raise
+    # accuracy and cannot lower it.
+    best_offline = min((m.accuracy_m for m in found), default=None)
+    if geocode_online.available():
+        online = _resolve_online(values)
+        if online is not None and (best_offline is None
+                                   or online.accuracy_m < best_offline):
+            found.append(online)
 
     if not found:
         return None

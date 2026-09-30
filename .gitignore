@@ -13,3 +13,5 @@ env/
 # Runtime logs from run.py
 server.log
 server-error.log
+
+storage/geocode_cache.json
