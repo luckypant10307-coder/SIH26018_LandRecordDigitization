@@ -988,7 +988,20 @@ def describe() -> dict:
 _PROSE_ANCHORS: Dict[str, List[str]] = {
     "district": ["जिला", "ज़िला", "जनपद", "जिल्हा", "district", "distt", "dist"],
     "tehsil":   ["तहसील", "तहसिल", "तालुका", "tehsil", "tahsil", "taluka", "taluk"],
-    "village":  ["मौजा", "मौज़ा", "ग्राम", "गाँव", "गांव", "village", "mauja", "gram"],
+    # "नि0" / "सा0" are the Record-of-Rights abbreviations for निवासी and
+    # साकिन - "resident of" - and in a mutation order they are followed by
+    # the village NAME: "मृतक चन्द्रभान पुत्र हरिप्रसाद नि0 अमारी".
+    #
+    # In the OWNER rows the same abbreviation is followed by the word ग्राम
+    # instead of a name - "नि.ग्राम", resident of the same village - which
+    # says the owner is local without saying where. _PROSE_GENERIC filters
+    # those, so the abbreviation can serve as an anchor in the one place it
+    # carries a name without inventing one in the other.
+    #
+    # Both zeros appear in real OCR output: ASCII "0" and Devanagari "०".
+    "village":  ["मौजा", "मौज़ा", "निवासी",
+                 "नि0", "नि०", "नि.", "सा0", "सा०", "सा.",
+                 "ग्राम", "गाँव", "गांव", "village", "mauja", "gram"],
 }
 
 # A place name runs until the next punctuation or Hindi case-marker. "जौनपुर
@@ -1001,6 +1014,15 @@ _PROSE_STOPWORDS = {
 }
 
 _PROSE_SPLIT = re.compile(r"[,;।|\n\t()\[\]{}:]+")
+
+# Words that follow an anchor but name no place - they ARE the generic noun,
+# or an administrative level that is not the parcel's village. "नि0 ग्राम"
+# says the owner lives in the same village; it does not say which one.
+_PROSE_GENERIC = {
+    "ग्राम", "ग्रााम", "गाँव", "गांव", "ग्रा", "मौजा", "मौज़ा", "मौहल्ला",
+    "मौहल्लाा", "मोहल्ला", "निवास", "निवासी", "वास", "वासी", "परगना",
+    "तहसील", "जिला", "जनपद", "village", "gram", "mauja",
+}
 
 
 def _prose_candidate(after: str, max_words: int = 3) -> List[str]:
@@ -1044,6 +1066,8 @@ def places_from_prose(text: str) -> Dict[str, dict]:
                     break
                 start = idx + len(anchor)
                 for candidate in _prose_candidate(text[start:]):
+                    if candidate.strip() in _PROSE_GENERIC:
+                        continue
                     canonical = _confirm_place(field_key, candidate)
                     if canonical:
                         found[field_key] = {
@@ -1053,6 +1077,32 @@ def places_from_prose(text: str) -> Dict[str, dict]:
                             # a field, so a human should see it.
                             "confidence": 0.62,
                             "source": "prose",
+                            "verified": True,
+                            "evidence": f"{anchor} {candidate}".strip(),
+                        }
+                        break
+                    if field_key == "village":
+                        # Kept even though the master cannot confirm it.
+                        #
+                        # The bundled extract holds 5,609 villages of roughly
+                        # 600,000, so a genuine village is far likelier to be
+                        # ABSENT from it than misspelt in the document. The
+                        # record is the primary source and the directory is a
+                        # cross-check, not the authority - dropping what the
+                        # page plainly says because our own extract is
+                        # incomplete reports OUR gap as the document's error.
+                        #
+                        # Never dressed up as verified: marked unverified and
+                        # scored below a confirmed value, so a reviewer sees a
+                        # name that came off the page and knows the directory
+                        # could not vouch for it. Districts get no such
+                        # licence - Uttar Pradesh is complete, so an
+                        # unconfirmable district there is a misreading.
+                        found[field_key] = {
+                            "value": candidate.strip(),
+                            "confidence": 0.50,
+                            "source": "prose",
+                            "verified": False,
                             "evidence": f"{anchor} {candidate}".strip(),
                         }
                         break
