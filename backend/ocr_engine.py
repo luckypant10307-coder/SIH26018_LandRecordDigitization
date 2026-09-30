@@ -193,6 +193,10 @@ class ExtractionResult:
     quality: dict = field(default_factory=dict)
     warnings: List[str] = field(default_factory=list)
     render_path: Optional[str] = None   # preview image shown in the verifier UI
+    # Images found INSIDE the document, most useful for a Bhu-Naksha plot
+    # report: the parcel map is embedded on its own page, so a PDF that reads
+    # as pure text still carries the geometry. Empty for anything else.
+    embedded_maps: List[str] = field(default_factory=list)
 
     @property
     def full_text(self) -> str:
@@ -1449,16 +1453,24 @@ def extract(path: str, work_dir: Optional[str] = None,
     ext = os.path.splitext(path)[1].lower()
 
     if ext == ".pdf":
+        # Pulled for BOTH paths, and before either returns. A plot report
+        # whose text layer reads perfectly still carries its parcel map as an
+        # embedded image, so "the text extracted cleanly" is exactly the case
+        # where the geometry used to be discarded.
+        maps = extract_embedded_maps(path, os.path.join(work_dir, "maps"))
+
         native = _extract_pdf_text_layer(path)
         if native is not None:
+            native.embedded_maps = maps
             return native
         images = _pdf_to_images(path, os.path.join(work_dir, "pages"))
         if not images:
             return ExtractionResult(engine="none", warnings=[
                 "PDF could not be rasterised (PyMuPDF unavailable)."])
-        if tesseract_available():
-            return _extract_tesseract(images, work_dir, languages)
-        return _degraded(images, work_dir)
+        result = (_extract_tesseract(images, work_dir, languages)
+                  if tesseract_available() else _degraded(images, work_dir))
+        result.embedded_maps = maps
+        return result
 
     if ext in (".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"):
         if tesseract_available():
@@ -1526,3 +1538,116 @@ def _degraded(image_paths: List[str], work_dir: str) -> ExtractionResult:
             "pages": q,
         }
     return result
+
+
+# ==========================================================================
+# Maps embedded inside a PDF
+#
+# A Bhu-Naksha plot report is not one kind of content. It carries structured
+# text (Khata No, Area), a table of co-owners, mutation orders in prose - and
+# the PARCEL MAP, as an image on its own page. The text layer extracts
+# cleanly and the map was being thrown away with the rest of the PDF's
+# binary, so a document that contains its own geometry was georeferenced as
+# though it had none.
+#
+# What the map is worth even without georeferencing: the subject parcel is
+# drawn, its NEIGHBOURS are labelled with their khasra numbers, and on these
+# reports the parcel the record is about is filled in a highlight colour.
+# Neighbours are a strong identity check - a khasra's surroundings are hard
+# to fake and easy to compare - and none of it was reachable before.
+#
+# TELLING A MAP FROM A LOGO is the whole difficulty, and it is done on
+# appearance rather than position because position varies by portal. A
+# cadastral map is a LINE DRAWING: overwhelmingly white, with a small
+# fraction of dark or saturated pixels forming thin boundaries. A brand mark
+# is the opposite - a solid block of colour. Measured on a real report, the
+# Landeed logo is 638x562 and fails this test; the parcel map is 600x600 and
+# passes.
+# ==========================================================================
+
+MIN_EMBEDDED_MAP_PX = 200          # smaller than this is an icon, not a map
+_MAP_MIN_WHITE_FRACTION = 0.55     # a line drawing is mostly paper
+_MAP_MAX_INK_FRACTION = 0.40       # ...and only a little ink
+
+
+def looks_like_parcel_map(image_path: str) -> bool:
+    """
+    Whether an image is a line-drawn map rather than a logo or photograph.
+
+    Deliberately cheap and deliberately conservative: a false positive costs
+    one wasted tracing attempt that finds no parcels, while a false negative
+    silently discards the only geometry in the document.
+    """
+    try:
+        from PIL import Image
+    except Exception:
+        return False
+    try:
+        with Image.open(image_path) as im:
+            if min(im.size) < MIN_EMBEDDED_MAP_PX:
+                return False
+            # Flatten transparency onto white first. A logo stored with an
+            # alpha channel is mostly TRANSPARENT, and sampling it without
+            # compositing counts those pixels as black, which makes a solid
+            # brand mark look like dense ink - the right answer for the wrong
+            # reason, and wrong the moment a map arrives with alpha.
+            im = im.convert("RGBA")
+            flat = Image.new("RGB", im.size, (255, 255, 255))
+            flat.paste(im, mask=im.split()[3])
+            small = flat.resize((96, 96))
+            pixels = list(small.getdata())
+    except Exception:
+        return False
+
+    if not pixels:
+        return False
+    white = sum(1 for r, g, b in pixels if r > 225 and g > 225 and b > 225)
+    ink = len(pixels) - white
+    return (white / len(pixels) >= _MAP_MIN_WHITE_FRACTION
+            and ink / len(pixels) <= _MAP_MAX_INK_FRACTION)
+
+
+def extract_embedded_maps(path: str, out_dir: str, limit: int = 4) -> List[str]:
+    """
+    Pull parcel-map-looking images out of a PDF. Returns saved file paths.
+
+    Each image is written once even when a portal repeats it on every page -
+    the real reports embed the same watermark four times, and tracing it four
+    times would report the same parcels four times.
+    """
+    if _pymupdf is None or not path.lower().endswith(".pdf"):
+        return []
+    found: List[str] = []
+    try:
+        os.makedirs(out_dir, exist_ok=True)
+        doc = _pymupdf.open(path)
+    except Exception:
+        return []
+    seen = set()
+    try:
+        for page_no in range(doc.page_count):
+            for info in doc.load_page(page_no).get_images(full=True):
+                xref = info[0]
+                if xref in seen or len(found) >= limit:
+                    continue
+                seen.add(xref)
+                try:
+                    raw = doc.extract_image(xref)
+                    if min(raw.get("width", 0), raw.get("height", 0)) < MIN_EMBEDDED_MAP_PX:
+                        continue
+                    name = f"{os.path.basename(path)}.p{page_no}.x{xref}.{raw['ext']}"
+                    dest = os.path.join(out_dir, name)
+                    with open(dest, "wb") as fh:
+                        fh.write(raw["image"])
+                except Exception:
+                    continue
+                if looks_like_parcel_map(dest):
+                    found.append(dest)
+                else:
+                    try:
+                        os.remove(dest)
+                    except OSError:
+                        pass
+    finally:
+        doc.close()
+    return found
