@@ -1108,26 +1108,57 @@ async function loadCadastralMap() {
   // part of this project works with no internet, and a tile layer silently
   // reaching out to a third party would break that promise without saying
   // so. Turning it on is the viewer's explicit choice.
-  const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap contributors (loaded only when enabled)',
-  });
+  // SATELLITE IMAGERY is the one a revenue officer actually wants under a
+  // parcel. OpenStreetMap is a street map, and over rural India it is mostly
+  // empty - the villages in this corpus are not in it at all. Esri's World
+  // Imagery shows the fields themselves, which is what makes a traced
+  // boundary checkable by eye and what a georeferencing pass needs to match
+  // corners against.
+  //
+  // These are Esri's public tile endpoints and take no API key.
+  const basemaps = {
+    "Satellite (Esri)": L.tileLayer(
+      "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/"
+      + "MapServer/tile/{z}/{y}/{x}",
+      { maxZoom: 19,
+        attribution: "Imagery &copy; Esri (loaded only when enabled)" }),
+    "Topographic (Esri)": L.tileLayer(
+      "https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/"
+      + "MapServer/tile/{z}/{y}/{x}",
+      { maxZoom: 19, className: "tiles-drawn",
+        attribution: "&copy; Esri (loaded only when enabled)" }),
+    "Street map (OpenStreetMap)": L.tileLayer(
+      "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      { maxZoom: 19, className: "tiles-drawn",
+        attribution: "&copy; OpenStreetMap contributors (loaded only when enabled)" }),
+  };
+
+  // Note the {y}/{x} order on the Esri URLs, against OSM's {x}/{y}. Esri's
+  // REST tile scheme addresses by row then column; swapping them returns
+  // real tiles of the wrong place, which is worse than an error because the
+  // map still looks plausible.
 
   cadastralLayers = {
+    ...basemaps,
     status: statusLayer, landUse: landUseLayer, missing: missingLayer,
-    labels: labelLayer, gcp: gcpLayer, osm: osm,
+    labels: labelLayer, gcp: gcpLayer,
   };
 
   statusLayer.addTo(cadastralMap);
+  // Basemaps go in the FIRST argument, so Leaflet renders them as radio
+  // buttons: they are alternatives, not toggles, and stacking two raster
+  // basemaps just hides one behind the other. "None" is the default and
+  // stays selectable, because every other part of this page works with no
+  // internet and a tile layer silently reaching out would break that
+  // promise without saying so.
   cadastralLayerControl = L.control.layers(
-    null,
+    { "None (offline)": L.layerGroup().addTo(cadastralMap), ...basemaps },
     {
       "Record status": statusLayer,
       "Land classification": landUseLayer,
       [`Missing records (${missing.length})`]: missingLayer,
       "Khasra numbers": labelLayer,
       [`Control points (${gcps.length})`]: gcpLayer,
-      "Basemap (needs internet)": osm,
     },
     { collapsed: false }
   ).addTo(cadastralMap);

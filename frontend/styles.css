@@ -862,7 +862,14 @@ body {
 }
 
 /* Tiles only. Overlay panes are deliberately untouched. */
-.leaflet-tile-pane {
+/* The dark-theme inversion is applied PER LAYER, not to the tile pane.
+ *
+ * It lived on .leaflet-tile-pane, and a filter on the pane applies to its
+ * whole subtree - a descendant cannot cancel an ancestor's filter, so
+ * `filter: none` on the satellite layer did nothing and aerial imagery kept
+ * rendering with vegetation white. Moving it onto the drawn basemaps leaves
+ * photography untouched, which is the only way both can be right. */
+.leaflet-tile-pane .tiles-drawn {
   filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.90) saturate(.75);
 }
 
@@ -1192,3 +1199,17 @@ body {
 .cap-dot.off { background: var(--text-2); }
 .cap-name { color: var(--text); }
 .cap-note { color: var(--text-2); font-size: 13px; text-align: right; }
+
+/* Aerial imagery is NOT inverted with the rest of the tile pane.
+ *
+ * The dark theme inverts basemap tiles so a white street map does not glare
+ * out of a dark page - the right call for a drawn map, and the wrong one for
+ * a photograph. Inverted aerial imagery renders vegetation as white and
+ * water as pale, which is not merely ugly: the whole reason to put satellite
+ * under a parcel is to check a traced boundary against the ground, and a
+ * boundary checked against false colour is not checked.
+ *
+ * Leaflet puts the layer's className on its tile container, so this undoes
+ * the pane filter for photographic layers only. */
+/* Photographic layers carry no class of their own: they are simply not in
+   the .tiles-drawn set above, so nothing is applied to them. */
