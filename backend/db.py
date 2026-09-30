@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS documents (
     -- not a location.
     geotag_json     TEXT,
     owners_json     TEXT,
+    parcel_map_json TEXT,
     -- verification
     verified_by     INTEGER REFERENCES users(id),
     verified_at     TEXT,
@@ -294,7 +295,7 @@ class Database:
         retained, and back-filling one now would invent a provenance they
         never had. They pick one up on re-validation.
         """
-        for column in ("geotag_json", "owners_json"):
+        for column in ("geotag_json", "owners_json", "parcel_map_json"):
             self._add_column_if_missing("documents", column, "TEXT")
 
     def _add_column_if_missing(self, table: str, column: str, ddl: str) -> None:
@@ -673,7 +674,7 @@ class Database:
                 "quality_json", "warnings_json", "full_text", "status", "decision",
                 "trust_score", "error_count", "warning_count", "signature",
                 "issues_json", "summary_json", "geotag_json", "owners_json",
-                "processing_ms")
+                "parcel_map_json", "processing_ms")
         values = [kw.get(c) for c in cols]
         placeholders = ",".join("?" for _ in cols)
         return self.run(
@@ -736,6 +737,7 @@ class Database:
         # them apart.
         doc["geotag"] = json.loads(doc.pop("geotag_json") or "null")
         doc["owners"] = json.loads(doc.pop("owners_json") or "null")
+        doc["parcel_map"] = json.loads(doc.pop("parcel_map_json") or "null")
         doc["fields"] = self.get_fields(document_id)
         return doc
 
