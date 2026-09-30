@@ -88,6 +88,7 @@ them is evidence neither can give alone.
 | **Real authentication** | Supabase token verified server-side | The API was previously open to anyone |
 | **Spatial database** | PostGIS: geodesic area, overlapping claims | Answers "do two documents claim the same ground?" |
 | **Self-generated training data** | Sarvam labels a corpus for LayoutXLM | The system produces its own ground truth instead of waiting for annotators |
+| **Satellite basemap** | Parcels drawn over Esri imagery | A traced boundary becomes checkable against the actual fields |
 
 ---
 
@@ -180,9 +181,13 @@ offline. The expensive cloud model teaches a small local one:
        90 s / document              exact          a training example
 ```
 
-Measured on one real report: **15 owners, 15 fathers, village and district —
-32 labelled spans across 506 words.** Every document put through the
-pipeline becomes a training example, automatically.
+Measured across the whole real corpus: **176 labelled spans over 24 page
+records from 19 documents**, generated in one unattended run. Every document
+put through the pipeline becomes a training example, automatically.
+
+Four documents were skipped and each skip is explicable rather than silent:
+two where the teacher returned nothing, one portal error page carrying no
+parcel, and one scanned PDF with no word boxes.
 
 **Why that shape is the right one.** Sarvam is accurate and costs 90 seconds
 a document over a network, with the record's text leaving the machine.
@@ -203,10 +208,19 @@ spot-checked before training, and the tool says so in its own output.
 | Language | **Bhashini** (MeitY) | Devanagari → LGD spelling. District resolution 0 → 43/43. |
 | Reasoning | **Sarvam-105b** | Indic-first. 38/38 values grounded, 16/16 co-owners correct. |
 | Geospatial | **QGIS · GDAL · PostGIS** | Open source; what government GIS actually runs on |
+| Basemap | **Esri imagery**, off by default | OpenStreetMap does not draw these villages at all |
 
-**Data sovereignty:** Indian citizens' land records processed by Indian AI
-infrastructure. It answers the question a judge will ask — *"are you sending
-land ownership records to a US provider?"* — before it is asked.
+**Data sovereignty:** Indian citizens' land records are processed by Indian
+AI infrastructure. It answers the question a judge will ask — *"are you
+sending land ownership records to a US provider?"* — before it is asked.
+
+**Say the exception yourself.** The satellite basemap is Esri's, and it is
+the one non-Indian service here. The distinction that makes it acceptable is
+worth stating rather than hoping nobody notices: a basemap request asks for
+*a tile of the earth at these coordinates*. No owner name, no khasra number
+and no document text is in it. Record data goes to Bhashini and Sarvam; Esri
+is sent a map square. It is also off by default, and Bhuvan can replace it
+by changing one URL.
 
 ---
 
@@ -224,6 +238,11 @@ Put these on a slide. Judges trust a team that names them first.
   background job, not a blocking upload.
 - **Devanagari handwriting** is detected and routed to a human, not
   transcribed. TrOCR's checkpoints are English.
+- **ArcGIS geocoding is untested.** The basemap needed no key and works.
+  The location service does: the token supplied returned 498 Invalid Token
+  from ArcGIS's own `portals/self` check, so whether it reaches Indian
+  villages where OpenStreetMap does not is still an open question, not a
+  claim in either direction.
 - **LayoutXLM is not trained yet.** The dataset is generated and the boxes
   are exact, but no fine-tune has run — there is no CUDA on the development
   machine, so it goes to Kaggle. Its licence is research-only, which a
@@ -243,6 +262,8 @@ Put these on a slide. Judges trust a team that names them first.
 | Upload formats | 20 |
 | Districts in the directory | 108 |
 | Indic scripts | 14 |
+| Basemaps offered | 4, incl. "None (offline)" as the default |
+| LayoutXLM training spans | 176, over 24 page records |
 
 ---
 
@@ -256,3 +277,6 @@ Put these on a slide. Judges trust a team that names them first.
 - Not LayoutLMv3, **LayoutXLM**, Donut or GeoPandas — none are used. Only
   LayoutXLM's TOKENIZER was run, to measure the comparison above. If asked
   "do you use LayoutXLM?", the answer is no, and the reason is worth giving.
+- Not "we use ArcGIS." We use **Esri's public basemap tiles**, which need no
+  account. The ArcGIS geocoding service has not been tested, because the key
+  supplied did not authenticate.
