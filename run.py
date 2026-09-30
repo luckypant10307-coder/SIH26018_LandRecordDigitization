@@ -164,6 +164,23 @@ def report() -> int:
         print("                          Devanagari place names will not match the "
               "Latin admin master.")
 
+    # The geocoder's reach decides whether a record is placed within tens of
+    # kilometres or hundreds, so --check has to say which is in force.
+    # Otherwise the difference is invisible until someone reads a geotag and
+    # takes a state centroid for the parcel.
+    import geocode_online
+    geo = geocode_online.status()
+    if geo["available"]:
+        print(f"  Place geocoding       : ONLINE ({geo['endpoint']})")
+        print(f"    Cached              : {geo['cached']} places")
+        print("                          Villages resolve only to their district "
+              "unless the endpoint")
+        print("                          carries Indian villages - OpenStreetMap "
+              "does not.")
+    else:
+        print(f"  Place geocoding       : offline table only")
+        print(f"                          ({geo['reason']})")
+
     samples = os.path.join(ROOT, "samples")
     count = len([f for f in os.listdir(samples)
                  if not f.startswith("_")]) if os.path.isdir(samples) else 0
