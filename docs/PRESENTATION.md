@@ -207,7 +207,7 @@ spot-checked before training, and the tool says so in its own output.
 | --- | --- | --- |
 | Language | **Bhashini** (MeitY) | Devanagari → LGD spelling. District resolution 0 → 43/43. |
 | Reasoning | **Sarvam-105b** | Indic-first. 38/38 values grounded, 16/16 co-owners correct. |
-| Geospatial | **QGIS · GDAL · PostGIS** | Open source; what government GIS actually runs on |
+| Geospatial | **PostGIS** (called) · **QGIS/GDAL** (used to prepare a map, not invoked) | Open source; what government GIS actually runs on |
 | Basemap | **Esri imagery**, off by default | OpenStreetMap does not draw these villages at all |
 
 **Data sovereignty:** Indian citizens' land records are processed by Indian
@@ -280,3 +280,13 @@ Put these on a slide. Judges trust a team that names them first.
 - Not "we use ArcGIS." We use **Esri's public basemap tiles**, which need no
   account. The ArcGIS geocoding service has not been tested, because the key
   supplied did not authenticate.
+- Not "the geospatial stack is QGIS, GDAL and PostGIS." The backend calls
+  **PostGIS** and nothing else: it contains no reference to gdal, ogr2ogr,
+  qgis or osgeo. QGIS is how a PERSON produced the world file that
+  georeferences the demo sheet - a preparation step, not a component. Say
+  "prepared in QGIS", never "powered by".
+- Not "we use a model to trace parcels." Tracing is **OpenCV contour
+  detection**, and georeferencing is an affine least-squares fit in pure
+  Python. The two neural options are both off: BoundaryNet needs torch and
+  is excluded from the deployment image, and SAM was measured worse - 4 of 6
+  plots, 861 vertices against tracing's 4-11, 64.5 s against 0.09 s.

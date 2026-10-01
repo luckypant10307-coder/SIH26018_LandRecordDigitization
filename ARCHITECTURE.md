@@ -209,6 +209,30 @@ largest.
 
 ---
 
+## 4b. What is a model here, and what is not
+
+Worth stating because the names invite the wrong assumption.
+
+| Called by the code | How |
+| --- | --- |
+| **PostGIS** | via psycopg - geodesic area, OGC validity, overlapping claims |
+| **Tesseract** | the only model that reads a map, picking khasra labels off the drawing |
+| **OpenCV** | contour tracing, ink detection, deskew, binarisation |
+
+| NOT called by the code | What it really is |
+| --- | --- |
+| **QGIS** | How a person produced `village_map_narharpur.pgw`. A preparation step. The backend contains no reference to it. |
+| **GDAL / ogr2ogr** | Installed on the development machine, never invoked. |
+| **Esri / ArcGIS** | Basemap tiles fetched by the BROWSER through Leaflet. The backend never contacts it, and no record data is in a tile request. |
+
+Parcel tracing is **classical computer vision**, not a model, and
+georeferencing is an affine least-squares fit in pure Python -
+`georeference.py` imports nothing at all. The two neural options are both
+inactive: `boundary_net.py` needs torch and is excluded from the deployment
+image, and `sam_fallback.py` was measured worse than tracing.
+
+---
+
 ## 5. Data and governance
 
 ### Storage
