@@ -328,6 +328,24 @@ Demo line: *twelve floors typed onto a 9 m building gets a warning that names
 both numbers.* The check fires in **one direction only** - a building taller
 than its declared floors is an ordinary record.
 
+**Answer the LiDAR question before it is asked.** A judge who knows this field
+will ask why not LiDAR and drones. Four sources checked against *rural
+Jaunpur*, not a metro testbed:
+
+| Source | Why not |
+| --- | --- |
+| **SVAMITVA** | The right data, and it exists: drone-flown **317,715 villages**, 92% of those notified, 2.25 crore property cards. Public access is the property card via DigiLocker; the orthomosaics stay with Survey of India. Government-held, not open. |
+| IIT-H / TiHAN LiDAR | Autonomous-driving scans around Hyderabad, 2-4 min scenes. Wrong shape, wrong region. |
+| OSM `building:levels` | The exact field we lack. **Measured: 76 of 2,784 buildings in central Lucknow (2.7%), 0 of 31 in Jaunpur town, 0 of 2 in Amari village.** |
+| GHSL height | 100 m raster. A parcel is one pixel. |
+
+So the satellite envelope is **not a compromise, it is the ceiling** for open
+data over rural India. A LiDAR design is better engineering against data that
+does not exist here - and that is equally true of any competing system built
+that way. SVAMITVA is the integration path, and it is an access question, not a
+technical one: the provenance model already has the empty `surveyed` slot
+waiting for it.
+
 **The engineering worth a sentence.** Source tiles are 270 MB each. We read one
 parcel's height in **~80 KB** using HTTP range requests against the internally
 tiled, Deflate-compressed GeoTIFF, taking only the height band because the file
@@ -360,6 +378,9 @@ Put these on a slide. Judges trust a team that names them first.
   coordinate in the Atlantic - so the module refuses any ring that is not
   plausibly degrees. Until a sheet gets control points or the state shapefile
   arrives, this layer contributes nothing, and says so rather than guessing.
+- **No LiDAR or drone data, and not for want of looking.** SVAMITVA has flown
+  92% of notified villages but publishes only property cards. OSM's floor-count
+  tag covers 0 of the 2 mapped buildings in the village our documents come from.
 - **The satellite cannot see a floor slab.** It bounds the building envelope. It
   does not know storeys or unit boundaries, and Open Buildings v1 stops at 2023,
   so a newer building is absent.

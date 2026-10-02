@@ -518,6 +518,37 @@ keeps its declared geometry, so enabling it can add evidence and cannot remove
 any. Attribution is a licence condition, so it is returned with every reading
 and rendered beside every height.
 
+### Why not LiDAR or drone imagery
+
+The obvious way to measure a building is to fly it, and a 3D cadastre built on
+LiDAR point clouds and drone orthomosaics is the textbook design. Four sources
+were checked against *this* corpus — rural Jaunpur, not a metro testbed — and
+none of them reaches it.
+
+| Source | Why it does not apply here |
+| --- | --- |
+| **SVAMITVA** (Min. of Panchayati Raj + Survey of India) | **Exactly the right data.** Drone-flown 317,715 villages, 92% of those notified, 2.25 crore property cards issued. But public access is the individual property card via DigiLocker; the orthomosaics and point clouds stay with Survey of India and are not published. Government-held, not open. |
+| **IIT-H / TiHAN LiDAR** | Mobile autonomous-driving scans in and around Hyderabad — 2–4 minute scenes, built for ground-point removal and navigation. Wrong shape, wrong region, not cadastral. |
+| **OSM `building:levels`** | An actual floor count, which is precisely the field no document provides. *Measured:* 2.7% of buildings in central Lucknow carry it (76 of 2,784), **0 of 31** in Jaunpur town, **0 of 2** in Amari village. |
+| **GHSL building height** | 100 m raster. A parcel is one pixel. |
+
+The last row of the OSM measurement is the one to keep in mind: the tag exists,
+it is the right tag, and in the village this project's real documents come from
+there are two mapped buildings and neither has it.
+
+**So the satellite envelope is not a compromise, it is the ceiling.** For a
+parcel in Amari, a 4 m Sentinel-2-derived height is the best measurement
+obtainable today from open data. A LiDAR-based design is better engineering
+against data that does not exist for rural India — which is worth saying
+plainly, because it is also true of any competing system built that way.
+
+**The integration path, if asked.** SVAMITVA is the answer, and it is an access
+question rather than a technical one: the drone survey has already happened
+over 92% of notified villages. A department deployment would read the
+orthomosaic and the parcel geometry from Survey of India directly, and this
+layer's provenance model already has the slot for it — `surveyed`, the state
+that is currently always empty.
+
 ### API
 
 | | |
