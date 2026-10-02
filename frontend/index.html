@@ -174,6 +174,53 @@
       </div>
     </div>
 
+    <!-- Vertical property. A flat, a basement bay or an air-rights envelope
+         is a separate holding that a 2D parcel cannot identify. The stack is
+         DECLARED from the parcel footprint and a storey height, because no
+         survey of the building exists - so the panel says so rather than
+         presenting the heights as measurements. -->
+    <div class="card" id="verticalCard">
+      <div class="card-head">
+        <h3>Vertical property</h3>
+        <span class="muted small" id="verticalSource"></span>
+      </div>
+
+      <div id="verticalEmpty" class="vert-intro">
+        <p class="muted small">
+          This record describes the ground. Declare the building standing on it
+          to give each floor its own identifier.
+        </p>
+      </div>
+
+      <div class="vert-form" id="verticalForm">
+        <label>Parcel ULPIN
+          <input type="text" id="vUlpin" maxlength="14" spellcheck="false"
+                 placeholder="14 characters" />
+          <span class="hint" id="vUlpinHint">from the record, or entered here</span>
+        </label>
+        <label>Floors above ground
+          <input type="number" id="vFloors" min="0" max="99" value="2" />
+        </label>
+        <label>Basements
+          <input type="number" id="vBasements" min="0" max="99" value="0" />
+        </label>
+        <label>Units per floor
+          <input type="number" id="vUnits" min="1" max="999" value="1" />
+        </label>
+        <label>Storey height
+          <input type="number" id="vStorey" min="2" max="10" step="0.1" value="3" />
+          <span class="hint">metres</span>
+        </label>
+        <button class="btn" id="vGenerateBtn">Generate 3D ULPINs</button>
+      </div>
+
+      <div id="verticalResult" hidden>
+        <div class="vert-stack" id="vertStack"></div>
+        <div class="vert-detail" id="vertDetail"></div>
+        <p class="vert-note muted small" id="vertNote"></p>
+      </div>
+    </div>
+
     <div class="card">
       <h3>Validation findings</h3>
       <div id="issueList" class="issue-list"></div>

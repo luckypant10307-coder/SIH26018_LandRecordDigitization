@@ -155,6 +155,38 @@ CREATE TABLE IF NOT EXISTS corrections (
     source_line     TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_corrections_field ON corrections(field_key);
+
+-- Vertical parcels (PS 26011) -------------------------------------------
+-- One separately-owned VOLUME stacked on a surface parcel: a flat, a
+-- basement bay, an air-rights envelope. The surface parcel keeps its own
+-- row in parcel_geometry; this table is what a 2D cadastre cannot hold.
+--
+-- The footprint is stored as JSON rather than a geometry column because
+-- this table must work on SQLite, where there is no geometry type - the
+-- same reason the rest of the system stores geotags and parcel readings as
+-- JSON. PostGIS adds the indexed geometry when it is available.
+--
+-- base_m and top_m are metres relative to GROUND, so a basement is
+-- negative. surveyed records whether the volume was measured or declared
+-- from a nominal storey height; it is the difference between a fact and an
+-- assumption and is never allowed to go missing.
+CREATE TABLE IF NOT EXISTS vertical_parcel (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    ulpin_3d        TEXT NOT NULL UNIQUE,
+    parcel_ulpin    TEXT NOT NULL,
+    level_code      TEXT NOT NULL,
+    unit            INTEGER NOT NULL,
+    base_m          REAL NOT NULL,
+    top_m           REAL NOT NULL,
+    surveyed        INTEGER NOT NULL DEFAULT 0,
+    footprint_is_parcel INTEGER NOT NULL DEFAULT 0,
+    footprint_json  TEXT NOT NULL,
+    owner_name      TEXT,
+    document_id     INTEGER REFERENCES documents(id) ON DELETE CASCADE,
+    created_at      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_vertical_parcel ON vertical_parcel(parcel_ulpin);
+CREATE INDEX IF NOT EXISTS idx_vertical_document ON vertical_parcel(document_id);
 """
 
 
@@ -298,6 +330,14 @@ class Database:
         for column in ("geotag_json", "owners_json", "parcel_map_json"):
             self._add_column_if_missing("documents", column, "TEXT")
 
+        # vertical_parcel.footprint_is_parcel arrived one commit after the
+        # table itself, so a database created in between has the table without
+        # the column. The default is 0, meaning "this footprint is the unit's
+        # own" - the conservative reading, because it makes the detector report
+        # a pair rather than stay quiet about it.
+        self._add_column_if_missing("vertical_parcel", "footprint_is_parcel",
+                                    "INTEGER NOT NULL DEFAULT 0")
+
     def _add_column_if_missing(self, table: str, column: str, ddl: str) -> None:
         with _LOCK:
             if self.is_postgres:
@@ -363,8 +403,17 @@ class Database:
                               "BIGSERIAL PRIMARY KEY")
             # PRAGMAs are SQLite's own knobs: WAL is its journal mode, and
             # Postgres enforces foreign keys unconditionally.
+            #
+            # Whole-line "--" comments go too, because the split below is on
+            # ";" and a semicolon inside a comment cuts the script in half
+            # mid-sentence - the remainder then reaches Postgres as a statement
+            # made of English, and the schema fails to apply on Postgres while
+            # SQLite (which parses the script properly) stays green. Only
+            # whole-line comments are dropped, so a "--" inside a string
+            # literal is left alone.
             sql = "\n".join(line for line in sql.splitlines()
-                            if not line.strip().upper().startswith("PRAGMA"))
+                            if not line.strip().upper().startswith("PRAGMA")
+                            and not line.strip().startswith("--"))
             cur = self._conn.cursor()
             # psycopg refuses multiple statements in one execute only for
             # prepared queries; a plain execute of the whole script is fine,
@@ -514,6 +563,66 @@ class Database:
             self.run(
                 "INSERT INTO users (username, full_name, role, office, created_at) "
                 "VALUES (?,?,?,?,?)", (username, name, role, office, _now()))
+
+    # -- vertical parcels (PS 26011) --------------------------------------
+    def store_vertical(self, parcels, document_id=None) -> int:
+        """
+        Persist a stack of vertical parcels. Returns how many were written.
+
+        Replaces by ulpin_3d rather than inserting blindly: regenerating a
+        building's stack after a floor count is corrected must not leave the
+        old stack behind beside the new one, which would read as every unit
+        being claimed twice.
+        """
+        import json as _json
+        written = 0
+        for p in parcels:
+            d = p.to_dict() if hasattr(p, "to_dict") else dict(p)
+            existing = self.one("SELECT id FROM vertical_parcel WHERE ulpin_3d = ?",
+                                (d["ulpin_3d"],))
+            payload = (d["parcel_ulpin"], d["level_code"], int(d["unit"]),
+                       float(d["base_m"]), float(d["top_m"]),
+                       1 if d.get("surveyed") else 0,
+                       1 if d.get("footprint_is_parcel") else 0,
+                       _json.dumps(getattr(p, "footprint", []), ensure_ascii=False),
+                       d.get("owner_name"), document_id)
+            if existing:
+                self.run("UPDATE vertical_parcel SET parcel_ulpin=?, level_code=?, "
+                         "unit=?, base_m=?, top_m=?, surveyed=?, "
+                         "footprint_is_parcel=?, footprint_json=?, "
+                         "owner_name=?, document_id=? WHERE ulpin_3d=?",
+                         payload + (d["ulpin_3d"],))
+            else:
+                self.run("INSERT INTO vertical_parcel (parcel_ulpin, level_code, "
+                         "unit, base_m, top_m, surveyed, footprint_is_parcel, "
+                         "footprint_json, owner_name, document_id, ulpin_3d, "
+                         "created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                         payload + (d["ulpin_3d"], _now()))
+            written += 1
+        return written
+
+    def vertical_parcels(self, parcel_ulpin=None, document_id=None) -> List[dict]:
+        """Stored volumes, for one parcel, one document, or everything."""
+        import json as _json
+        sql = "SELECT * FROM vertical_parcel"
+        params: tuple = ()
+        if parcel_ulpin:
+            sql += " WHERE parcel_ulpin = ?"
+            params = (parcel_ulpin,)
+        elif document_id is not None:
+            sql += " WHERE document_id = ?"
+            params = (document_id,)
+        sql += " ORDER BY parcel_ulpin, level_code, unit"
+        out = []
+        for row in self.q(sql, params):
+            d = dict(row)
+            d["footprint"] = _json.loads(d.pop("footprint_json") or "[]")
+            d["surveyed"] = bool(d.get("surveyed"))
+            # Must survive the round trip: without it every multi-unit level
+            # reloads as a pile of false overlaps.
+            d["footprint_is_parcel"] = bool(d.get("footprint_is_parcel"))
+            out.append(d)
+        return out
 
     def get_user(self, username: str) -> Optional[sqlite3.Row]:
         return self.one("SELECT * FROM users WHERE username = ?", (username,))

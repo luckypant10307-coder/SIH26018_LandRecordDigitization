@@ -1,21 +1,31 @@
 # System Architecture
 
 **Intelligent Land Record Digitization and Validation System**
-Smart India Hackathon 2026 · Problem Statement 26018 · Ministry of Rural Development, DoLR
+Smart India Hackathon 2026 · Ministry of Rural Development, DoLR
+Problem Statement **26011** — 3D ULPIN Generation and Vertical Property Mapping,
+built on the record-digitization pipeline written for **26018**.
 
 How a land record travels from an uploaded file to a verified entry in the
-register, and which of the 30 backend modules touches it on the way.
+register, how the parcel it describes is placed on the earth, and how the
+volumes stacked on that parcel get identifiers of their own.
+
+**Why one system covers both.** A 3D cadastre cannot start from a 3D model; it
+starts from a parcel that has been read, validated and located, because a
+volume identifier is derived from the parcel identifier and a footprint. The
+digitization pipeline is therefore not a previous project that was set aside —
+it is the input stage of this one. Section 8 is the part that is new.
 
 Every figure here was measured on the running system, not estimated.
 
 | | |
 | --- | --- |
-| Backend modules | 30 |
-| Backend lines | 17,492 |
-| Tests | 699 across 30 files (722 with a live PostGIS) |
+| Backend modules | 31 |
+| Backend lines | 18,169 |
+| Tests | 779 across 31 files (802 with a live PostGIS) |
 | Fields extracted | 17 |
 | Validation rules | 68 |
 | Upload formats accepted | 20 |
+| 3D conflict checks | 3 (overlap · duplicate identifier · unpartitioned level) |
 
 ---
 
@@ -195,7 +205,7 @@ matched.
 
 ## 4. Modules by role
 
-Thirty backend modules. The ones that carry the most weight are not the
+Thirty-one backend modules. The ones that carry the most weight are not the
 largest.
 
 | Role | Modules | Lines |
@@ -206,6 +216,7 @@ largest.
 | **Geospatial** | `cadastral.py`, `parcel_map.py`, `shapefile_import.py`, `topology.py`, `georeference.py`, `geocode.py`, `geocode_online.py`, `boundary_net.py`, `sam_fallback.py`, `postgis.py` | 3,982 |
 | **Validating** | `validator.py`, `fact_checker.py`, `document_authenticity.py`, `ner_extractor.py`, `anomaly_detector.py` | 1,837 |
 | **Improving** | `learning.py`, `bhashini.py`, `llm_extractor.py` | 1,356 |
+| **Third dimension** | `vertical.py` | 451 |
 
 ---
 
@@ -309,3 +320,130 @@ spelling the OCR read.
 **Every optional layer announces itself.** `run.py --check` prints what this
 machine can actually do, including what it cannot. A clean record never means
 "we checked and found nothing" when it actually means "we could not check."
+
+---
+
+## 8. The third dimension — `vertical.py`
+
+This is the PS 26011 layer. Everything above it produces a validated parcel;
+this turns that parcel into a stack of separately-identified volumes.
+
+### Why a 2D cadastre cannot answer the question
+
+A parcel record answers *who owns this ground*. It cannot answer *who owns the
+third floor*, *who owns the parking two levels down*, or *who owns the air
+above the road* — and in a vertical city those are most of the disputes. One
+surface parcel may carry a hundred separately-owned volumes, and the existing
+ULPIN identifies the parcel, not any of them.
+
+### The identifier
+
+```
+UP091223700412-F03-012
+└────────────┘ └─┘ └─┘
+ parent ULPIN   |   unit on that level, 001-999
+ 14 chars,      |
+ DILRMP 3.0     level: B.. basement · G00 ground · F.. floor
+                       A.. air rights · S.. subsurface utility
+```
+
+Four properties, each chosen against a specific failure:
+
+| Property | The failure it avoids |
+| --- | --- |
+| **Derived** — visibly a child of its parcel | An identifier that cannot be traced to its land is useless in a dispute about that land |
+| **Deterministic** — no allocator, no counter, no clock | A registry that needs a central server to mint an ID cannot work in a tehsil office with intermittent power |
+| **Reversible** — parses back to parcel, level, unit | An opaque hash would satisfy uniqueness and defeat every officer who has to read it off a document |
+| **Collision-free within the parcel** | All that is required: the parent ULPIN already separates parcels |
+
+**The level letters are mnemonic, not ordinal.** `F` sorts before `G` in ASCII,
+so a plain lexicographic sort puts the third floor below the ground floor.
+Readability was worth more than a free sort, so the format keeps the letters a
+revenue officer actually reads and `level_sort_key` supplies the physical
+order — subsurface, basements deepest-first, ground, floors, air rights. The
+frontend re-implements that same ordering, and a test asserts the two agree.
+
+**This is a proposal, not a published standard**, and the code says so wherever
+it surfaces. DILRMP 3.0 specifies the 14-character parcel ULPIN and does not
+yet specify a vertical extension. The parent comes from the official spec and
+only the suffix is ours, separated by a hyphen so the official part stays
+extractable. Presenting an invented scheme as a government one would be the
+same overclaim this project refuses everywhere else.
+
+### Geometry without a survey
+
+There is no LiDAR here, no drone imagery and no floor plans, so a unit's volume
+cannot be measured. It is **declared**: the footprint comes from the parcel
+polygon the map reader already recovered, the heights from a nominal storey
+height, and every such volume carries `surveyed=False` plus a note saying so in
+its own serialised form — so the caveat travels with the data instead of living
+in a document nobody reads.
+
+A declared volume is still useful. It detects two units claiming one space,
+which is the question a registry has to answer, and it does so without
+pretending to a precision nobody measured.
+
+### Conflict detection, and the third answer
+
+A conflict requires **both** a shared footprint and a shared height range.
+Either alone is ordinary:
+
+- flats on one landing share a height range and sit side by side
+- flats in one column share a footprint and sit one above another
+- a flat's ceiling *is* the next flat's floor, so `top == base` on every storey
+  of every building — touching is not overlapping
+
+Getting this wrong is not a cosmetic bug. A detector that flags real buildings
+is worse than none, because a reviewer learns to dismiss it. Most of the 35
+tests in `tests/test_vertical.py` therefore assert **negatives**.
+
+There is a third case, and it is the one worth defending in a review. Several
+units on one level, each inheriting the whole parcel as its footprint because
+the document carries no floor plan, are **neither** a conflict **nor** cleared.
+Calling them an overlap flags every ordinary block of flats. Calling them clean
+asserts a separation nobody verified. So they are reported once per level as
+`LEVEL_NOT_PARTITIONED` — severity *info*, a stated gap rather than a verdict:
+
+> *Level F01 of UP091223700412 holds 3 units, each recorded with the whole
+> parcel as its footprint because the document carries no floor plan. Whether
+> they overlap cannot be determined from this record.*
+
+That distinction cannot come from the coordinates, because two flats on an
+undivided level are geometrically identical to two owners sold the same flat.
+It is a **declared fact**, carried on the volume as `footprint_is_parcel` and
+persisted in its own column — a flag that must survive the database round trip,
+because without it every multi-unit level reloads as a pile of false overlaps.
+
+### API
+
+| | |
+| --- | --- |
+| `GET /api/vertical?parcel=…` / `?document=…` | Stored volumes plus findings recomputed across the set |
+| `POST /api/vertical/generate` | Declare a stack: parent ULPIN, floors, basements, units per level, storey height |
+
+**Conflicts are never cached.** Two buildings become a conflict the moment the
+second one is registered, and a stored verdict from before that would call the
+first one clean — exactly the moment a volumetric register has to speak up. So
+findings are recomputed on every read.
+
+**Regeneration replaces by `ulpin_3d`.** Correcting a floor count must not
+leave the old stack sitting beside the new one, which would read as every unit
+being claimed twice.
+
+### What this layer does not do
+
+- **It does not invent a parent ULPIN.** Bhu-Naksha plot reports do not print
+  one, so the endpoint refuses rather than composing an official-looking
+  identifier from the fields it has. A fabricated ULPIN that looks allocated is
+  worse than a missing one.
+- **It does not subdivide a floor.** Splitting a footprint into N equal parts
+  would manufacture boundaries and then report confident non-overlap based on
+  them. See `LEVEL_NOT_PARTITIONED` above.
+- **It does not know metres when the sheet has no control points.** The
+  footprint is then in map pixels. Overlap detection stays valid, because it is
+  geometric and unit-free; floor area in square metres does not, and the API
+  labels the coordinate space rather than letting the number be read as metres.
+- **It is not stored in PostGIS yet.** Footprints are JSON, for the same reason
+  the rest of the system stores geometry that way — SQLite has no geometry type
+  and the system must run without a database server. PostGIS adds indexed
+  geometry when it is present.

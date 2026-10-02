@@ -54,6 +54,7 @@ import shapefile_import
 import table_structure
 import topology
 import validator as validator_mod
+import vertical
 from db import Database
 from field_extractor import (
     FIELD_BY_KEY, FIELD_SPECS, extract_fields, fields_to_dict, summarise,
@@ -2009,6 +2010,8 @@ class Handler(BaseHTTPRequestHandler):
         if method == "GET":
             if path == "/api/auth/status":
                 return self.api_auth_status
+            if path == "/api/vertical":
+                return self.api_vertical_list
             if path == "/api/session":
                 return self.api_session
             if path == "/api/documents":
@@ -2039,6 +2042,8 @@ class Handler(BaseHTTPRequestHandler):
                 return lambda q: self.api_text(int(sub_match.group(1)), q)
 
         if method == "POST":
+            if path == "/api/vertical/generate":
+                return self.api_vertical_generate
             if path == "/api/upload":
                 return self.api_upload
             if path == "/api/seed":
@@ -2076,6 +2081,118 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, fh.read(), ctype)
 
     # -- API: reads ---------------------------------------------------
+    def api_vertical_list(self, query: dict) -> None:
+        """
+        Stored vertical parcels, with conflicts recomputed across the lot.
+
+        Conflicts are NOT cached. Two buildings become a conflict the moment
+        the second one is registered, and a stored verdict from before that
+        would say the first is clean - which is exactly the moment a
+        volumetric cadastre has to speak up.
+        """
+        self._current_user()        # auditors hold no rights but must read
+        parcel = (query.get("parcel") or [None])[0]
+        document = (query.get("document") or [None])[0]
+        rows = DB.vertical_parcels(
+            parcel_ulpin=parcel,
+            document_id=int(document) if document and document.isdigit() else None)
+
+        volumes = [vertical.VerticalParcel(
+            ulpin_3d=r["ulpin_3d"], parcel_ulpin=r["parcel_ulpin"],
+            level_code=r["level_code"], unit=r["unit"],
+            footprint=[tuple(p) for p in r["footprint"]],
+            base_m=r["base_m"], top_m=r["top_m"],
+            surveyed=r["surveyed"],
+            footprint_is_parcel=r.get("footprint_is_parcel", False),
+            owner_name=r.get("owner_name"),
+            document_id=r.get("document_id")) for r in rows]
+
+        self._json({
+            "parcels": [v.to_dict() for v in volumes],
+            "conflicts": vertical.find_conflicts(volumes),
+            "scheme": vertical.describe(),
+        })
+
+    def api_vertical_generate(self, query: dict) -> None:
+        """
+        Build a declared stack for one document's parcel and store it.
+
+        Takes the floor count from the CALLER, because no land record in this
+        corpus states one and inferring it from the area would be inventing a
+        building. The operator declares what they can see; the system records
+        that it was declared.
+        """
+        user = self._require("upload")
+        body = self._json_body()
+        document_id = body.get("document_id")
+        doc = DB.get_document(int(document_id)) if document_id else None
+        if not doc:
+            raise ApiError(404, "No such document.")
+
+        values = {f["field_key"]: f.get("value") for f in DB.get_fields(int(document_id))}
+        parcel_ulpin = (body.get("parcel_ulpin") or values.get("ulpin") or "").strip().upper()
+        if not parcel_ulpin:
+            raise ApiError(
+                400, "This record carries no ULPIN, and a 3D ULPIN must descend "
+                     "from a parcel identifier. Supply parcel_ulpin explicitly.")
+
+        # The footprint the building stands on is the parcel polygon the map
+        # reader already recovered, so the caller does not re-enter it. Note
+        # the coordinate space: that polygon is in PIXELS of the map image
+        # unless the sheet carried control points. Pixels are enough to detect
+        # two units claiming one volume, which is geometric and unit-free, and
+        # they are NOT enough to report a floor area in square metres - so the
+        # space is reported rather than quietly assumed to be metres.
+        footprint = body.get("footprint")
+        crs = "caller-supplied"
+        if not footprint:
+            reading = (doc.get("parcel_map") or {})
+            footprint = reading.get("subject_polygon")
+            crs = "map-pixels"
+        if not footprint or len(footprint) < 3:
+            raise ApiError(
+                400, "No footprint available. A vertical parcel needs the ground "
+                     "it stands on, and this record carries no parcel polygon - "
+                     "supply one, or re-upload a document whose map can be read.")
+
+        try:
+            stack = vertical.stack(
+                parcel_ulpin, [tuple(p) for p in footprint],
+                floors_above=int(body.get("floors_above") or 0),
+                basements=int(body.get("basements") or 0),
+                units_per_level=int(body.get("units_per_level") or 1),
+                storey_m=float(body.get("storey_m") or vertical.DEFAULT_STOREY_M))
+        except vertical.VerticalError as exc:
+            raise ApiError(400, str(exc))
+
+        for volume in stack:
+            volume.owner_name = values.get("owner_name")
+            volume.document_id = int(document_id)
+
+        written = DB.store_vertical(stack, document_id=int(document_id))
+        DB.audit(user, "vertical.generate", document_id=int(document_id),
+                 detail=f"{written} declared volumes for {parcel_ulpin}")
+
+        existing = DB.vertical_parcels()
+        all_volumes = [vertical.VerticalParcel(
+            ulpin_3d=r["ulpin_3d"], parcel_ulpin=r["parcel_ulpin"],
+            level_code=r["level_code"], unit=r["unit"],
+            footprint=[tuple(p) for p in r["footprint"]],
+            base_m=r["base_m"], top_m=r["top_m"], surveyed=r["surveyed"],
+            footprint_is_parcel=r.get("footprint_is_parcel", False))
+            for r in existing]
+
+        self._json({
+            "generated": written,
+            "coordinate_space": crs,
+            "parcels": [v.to_dict() for v in stack],
+            "conflicts": vertical.find_conflicts(all_volumes),
+            "notes": ([] if crs != "map-pixels" else [
+                "Footprint is in pixels of the parcel map, because this sheet "
+                "carried no control points. Overlap detection is valid; any "
+                "area figure derived from it is not in square metres."]),
+        })
+
     def api_auth_status(self, query: dict) -> None:
         """
         Whether this server requires a signed-in user. Deliberately public.

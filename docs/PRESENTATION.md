@@ -1,7 +1,10 @@
 # Architecture, for the presentation
 
+**Problem Statement 26011 — 3D ULPIN Generation and Vertical Property
+Mapping**, built on the record-digitization pipeline written for 26018.
+
 Slide-ready content. Every figure was re-counted from the running system
-on 30 Sep 2026 and measured on **20 genuine Bhu-Naksha documents**, not on
+on 2 Oct 2026 and measured on **20 genuine Bhu-Naksha documents**, not on
 the synthetic corpus.
 
 Supersedes the stage content in `DIAGRAM_SPEC.md`, which predates the map
@@ -11,12 +14,20 @@ pipeline, the language layer and the verified spatial database.
 
 ## SLIDE 1 — The one-line claim
 
-> **One document is four kinds of content. We read all four, and let them
-> check each other.**
+> **A land record describes the ground. We read it, validate it, place it on
+> the earth — and then give every floor standing on it an identifier of its
+> own.**
+
+Two halves, and the second needs the first. A 3D cadastre cannot start from a
+3D model; it starts from a parcel that has been read, validated and located,
+because a volume identifier is *derived* from the parcel identifier and a
+footprint. The digitization pipeline is the input stage, not a previous
+project.
 
 A Bhu-Naksha plot report carries structured text, a table of co-owners,
 mutation orders in prose, and **the parcel map itself**. Most systems read
-the first. We read all four and cross-validate between them.
+the first. We read all four, cross-validate between them, and then build
+upward from the polygon that comes out.
 
 ---
 
@@ -42,26 +53,34 @@ the pipelines do not divide documents between them, they all read the
         └───────────────────────┼───────────────────────┘
                                 │
                  ┌──────────────▼───────────────┐
-                 │          MERGE                │
-                 │  verified > grounded >        │
-                 │  unverified                   │
-                 │  disagreement = a finding     │
+                 │          MERGE               │
+                 │  verified > grounded >       │
+                 │  unverified                  │
+                 │  disagreement = a finding    │
                  └──────────────┬───────────────┘
                                 │
                  ┌──────────────▼───────────────┐
-                 │  68 rules in 3 directions     │
-                 │  within · across · registry   │
+                 │  68 rules in 3 directions    │
+                 │  within · across · registry  │
                  └──────────────┬───────────────┘
                                 │
                   auto-approve · review · block
                                 │
-                                ▼
-                      officer corrects a field
-                                │
-                                ▼
-                     teaches the EXTRACTOR
-              character confusions · value aliases ·
-                  confidence calibration
+        ┌─────────────────────────────────────┐
+        ▼                                     ▼
+  officer corrects a field           2D PARCEL POLYGON
+        │                                     │
+        ▼                          ┌──────────────────────┐
+ teaches the EXTRACTOR             ▼                      ▼
+ character confusions ·      existing 2D GIS          ④ 3D MODULE
+ value aliases ·             PostGIS overlap          PS 26011
+ confidence calibration                                   │
+                                                 footprint + levels +
+                                                 storey height (DECLARED)
+                                                          │
+                                                 3D ULPIN per volume
+                                                 vertical conflict check
+                                                 floor view per level
 ```
 
 Separately, and NOT from those corrections, the merge's own LLM output is
@@ -89,6 +108,8 @@ them is evidence neither can give alone.
 | **Spatial database** | PostGIS: geodesic area, overlapping claims | Answers "do two documents claim the same ground?" |
 | **Self-generated training data** | Sarvam labels a corpus for LayoutXLM | The system produces its own ground truth instead of waiting for annotators |
 | **Satellite basemap** | Parcels drawn over Esri imagery | A traced boundary becomes checkable against the actual fields |
+| **3D ULPIN** | Every floor, basement and air-rights envelope gets a derived identifier | PS 26011. A 2D register cannot name the third floor at all |
+| **Vertical conflict check** | Two owners sold the same cubic metres | Needs footprint AND height overlap - the pair of them is what makes it real |
 
 ---
 
@@ -224,6 +245,59 @@ by changing one URL.
 
 ---
 
+## SLIDE 8b — The third dimension (PS 26011)
+
+**The question a 2D register cannot answer.** A parcel record says who owns
+the ground. It cannot say who owns the third floor, the parking two levels
+down, or the air above the road — and in a vertical city those are most of
+the disputes.
+
+```
+UP091223700412-F03-012
+└────────────┘ └─┘ └─┘
+ parent ULPIN   |   unit on that level
+ 14 chars,      |
+ DILRMP 3.0     B.. basement · G00 ground · F.. floor
+                A.. air rights · S.. subsurface utility
+```
+
+Derived, deterministic, reversible, collision-free within its parcel. No
+allocator, no counter, no clock — the same unit yields the same identifier in
+a tehsil office with no network as on the state server.
+
+**Say this before a judge asks.** DILRMP 3.0 specifies the 14-character parcel
+ULPIN and does **not** specify a vertical extension. The parent is official;
+the suffix is our proposal, hyphen-separated so the official part stays
+extractable. The code says so in `describe()`, and the slide should too.
+
+**The detail that shows the detector is real.** A conflict needs BOTH a shared
+footprint and a shared height range. Either alone is an ordinary building: a
+flat's ceiling *is* the next flat's floor, so `top == base` on every storey ever
+built, and flats on one landing share a height range by definition. Most of the
+35 tests assert **negatives** — because a detector that flags real buildings is
+worse than none, since a reviewer learns to dismiss it.
+
+**And the answer worth defending.** Three flats on one floor, each inheriting
+the whole parcel footprint because the document has no floor plan, are neither
+a conflict nor cleared:
+
+| Call it | And you have |
+| --- | --- |
+| an overlap | flagged every block of flats in India |
+| clean | asserted a separation nobody verified |
+| `LEVEL_NOT_PARTITIONED` | stated the gap, once per level, severity *info* |
+
+We take the third. The distinction cannot come from the geometry — two flats on
+an undivided level are geometrically identical to two owners sold the same flat
+— so it is a declared fact stored with the volume, not an inference.
+
+**Honest about the geometry.** No LiDAR, no drone imagery, no floor plans, so
+volumes are DECLARED from the footprint plus a nominal storey height and every
+one carries `surveyed=False` in its own serialised form. The caveat travels
+with the data rather than living in a document nobody opens.
+
+---
+
 ## SLIDE 9 — Honest limits
 
 Put these on a slide. Judges trust a team that names them first.
@@ -243,6 +317,18 @@ Put these on a slide. Judges trust a team that names them first.
   from ArcGIS's own `portals/self` check, so whether it reaches Indian
   villages where OpenStreetMap does not is still an open question, not a
   claim in either direction.
+- **Vertical geometry is declared, not surveyed.** Floor heights come from a
+  nominal storey height the operator can change, not from measurement, and
+  floors are not subdivided into units because no floor plan exists. The
+  system reports that gap per level instead of guessing past it.
+- **Floor counts are entered, not extracted.** None of the 17 fields is a floor
+  or storey count, because no document in the corpus prints one. The operator
+  declares it; inferring a building's height from a plot area would be
+  inventing the building.
+- **Vertical parcels are not in PostGIS yet.** Footprints are stored as JSON,
+  so overlap uses a bounding-box candidate test rather than an indexed
+  `ST_Relate`. Correct for the volumes in one parcel; it would not scale to a
+  city.
 - **LayoutXLM is not trained yet.** The dataset is generated and the boxes
   are exact, but no fine-tune has run — there is no CUDA on the development
   machine, so it goes to Kaggle. Its licence is research-only, which a
@@ -254,8 +340,8 @@ Put these on a slide. Judges trust a team that names them first.
 
 | | |
 | --- | --- |
-| Backend modules | 30 |
-| Tests | 699 (702 with online geocoding) |
+| Backend modules | 31 |
+| Tests | 779 (802 with a live PostGIS) |
 | Validation rules | 68 |
 | Fields / label aliases | 17 / 226 |
 | Document types | 6 |
@@ -285,6 +371,12 @@ Put these on a slide. Judges trust a team that names them first.
   qgis or osgeo. QGIS is how a PERSON produced the world file that
   georeferences the demo sheet - a preparation step, not a component. Say
   "prepared in QGIS", never "powered by".
+- Not "3D ULPIN is a government standard." DILRMP 3.0 defines the 14-character
+  **parcel** ULPIN. The vertical suffix is **our proposal**, and the code says
+  so where it surfaces.
+- Not "we model buildings in 3D." We register **volumes**: a footprint and a
+  height range per unit. There is no mesh, no BIM and no survey behind them -
+  they are declared, and flagged as declared.
 - Not "we use a model to trace parcels." Tracing is **OpenCV contour
   detection**, and georeferencing is an affine least-squares fit in pure
   Python. The two neural options are both off: BoundaryNet needs torch and

@@ -128,6 +128,20 @@ def report() -> int:
     else:
         print(f"  LLM field suggestions : off ({llm_extractor.unavailable_reason()})")
 
+    # PS 26011. Always available - it is pure arithmetic over the parcel
+    # polygon, with no optional dependency to be missing. What the line has to
+    # say is that the geometry is DECLARED, because that is the limitation a
+    # reader of this report needs and the one a capability list would hide.
+    import vertical
+    v = vertical.describe()
+    print(f"  3D ULPIN (vertical)   : available - {v['format']}")
+    print(f"                          levels {'/'.join(sorted(v['levels']))}, "
+          f"default storey {v['default_storey_m']} m")
+    print("                          volumes are DECLARED from the parcel")
+    print("                          footprint, not surveyed; the vertical")
+    print("                          suffix is this project's proposal, not")
+    print("                          a published DILRMP standard")
+
     import sam_fallback
     sam = sam_fallback.status()
     if sam["enabled"]:

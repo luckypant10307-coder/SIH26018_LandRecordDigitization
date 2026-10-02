@@ -229,6 +229,14 @@ class VerticalParcel:
     base_m: float
     top_m: float
     surveyed: bool = False                     # True only with real measurement
+    footprint_is_parcel: bool = False
+    # True when this unit's footprint is simply the WHOLE parcel, inherited
+    # because no floor plan exists to say how the level is divided. It is not
+    # a detail: two flats on one undivided level are geometrically identical
+    # to two owners sold the same flat, so without this flag the detector
+    # cannot tell a normal landing from a double allocation and reports every
+    # multi-flat floor as a conflict. The difference is a declared fact, not
+    # something recoverable from the coordinates.
     owner_name: Optional[str] = None
     document_id: Optional[int] = None
     notes: List[str] = dc_field(default_factory=list)
@@ -249,6 +257,7 @@ class VerticalParcel:
             "top_m": self.top_m,
             "height_m": self.height_m,
             "surveyed": self.surveyed,
+            "footprint_is_parcel": self.footprint_is_parcel,
             "owner_name": self.owner_name,
             "document_id": self.document_id,
             "notes": list(self.notes),
@@ -298,7 +307,7 @@ def stack(parcel_ulpin: str,
                 parcel_ulpin=parcel_ulpin.strip().upper(),
                 level_code=code, unit=unit,
                 footprint=list(ring), base_m=base, top_m=top,
-                surveyed=False))
+                surveyed=False, footprint_is_parcel=True))
     return out
 
 
@@ -338,6 +347,47 @@ def z_overlap(a: VerticalParcel, b: VerticalParcel) -> float:
     return round(high - low, 3) if high > low else 0.0
 
 
+def _share_an_undivided_level(a: VerticalParcel, b: VerticalParcel) -> bool:
+    """Two units on one level of one parcel, neither with a real unit boundary."""
+    return (a.parcel_ulpin == b.parcel_ulpin
+            and a.level_code == b.level_code
+            and a.footprint_is_parcel and b.footprint_is_parcel)
+
+
+def _unpartitioned_levels(parcels: Sequence[VerticalParcel]) -> List[dict]:
+    """
+    One finding per level that holds several units of unknown extent.
+
+    Grouped per level rather than per pair on purpose: ten flats on a landing
+    make 45 pairs, and 45 copies of the same sentence is how a reviewer learns
+    to scroll past findings.
+    """
+    groups: Dict[Tuple[str, str], List[VerticalParcel]] = {}
+    for p in parcels:
+        if p.footprint_is_parcel:
+            groups.setdefault((p.parcel_ulpin, p.level_code), []).append(p)
+
+    out: List[dict] = []
+    for (parcel_ulpin, code), members in sorted(groups.items()):
+        if len(members) < 2:
+            continue                 # one unit holding the whole level is fine
+        out.append({
+            "rule": "LEVEL_NOT_PARTITIONED", "severity": "info",
+            "parcel_ulpin": parcel_ulpin, "level_code": code,
+            "ulpins": sorted(m.ulpin_3d for m in members),
+            "message": (f"Level {code} of {parcel_ulpin} holds "
+                        f"{len(members)} units, each recorded with the whole "
+                        f"parcel as its footprint because the document carries "
+                        f"no floor plan. Whether they overlap cannot be "
+                        f"determined from this record."),
+            "suggestion": ("Attach a floor plan or unit measurements to make "
+                           "overlap on this level checkable. Until then the "
+                           "units are neither confirmed separate nor "
+                           "conflicting."),
+        })
+    return out
+
+
 def find_conflicts(parcels: Sequence[VerticalParcel]) -> List[dict]:
     """
     Pairs of volumes claiming the same space.
@@ -347,11 +397,23 @@ def find_conflicts(parcels: Sequence[VerticalParcel]) -> List[dict]:
     by side, and the flats in one column share a footprint and sit one above
     another. Only the two together mean two owners have been sold the same
     cubic metres.
+
+    THE THIRD ANSWER. Several units on one level, each carrying the whole
+    parcel as its footprint because no floor plan exists, are not a conflict
+    and are not cleared either - the question is unanswerable from what the
+    document gives. Calling that pair an overlap flags every ordinary block of
+    flats; calling it clean asserts a separation nobody verified. So it is
+    reported once per level as LEVEL_NOT_PARTITIONED, a stated gap rather than
+    a verdict in either direction.
     """
     out: List[dict] = []
+    for group in _unpartitioned_levels(parcels):
+        out.append(group)
     for i in range(len(parcels)):
         for j in range(i + 1, len(parcels)):
             a, b = parcels[i], parcels[j]
+            if _share_an_undivided_level(a, b):
+                continue            # reported once per level, above
             if a.ulpin_3d == b.ulpin_3d:
                 out.append({
                     "rule": "DUPLICATE_3D_ULPIN", "severity": "error",

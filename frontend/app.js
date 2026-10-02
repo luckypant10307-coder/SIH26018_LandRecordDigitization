@@ -327,6 +327,9 @@ function applyRights() {
   $("#exportCsvBtn").disabled = !can("export");
   $("#approveBtn").disabled = !can("approve");
   $("#rejectBtn").disabled = !can("reject");
+  // Declaring a building writes to the register, so it needs the same right
+  // as an upload. An auditor can read a stack and cannot create one.
+  $("#vGenerateBtn").disabled = !can("upload");
 }
 
 $("#userSelect").addEventListener("change", async (e) => {
@@ -583,6 +586,160 @@ function renderOwners(owners) {
     + `</tbody>`;
 }
 
+/* ------------------------------------------------------------------ *
+ * Vertical property (PS 26011)
+ *
+ * The stack is drawn bottom-to-top, which the level codes do NOT give for
+ * free: "F" sorts before "G" in ASCII, so a plain sort would put the third
+ * floor underneath the ground floor. The server sends the physical order;
+ * this only has to preserve it, so nothing here re-sorts the list.
+ * ------------------------------------------------------------------ */
+
+const TIER = { S: 0, B: 1, G: 2, F: 3, A: 4 };
+
+function levelRank(code) {
+  const kind = code[0];
+  const n = parseInt(code.slice(1), 10);
+  return [TIER[kind] === undefined ? 9 : TIER[kind],
+          (kind === "B" || kind === "S") ? -n : n];
+}
+
+function byLevel(a, b) {
+  const ra = levelRank(a), rb = levelRank(b);
+  return ra[0] - rb[0] || ra[1] - rb[1];
+}
+
+function renderVertical(data, doc) {
+  const card = $("#verticalCard");
+  const parcels = (data && data.parcels) || [];
+  const findings = (data && data.conflicts) || [];
+
+  const fields = {};
+  ((doc && doc.fields) || []).forEach((f) => { fields[f.field_key] = f.value; });
+  const known = (fields.ulpin || "").trim();
+  if (known && !$("#vUlpin").value) $("#vUlpin").value = known;
+  $("#vUlpinHint").textContent = known
+    ? "taken from the record"
+    : "this record prints no ULPIN — enter the parcel's own";
+
+  $("#verticalEmpty").hidden = parcels.length > 0;
+  $("#verticalResult").hidden = parcels.length === 0;
+  if (!parcels.length) {
+    $("#verticalSource").textContent = "";
+    return;
+  }
+
+  // Group units by level, then draw levels top floor first so the picture
+  // reads the way a building looks.
+  const levels = {};
+  parcels.forEach((p) => { (levels[p.level_code] = levels[p.level_code] || []).push(p); });
+  const codes = Object.keys(levels).sort(byLevel).reverse();
+
+  const gapFor = {};
+  findings.filter((f) => f.rule === "LEVEL_NOT_PARTITIONED")
+          .forEach((f) => { gapFor[f.level_code] = f; });
+
+  $("#verticalSource").textContent =
+    `${parcels.length} declared volume${parcels.length === 1 ? "" : "s"}`;
+
+  $("#vertStack").innerHTML = codes.map((code) => {
+    const units = levels[code];
+    const first = units[0];
+    const kind = first.level_kind || "";
+    return `<button class="vert-level" data-level="${esc(code)}"
+              aria-label="Level ${esc(code)}, ${esc(kind)}">
+      <span class="vl-code">${esc(code)}</span>
+      <span class="vl-kind">${esc(kind)}</span>
+      <span class="vl-height">${first.base_m}&ndash;${first.top_m} m</span>
+      <span class="vl-units">${units.length} unit${units.length === 1 ? "" : "s"}</span>
+      ${gapFor[code] ? `<span class="vl-flag" title="internal boundaries unknown">?</span>` : ""}
+    </button>`;
+  }).join("");
+
+  $$("#vertStack .vert-level").forEach((b) =>
+    b.addEventListener("click", () => selectLevel(b.dataset.level, levels, gapFor)));
+
+  const ground = codes.indexOf("G00") !== -1 ? "G00" : codes[codes.length - 1];
+  selectLevel(ground, levels, gapFor);
+
+  const notes = [];
+  if (parcels.some((p) => !p.surveyed)) {
+    notes.push("Heights are declared from a nominal storey height, not surveyed.");
+  }
+  if (parcels.some((p) => p.footprint_is_parcel)) {
+    notes.push("Each unit carries the whole parcel footprint, because the record "
+               + "holds no floor plan.");
+  }
+  if (data.coordinate_space === "map-pixels") {
+    notes.push("The footprint is in map pixels, so no floor area in square "
+               + "metres can be read off it.");
+  }
+  $("#vertNote").textContent = notes.join(" ");
+}
+
+function selectLevel(code, levels, gapFor) {
+  $$("#vertStack .vert-level").forEach((b) =>
+    b.classList.toggle("active", b.dataset.level === code));
+
+  const units = (levels[code] || []).slice()
+    .sort((a, b) => a.unit - b.unit);
+  const gap = gapFor[code];
+
+  $("#vertDetail").innerHTML = `
+    ${gap ? `<p class="vert-gap">${esc(gap.message)}</p>` : ""}
+    <table class="data-table">
+      <thead><tr><th>3D ULPIN</th><th>Unit</th><th>Base</th><th>Top</th>
+                 <th>Owner</th></tr></thead>
+      <tbody>${units.map((u) => `<tr>
+        <td class="mono">${esc(u.ulpin_3d)}</td>
+        <td class="num">${u.unit}</td>
+        <td class="num">${u.base_m} m</td>
+        <td class="num">${u.top_m} m</td>
+        <td>${u.owner_name ? esc(u.owner_name) : `<span class="muted">—</span>`}</td>
+      </tr>`).join("")}</tbody>
+    </table>`;
+}
+
+async function loadVertical(doc) {
+  try {
+    const data = await api(`/api/vertical?document=${doc.id}`);
+    renderVertical(data, doc);
+  } catch (e) {
+    renderVertical(null, doc);
+  }
+}
+
+$("#vGenerateBtn").addEventListener("click", async () => {
+  const doc = state.currentDoc;
+  if (!doc) return;
+  const btn = $("#vGenerateBtn");
+  btn.disabled = true;
+  try {
+    const data = await api("/api/vertical/generate", {
+      method: "POST",
+      json: {
+        document_id: doc.id,
+        parcel_ulpin: $("#vUlpin").value.trim(),
+        floors_above: parseInt($("#vFloors").value, 10) || 0,
+        basements: parseInt($("#vBasements").value, 10) || 0,
+        units_per_level: parseInt($("#vUnits").value, 10) || 1,
+        storey_m: parseFloat($("#vStorey").value) || 3,
+      },
+    });
+    const errors = (data.conflicts || []).filter((c) => c.severity === "error");
+    toast(`${data.generated} volumes declared`
+          + (errors.length ? ` — ${errors.length} conflict(s) found` : ""),
+          errors.length ? "warn" : "ok");
+    renderVertical(data, doc);
+  } catch (e) {
+    toast(e.message, "error");
+  } finally {
+    // Back to whatever the role allows, not unconditionally enabled - a flat
+    // `disabled = false` here would hand the button to an auditor.
+    applyRights();
+  }
+});
+
 function renderParcelMap(pm) {
   const card = $("#parcelCard");
   if (!pm || (!pm.subject_label && !(pm.neighbour_labels || []).length)) {
@@ -642,6 +799,12 @@ async function openDocument(id) {
   renderGeotag(doc.geotag);
   renderOwners(doc.owners);
   renderParcelMap(doc.parcel_map);
+
+  // Clear the previous record's ULPIN before loading, or the box would carry
+  // one parcel's identifier onto the next document and attach a building to
+  // the wrong land.
+  $("#vUlpin").value = "";
+  loadVertical(doc);
 
   const chips = [];
   if (q.legibility_score !== undefined && q.legibility_score !== null)

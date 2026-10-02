@@ -214,6 +214,71 @@ class TestDeclaredGeometry(unittest.TestCase):
         parcels = v.stack(PARCEL, SQUARE, floors_above=1, units_per_level=4)
         self.assertEqual(len(parcels), 8)            # 2 levels x 4 units
 
+    def test_a_block_of_flats_is_not_reported_as_overlapping(self):
+        """
+        REGRESSION. Four flats on a landing all inherit the whole parcel as
+        their footprint, so they share ground AND height range and the first
+        version of the detector called all six pairs an overlap - a building
+        of 3 flats per floor produced 6 errors before this.
+        """
+        parcels = v.stack(PARCEL, SQUARE, floors_above=1, units_per_level=4)
+        overlaps = [c for c in v.find_conflicts(parcels)
+                    if c["rule"] == "VERTICAL_OVERLAP"]
+        self.assertEqual(overlaps, [])
+
+    def test_but_an_undivided_level_is_not_declared_clean_either(self):
+        """
+        The honest third answer. Nobody verified that those four flats are
+        separate - the document carries no floor plan - so the level is
+        reported as unpartitioned rather than silently passed.
+        """
+        parcels = v.stack(PARCEL, SQUARE, floors_above=1, units_per_level=4)
+        gaps = [c for c in v.find_conflicts(parcels)
+                if c["rule"] == "LEVEL_NOT_PARTITIONED"]
+        self.assertEqual(len(gaps), 2)               # ground and first floor
+        self.assertTrue(all(g["severity"] == "info" for g in gaps))
+        self.assertEqual(len(gaps[0]["ulpins"]), 4)
+
+    def test_the_gap_is_reported_once_per_level_not_once_per_pair(self):
+        """Ten flats make 45 pairs; 45 copies of one sentence is noise."""
+        parcels = v.stack(PARCEL, SQUARE, floors_above=0, units_per_level=10)
+        gaps = [c for c in v.find_conflicts(parcels)
+                if c["rule"] == "LEVEL_NOT_PARTITIONED"]
+        self.assertEqual(len(gaps), 1)
+
+    def test_one_unit_holding_a_whole_level_is_not_a_gap(self):
+        """A single owner of the entire floor leaves nothing undetermined."""
+        parcels = v.stack(PARCEL, SQUARE, floors_above=3, units_per_level=1)
+        self.assertEqual(v.find_conflicts(parcels), [])
+
+    def test_a_real_double_allocation_is_still_caught(self):
+        """
+        The flag must not become a blanket excuse. Two units with MEASURED
+        footprints in the same space are a genuine conflict, and stay one.
+        """
+        a = unit_at("F02", 1)                        # footprint_is_parcel False
+        b = v.VerticalParcel(
+            ulpin_3d=v.make_3d_ulpin(PARCEL, "F02", 2), parcel_ulpin=PARCEL,
+            level_code="F02", unit=2, footprint=list(SQUARE),
+            base_m=a.base_m, top_m=a.top_m)
+        issues = v.find_conflicts([a, b])
+        self.assertEqual([i["rule"] for i in issues], ["VERTICAL_OVERLAP"])
+
+    def test_a_measured_unit_overlapping_a_declared_one_is_still_caught(self):
+        """Only a pair where BOTH sides are unmeasured is unknowable."""
+        declared = v.stack(PARCEL, SQUARE, floors_above=2)[1]   # F01, inherited
+        measured = v.VerticalParcel(
+            ulpin_3d=v.make_3d_ulpin(PARCEL, "F01", 9), parcel_ulpin=PARCEL,
+            level_code="F01", unit=9, footprint=list(SQUARE),
+            base_m=declared.base_m, top_m=declared.top_m, surveyed=True)
+        rules = [i["rule"] for i in v.find_conflicts([declared, measured])]
+        self.assertIn("VERTICAL_OVERLAP", rules)
+
+    def test_the_flag_says_the_footprint_was_inherited(self):
+        parcel = v.stack(PARCEL, SQUARE, floors_above=1)[0]
+        self.assertTrue(parcel.footprint_is_parcel)
+        self.assertTrue(parcel.to_dict()["footprint_is_parcel"])
+
     def test_declared_volumes_say_they_are_declared(self):
         """The one thing that must never be lost: this is not a measurement."""
         parcel = v.stack(PARCEL, SQUARE, floors_above=1)[0]
