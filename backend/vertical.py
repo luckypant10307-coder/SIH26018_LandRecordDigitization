@@ -52,6 +52,21 @@ else - so the parent is taken from the official spec and only the suffix is
 ours, deliberately separated by a hyphen so the official part stays
 extractable.
 
+WHERE AN INTERNATIONAL STANDARD DOES APPLY
+
+ISO 19152, the Land Administration Domain Model (LADM), is the international
+standard for exactly this domain, and it already has the concept this module
+needs: `LA_Level`, a grouping of spatial units sharing a coherent position in
+the register. The level codes here are that idea in a fixed-width identifier,
+and a "volume" here is LADM's 3D spatial unit.
+
+Stated precisely, because the distinction is the whole point: this module is
+ALIGNED with LADM's concepts and has NOT been tested for conformance against
+the standard's schema. Claiming compliance would need the class structure,
+the ISO 19152 code lists and a validation suite none of which exist here. The
+honest sentence is "modelled on LADM's level and spatial-unit concepts", and
+that is a stronger claim than "our own proposal" without being a false one.
+
 GEOMETRY WITHOUT A SURVEY
 
 With no LiDAR, no drone imagery and no floor plans, a unit's volume cannot
@@ -86,6 +101,11 @@ LEVEL_KINDS = {
 # habitable storey; it is a convention, not a measurement, and anything built
 # on it carries surveyed=False.
 DEFAULT_STOREY_M = 3.0
+
+# A sanity ceiling, not a building code. Its job is to catch a unit mix-up -
+# centimetres or feet entered where metres were meant - before the figure
+# becomes an elevation that nothing can collide with.
+MAX_STOREY_M = 50.0
 
 # Ground is the datum: its base is 0.0 and levels count outward from it.
 GROUND_LEVEL_CODE = "G00"
@@ -164,6 +184,37 @@ def parse_3d_ulpin(value: str) -> Dict[str, object]:
     }
 
 
+def _checked_storey(storey_m: float) -> float:
+    """
+    A storey height that can actually produce a volume.
+
+    `level_elevation` is the single chokepoint every elevation flows through,
+    so validating here covers `stack()` and any direct caller at once. This is
+    not a theoretical guard: storey_m arrives from an HTTP request body, and a
+    negative value used to build a whole tower whose every top sat BELOW its
+    base. Such volumes report no conflict with anything at all, because an
+    inverted range shares no height with a real one - so bad input produced a
+    building that was structurally incapable of colliding, which is the worst
+    possible failure for a conflict detector.
+    """
+    try:
+        storey_m = float(storey_m)
+    except (TypeError, ValueError):
+        raise VerticalError(f"Storey height {storey_m!r} is not a number.")
+    if storey_m != storey_m or storey_m in (float("inf"), float("-inf")):
+        raise VerticalError("Storey height must be a finite number of metres.")
+    if storey_m <= 0:
+        raise VerticalError(
+            f"Storey height must be a positive number of metres, not "
+            f"{storey_m}. A level with no height, or an inverted one, cannot "
+            f"be tested for conflict against anything.")
+    if storey_m > MAX_STOREY_M:
+        raise VerticalError(
+            f"Storey height {storey_m} m exceeds the {MAX_STOREY_M} m sanity "
+            f"limit. Check the units: this is metres, not centimetres or feet.")
+    return storey_m
+
+
 def level_elevation(code: str, storey_m: float = DEFAULT_STOREY_M) -> Tuple[float, float]:
     """
     (base, top) in metres relative to ground, for a DECLARED level.
@@ -179,6 +230,7 @@ def level_elevation(code: str, storey_m: float = DEFAULT_STOREY_M) -> Tuple[floa
     code = (code or "").strip().upper()
     if not re.match(r"^[BGFAS]\d{2}$", code):
         raise VerticalError(f"Level code {code!r} is malformed.")
+    storey_m = _checked_storey(storey_m)
     kind, number = code[0], int(code[1:])
     if kind == "G":
         return (0.0, storey_m)
@@ -244,6 +296,18 @@ class VerticalParcel:
     @property
     def height_m(self) -> float:
         return round(self.top_m - self.base_m, 3)
+
+    @property
+    def has_valid_range(self) -> bool:
+        """
+        Whether this volume occupies any height at all.
+
+        Checked rather than enforced in __post_init__ on purpose: rows arrive
+        from a database that an older version of this module wrote, and a
+        validation system must REPORT bad stored data, not refuse to load it.
+        Raising here would turn one corrupt row into a dead API endpoint.
+        """
+        return self.top_m > self.base_m
 
     def to_dict(self) -> dict:
         d = {
@@ -341,6 +405,13 @@ def z_overlap(a: VerticalParcel, b: VerticalParcel) -> float:
     Touching is NOT overlapping. A flat's floor is the ceiling of the flat
     below, so `top == base` is the normal case for every storey in every
     building - treating it as a conflict would flag an entire tower.
+
+    ASSUMES both ranges are valid (top > base). An inverted range returns 0.0
+    here, which reads as "no overlap" and is not a safe answer - so callers
+    check `has_valid_range` and report INVALID_Z_RANGE first, as
+    `find_conflicts` does. The check is deliberately not duplicated inside this
+    function: it stays total and cheap for the O(n^2) pair loop, and the one
+    caller that matters validates up front.
     """
     low = max(a.base_m, b.base_m)
     high = min(a.top_m, b.top_m)
@@ -407,6 +478,24 @@ def find_conflicts(parcels: Sequence[VerticalParcel]) -> List[dict]:
     a verdict in either direction.
     """
     out: List[dict] = []
+
+    # Corrupt elevations first, because every later answer depends on them.
+    # An inverted volume shares no height with anything, so without this it
+    # would pass silently AND suppress the overlap it genuinely has - a
+    # conflict hidden by bad data rather than reported.
+    for p in parcels:
+        if not p.has_valid_range:
+            out.append({
+                "rule": "INVALID_Z_RANGE", "severity": "error",
+                "ulpins": [p.ulpin_3d],
+                "message": (f"{p.ulpin_3d} has its top at {p.top_m} m and its "
+                            f"base at {p.base_m} m, so it encloses no space. "
+                            f"Overlap against it cannot be assessed, and a "
+                            f"clean result for it would be meaningless."),
+                "suggestion": ("Correct the floor level or the storey height "
+                               "on this record and regenerate the stack."),
+            })
+
     for group in _unpartitioned_levels(parcels):
         out.append(group)
     for i in range(len(parcels)):
@@ -448,4 +537,9 @@ def describe() -> dict:
         "standard": ("DILRMP 3.0 defines the 14-character parcel ULPIN. The "
                      "vertical suffix is this project's proposal and is not a "
                      "published standard."),
+        "modelled_on": ("ISO 19152 (Land Administration Domain Model): the "
+                        "level codes follow LADM's LA_Level concept and a "
+                        "volume is its 3D spatial unit. Aligned with those "
+                        "concepts; NOT tested for schema conformance."),
+        "max_storey_m": MAX_STOREY_M,
     }

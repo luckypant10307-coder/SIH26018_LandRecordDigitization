@@ -270,6 +270,22 @@ ULPIN and does **not** specify a vertical extension. The parent is official;
 the suffix is our proposal, hyphen-separated so the official part stays
 extractable. The code says so in `describe()`, and the slide should too.
 
+**But it is not unmoored.** ISO 19152, the Land Administration Domain Model, is
+the international standard for this domain, and its `LA_Level` class is exactly
+this concept: a grouping of spatial units sharing a coherent position in the
+register. Our level codes are `LA_Level` as a fixed-width identifier; a volume
+is LADM's 3D spatial unit. Say **"modelled on LADM"**, never "LADM compliant" -
+conformance would need the standard's class structure, code lists and a
+validation suite, and none of those are here.
+
+**The bug worth telling them about.** A volume whose top sat below its base was
+accepted silently - and because an inverted range shares no height with a real
+one, it did not just pass, it **hid the overlap it genuinely had**. A negative
+storey height from an API request produced an entire tower that was incapable
+of colliding with anything. Now refused at generation and reported as
+`INVALID_Z_RANGE` when already stored. A judge who has built anything will
+recognise that class of bug, and that we went looking for it.
+
 **The detail that shows the detector is real.** A conflict needs BOTH a shared
 footprint and a shared height range. Either alone is an ordinary building: a
 flat's ceiling *is* the next flat's floor, so `top == base` on every storey ever
@@ -371,6 +387,9 @@ Put these on a slide. Judges trust a team that names them first.
   qgis or osgeo. QGIS is how a PERSON produced the world file that
   georeferences the demo sheet - a preparation step, not a component. Say
   "prepared in QGIS", never "powered by".
+- Not "LADM compliant" or "ISO 19152 certified." We are **modelled on** LADM's
+  level and spatial-unit concepts; conformance against the schema has not been
+  tested, and the code list and class structure are not ISO's.
 - Not "3D ULPIN is a government standard." DILRMP 3.0 defines the 14-character
   **parcel** ULPIN. The vertical suffix is **our proposal**, and the code says
   so where it surfaces.

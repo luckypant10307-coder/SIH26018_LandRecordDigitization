@@ -370,6 +370,27 @@ only the suffix is ours, separated by a hyphen so the official part stays
 extractable. Presenting an invented scheme as a government one would be the
 same overclaim this project refuses everywhere else.
 
+### Where an international standard does apply
+
+**ISO 19152 — the Land Administration Domain Model (LADM).** LADM is the
+international standard for this domain and it already carries the concept this
+module needs: `LA_Level`, a grouping of spatial units that share a coherent
+position in the register. The level codes here are that idea expressed as a
+fixed-width identifier, and a "volume" here is LADM's 3D spatial unit.
+
+Stated precisely, because the precision is the point:
+
+| Claim | True? |
+| --- | --- |
+| Modelled on LADM's level and spatial-unit concepts | **Yes** |
+| Tested for conformance against the ISO 19152 schema | **No** |
+| Uses ISO 19152 code lists / class structure | **No** |
+
+Conformance would need the class structure, the standard's code lists and a
+validation suite, none of which exist here. So the sentence to use is
+*"modelled on LADM's level and spatial-unit concepts"* — stronger than "our own
+proposal", and still true.
+
 ### Geometry without a survey
 
 There is no LiDAR here, no drone imagery and no floor plans, so a unit's volume
@@ -396,6 +417,16 @@ Either alone is ordinary:
 Getting this wrong is not a cosmetic bug. A detector that flags real buildings
 is worse than none, because a reviewer learns to dismiss it. Most of the 35
 tests in `tests/test_vertical.py` therefore assert **negatives**.
+
+Before any pair is compared, each volume is checked for an **inverted height
+range** (`top <= base`). This is not defensive padding. An inverted volume
+shares no height with any real one, so it does not merely pass unnoticed — it
+**suppresses the overlap it genuinely has**, and a bad storey height arriving
+from an HTTP body produced a whole tower structurally incapable of colliding
+with anything. It is now refused at generation (`_checked_storey`, the single
+chokepoint every elevation flows through) and reported as `INVALID_Z_RANGE`
+when it is already in the database, because a validation system must report
+bad stored data rather than refuse to load it.
 
 There is a third case, and it is the one worth defending in a review. Several
 units on one level, each inheriting the whole parcel as its footprint because

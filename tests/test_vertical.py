@@ -203,6 +203,75 @@ class TestConflicts(unittest.TestCase):
         self.assertEqual(issues[0]["rule"], "DUPLICATE_3D_ULPIN")
 
 
+class TestInvertedGeometry(unittest.TestCase):
+    """
+    A volume whose top sits below its base encloses nothing.
+
+    This is the nastiest shape of bad data in the module, because an inverted
+    range shares no height with ANY real range - so it does not merely pass
+    unnoticed, it SUPPRESSES the overlap it genuinely has. Bad input produced a
+    building that was structurally incapable of colliding with anything.
+    """
+
+    def test_a_negative_storey_height_is_refused(self):
+        """It arrives from an HTTP body, so this is reachable, not theoretical."""
+        with self.assertRaises(v.VerticalError):
+            v.stack(PARCEL, SQUARE, floors_above=2, storey_m=-3.0)
+
+    def test_a_zero_storey_height_is_refused(self):
+        with self.assertRaises(v.VerticalError):
+            v.stack(PARCEL, SQUARE, floors_above=2, storey_m=0)
+
+    def test_a_non_numeric_or_infinite_storey_is_refused(self):
+        for bad in ("tall", None, float("inf"), float("nan")):
+            with self.assertRaises(v.VerticalError):
+                v.level_elevation("F01", bad)
+
+    def test_an_absurd_storey_height_is_refused(self):
+        """Catches centimetres or feet entered where metres were meant."""
+        with self.assertRaises(v.VerticalError):
+            v.level_elevation("F01", 300.0)
+
+    def test_a_stored_inverted_volume_is_reported_not_crashed_on(self):
+        """
+        Rows written by an older version must be REPORTED, not refused on load.
+        Raising would turn one corrupt row into a dead API endpoint.
+        """
+        bad = v.VerticalParcel(
+            ulpin_3d=v.make_3d_ulpin(PARCEL, "F01", 1), parcel_ulpin=PARCEL,
+            level_code="F01", unit=1, footprint=list(SQUARE),
+            base_m=6.0, top_m=3.0)
+        self.assertFalse(bad.has_valid_range)
+        issues = v.find_conflicts([bad])
+        self.assertEqual([i["rule"] for i in issues], ["INVALID_Z_RANGE"])
+        self.assertEqual(issues[0]["severity"], "error")
+
+    def test_an_inverted_volume_cannot_hide_a_real_overlap(self):
+        """
+        THE POINT OF ALL THIS. Before the check, these two returned no findings
+        whatsoever: the inverted one shares 0 m of height with the good one, so
+        the pair looked clean while both claimed the same cubic metres.
+        """
+        bad = v.VerticalParcel(
+            ulpin_3d=v.make_3d_ulpin(PARCEL, "F01", 1), parcel_ulpin=PARCEL,
+            level_code="F01", unit=1, footprint=list(SQUARE),
+            base_m=6.0, top_m=3.0)
+        good = v.VerticalParcel(
+            ulpin_3d=v.make_3d_ulpin(PARCEL, "F01", 2), parcel_ulpin=PARCEL,
+            level_code="F01", unit=2, footprint=list(SQUARE),
+            base_m=3.0, top_m=6.0)
+        self.assertEqual(v.z_overlap(bad, good), 0.0)      # silently, as before
+        rules = [i["rule"] for i in v.find_conflicts([bad, good])]
+        self.assertIn("INVALID_Z_RANGE", rules)            # but no longer silent
+
+    def test_a_generated_stack_never_contains_one(self):
+        for storey in (2.5, 3.0, 4.2):
+            for p in v.stack(PARCEL, SQUARE, floors_above=4, basements=2,
+                             storey_m=storey):
+                self.assertTrue(p.has_valid_range, p.ulpin_3d)
+                self.assertGreater(p.height_m, 0)
+
+
 class TestDeclaredGeometry(unittest.TestCase):
 
     def test_a_stack_has_one_unit_per_level(self):

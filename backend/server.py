@@ -2155,6 +2155,10 @@ class Handler(BaseHTTPRequestHandler):
                      "it stands on, and this record carries no parcel polygon - "
                      "supply one, or re-upload a document whose map can be read.")
 
+        # ValueError and TypeError are caught beside VerticalError because the
+        # numbers come from a JSON body: {"floors_above": "many"} is a bad
+        # request, not an internal error, and int() raises before the module
+        # ever gets to validate it.
         try:
             stack = vertical.stack(
                 parcel_ulpin, [tuple(p) for p in footprint],
@@ -2164,6 +2168,9 @@ class Handler(BaseHTTPRequestHandler):
                 storey_m=float(body.get("storey_m") or vertical.DEFAULT_STOREY_M))
         except vertical.VerticalError as exc:
             raise ApiError(400, str(exc))
+        except (ValueError, TypeError) as exc:
+            raise ApiError(400, f"A floor count or storey height is not a "
+                                f"number: {exc}")
 
         for volume in stack:
             volume.owner_name = values.get("owner_name")

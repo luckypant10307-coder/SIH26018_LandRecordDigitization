@@ -141,6 +141,8 @@ def report() -> int:
     print("                          footprint, not surveyed; the vertical")
     print("                          suffix is this project's proposal, not")
     print("                          a published DILRMP standard")
+    print("                          modelled on ISO 19152 (LADM) LA_Level;")
+    print("                          conformance not tested")
 
     import sam_fallback
     sam = sam_fallback.status()
