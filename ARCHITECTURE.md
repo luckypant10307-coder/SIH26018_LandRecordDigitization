@@ -530,11 +530,22 @@ none of them reaches it.
 | **SVAMITVA** (Min. of Panchayati Raj + Survey of India) | **Exactly the right data.** Drone-flown 317,715 villages, 92% of those notified, 2.25 crore property cards issued. But public access is the individual property card via DigiLocker; the orthomosaics and point clouds stay with Survey of India and are not published. Government-held, not open. |
 | **IIT-H / TiHAN LiDAR** | Mobile autonomous-driving scans in and around Hyderabad — 2–4 minute scenes, built for ground-point removal and navigation. Wrong shape, wrong region, not cadastral. |
 | **OSM `building:levels`** | An actual floor count, which is precisely the field no document provides. *Measured:* 2.7% of buildings in central Lucknow carry it (76 of 2,784), **0 of 31** in Jaunpur town, **0 of 2** in Amari village. |
+| **ISRO CartoDSM** (NRSC) | A genuine 2.5 m Digital *Surface* Model from Cartosat-1 stereo, so it does include rooftops — and horizontally it beats Open Buildings. Rejected on the number that matters: **vertical accuracy 8 m at LE90**, which is 2.7 storeys. It cannot tell a shop from a three-storey building. Its own disclaimer also warns of distortions in "homogenous plain areas", which is exactly the Ganga plain these records come from. Only the 30 m CartoDEM is free-access; 2.5 m is a Bhoonidhi order. |
+| **AIKosh** (IndiaAI) | Carries two SVAMITVA datasets, but both are `Structured` type with a listed size of 0 — progress statistics on villages flown and cards distributed, not imagery or point clouds. |
 | **GHSL building height** | 100 m raster. A parcel is one pixel. |
 
 The last row of the OSM measurement is the one to keep in mind: the tag exists,
 it is the right tag, and in the village this project's real documents come from
 there are two mapped buildings and neither has it.
+
+**The CartoDSM result is the one worth understanding**, because it is the
+Indian source and it looks like the better product. 2.5 m horizontal against
+Open Buildings' 4 m is a real improvement — in the wrong axis. A 3D cadastre
+needs to know whether a building is one storey or three, and an 8 m LE90
+vertical error spans that entire question. Open Buildings is coarser on the
+ground and purpose-built for height; for this job that is the trade worth
+taking, and it is a choice made on a published accuracy figure rather than on
+provenance.
 
 **So the satellite envelope is not a compromise, it is the ceiling.** For a
 parcel in Amari, a 4 m Sentinel-2-derived height is the best measurement

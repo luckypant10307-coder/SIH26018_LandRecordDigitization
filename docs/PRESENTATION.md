@@ -337,7 +337,15 @@ Jaunpur*, not a metro testbed:
 | **SVAMITVA** | The right data, and it exists: drone-flown **317,715 villages**, 92% of those notified, 2.25 crore property cards. Public access is the property card via DigiLocker; the orthomosaics stay with Survey of India. Government-held, not open. |
 | IIT-H / TiHAN LiDAR | Autonomous-driving scans around Hyderabad, 2-4 min scenes. Wrong shape, wrong region. |
 | OSM `building:levels` | The exact field we lack. **Measured: 76 of 2,784 buildings in central Lucknow (2.7%), 0 of 31 in Jaunpur town, 0 of 2 in Amari village.** |
+| **ISRO CartoDSM** | The Indian option, and a real 2.5 m **surface** model - finer than Open Buildings horizontally. Rejected on **8 m LE90 vertical accuracy**: that is 2.7 storeys, so it cannot tell a shop from a three-storey building. Its disclaimer also flags distortions in "homogenous plain areas" - the Ganga plain. |
+| AIKosh (IndiaAI) | Its two SVAMITVA datasets are progress statistics, not imagery. |
 | GHSL height | 100 m raster. A parcel is one pixel. |
+
+**The CartoDSM line is the one to have ready**, because a judge may well ask why
+not the ISRO product. Answer: we tried it, it is finer horizontally, and we
+rejected it on the axis that matters - 8 m of vertical error spans the whole
+question of whether a building has one storey or three. Chosen on a published
+accuracy figure, not on provenance.
 
 So the satellite envelope is **not a compromise, it is the ceiling** for open
 data over rural India. A LiDAR design is better engineering against data that
