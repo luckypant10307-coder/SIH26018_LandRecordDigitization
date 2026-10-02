@@ -1358,3 +1358,73 @@ body {
   .vert-level { grid-template-columns: 3.6rem 1fr auto 1.2rem; }
   .vert-level .vl-height { display: none; }
 }
+
+/* ---- measured building height (Open Buildings 2.5D) ----
+ *
+ * Styled as EVIDENCE, deliberately distinct from the declared stack below it:
+ * a tinted panel with its own heading, not another row in the table. The tag
+ * and the citation are both load-bearing. "Remotely sensed, not surveyed" is
+ * the difference between a number that can contradict a floor count and a
+ * number that could register someone's flat, and the attribution is a
+ * condition of the CC-BY licence rather than a nicety. */
+
+.vert-measured {
+  margin-bottom: 14px;
+  padding: 11px 13px;
+  border: 1px solid var(--blue-soft);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 var(--r) var(--r) 0;
+  background: var(--blue-soft);
+}
+.vm-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--blue-text);
+}
+.vm-tag {
+  padding: 1px 7px;
+  border: 1px solid var(--orange-edge);
+  border-radius: 999px;
+  background: var(--orange-soft);
+  color: var(--orange-text);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .02em;
+}
+.vert-measured .kv { margin: 0; }
+.vm-cite {
+  margin: 9px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+/* ---- findings about the whole building ---- */
+
+.vert-findings { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.vf {
+  padding: 9px 11px;
+  border-left: 3px solid var(--border);
+  border-radius: 0 var(--r) var(--r) 0;
+  background: var(--surface-2);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.vf p { margin: 4px 0 0; }
+.vf-rule {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: .02em;
+  color: var(--text-2);
+}
+.vf-fix { color: var(--text-2); }
+.vf-error   { border-left-color: var(--red);    background: var(--tint-red); }
+.vf-error .vf-rule   { color: var(--red-text); }
+.vf-warning { border-left-color: var(--orange); background: var(--tint-orange); }
+.vf-warning .vf-rule { color: var(--orange-text); }
+.vf-info    { border-left-color: var(--blue);   background: var(--tint-blue); }
+.vf-info .vf-rule    { color: var(--blue-text); }

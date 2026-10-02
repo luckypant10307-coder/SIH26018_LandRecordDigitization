@@ -19,13 +19,13 @@ Every figure here was measured on the running system, not estimated.
 
 | | |
 | --- | --- |
-| Backend modules | 31 |
-| Backend lines | 18,169 |
-| Tests | 779 across 31 files (802 with a live PostGIS) |
+| Backend modules | 32 |
+| Backend lines | 18,939 |
+| Tests | 815 across 32 files (838 with a live PostGIS) |
 | Fields extracted | 17 |
 | Validation rules | 68 |
 | Upload formats accepted | 20 |
-| 3D conflict checks | 3 (overlap · duplicate identifier · unpartitioned level) |
+| 3D conflict checks | 5 (overlap · duplicate id · unpartitioned level · inverted height · height vs floors) |
 
 ---
 
@@ -205,7 +205,7 @@ matched.
 
 ## 4. Modules by role
 
-Thirty-one backend modules. The ones that carry the most weight are not the
+Thirty-two backend modules. The ones that carry the most weight are not the
 largest.
 
 | Role | Modules | Lines |
@@ -216,7 +216,7 @@ largest.
 | **Geospatial** | `cadastral.py`, `parcel_map.py`, `shapefile_import.py`, `topology.py`, `georeference.py`, `geocode.py`, `geocode_online.py`, `boundary_net.py`, `sam_fallback.py`, `postgis.py` | 3,982 |
 | **Validating** | `validator.py`, `fact_checker.py`, `document_authenticity.py`, `ner_extractor.py`, `anomaly_detector.py` | 1,837 |
 | **Improving** | `learning.py`, `bhashini.py`, `llm_extractor.py` | 1,356 |
-| **Third dimension** | `vertical.py` | 451 |
+| **Third dimension** | `vertical.py`, `building_height.py` | 1,193 |
 
 ---
 
@@ -445,6 +445,79 @@ It is a **declared fact**, carried on the volume as `footprint_is_parcel` and
 persisted in its own column — a flag that must survive the database round trip,
 because without it every multi-unit level reloads as a pile of false overlaps.
 
+### Measured heights — `building_height.py`
+
+The weakest part of a declared stack was that nothing contradicted it: an
+operator could type twelve floors onto a single-storey shop and no rule
+noticed. **Google Open Buildings 2.5D Temporal** supplies the missing
+evidence — building height from Sentinel-2, annually 2016–2023, covering all
+of India at 4 m effective resolution, CC-BY 4.0 / ODbL 1.0.
+
+The decisive detail: it is height **relative to the terrain**, which is the
+same datum `vertical.py` already uses for `base_m` and `top_m`. There is no
+datum conversion to get wrong.
+
+**Three provenance states, and the middle one is new.**
+
+| | Where the height comes from | What it can settle |
+| --- | --- | --- |
+| `declared` | Typed floor count × nominal storey | Nothing; it is the claim |
+| `remote_sensed` | Satellite envelope, 4 m | Can **contradict** a floor count |
+| `surveyed` | Actual measurement | Still absent, and still flagged as such |
+
+A remotely sensed envelope knows how tall a building is. It does not know
+storeys, it does not know unit boundaries, and it is not a legal survey — so
+`HEIGHT_CONTRADICTS_FLOORS` fires in **one direction only**: the declared
+stack reaching materially above what was measured. A building *taller* than
+the floors declared on it is an ordinary record (declaring two floors of a
+six-storey block), so it is not reported. Only one of those is evidence of an
+error.
+
+Tolerance is the dataset's own 4 m resolution plus one storey. Tighter would
+flag honest records over a metre of satellite noise, which is how a check
+earns a reputation for crying wolf and then gets ignored on the day it is
+right.
+
+**How a 270 MB tile is read without downloading it.** Source tiles are
+25000×25000 at 0.5 m. Three properties of the format make a cheap read
+possible, and the module depends on all three: the bucket serves HTTP range
+requests; the GeoTIFFs are internally tiled at 512×512 and **Deflate**-
+compressed, so stdlib `zlib` is the only decoder needed; and
+`PlanarConfiguration` is 2, band-separated, so the height band's tiles are
+contiguous and the other two bands are never fetched. One lookup costs the
+IFD, the tile-offset table and a single compressed tile — **about 80 KB
+against 270 MB**, with no GDAL, no rasterio and no Earth Engine.
+
+Measured on a real lookup in central Lucknow: 11.9 s cold, 5.4 s with the
+zone manifest cached to disk, 0.9 s with the tile cached — and a neighbouring
+parcel reuses both.
+
+**The precondition, stated plainly.** Sampling needs the footprint in **lon/lat
+degrees**. Most footprints in this system are in map pixels, because the sheet
+carried no control points, and `(246, 20)` is a perfectly valid coordinate pair
+in the Atlantic — a height read there would come back with full confidence and
+no indication anything was wrong. `sample_footprint` therefore refuses any ring
+that is not plausibly degrees, and that guard is the one thing in the module
+that must not be removed. Until a parcel is georeferenced, this layer
+contributes nothing, and says so.
+
+**The predictor is the subtle part.** TIFF predictor 3 undoes horizontal
+differencing over bytes with **stride 1** (because the bands are separate),
+then de-shuffles significance planes back into floats. Using the row width as
+the stride — the obvious misreading, since the shuffle *is* row-width based —
+decodes almost correctly: flat ground has zero deltas, so it survives a
+careless eyeball check and produces absurd values only where terrain varies.
+The first run of this reader returned −3.4e38 beside plausible heights. The
+tests encode a tile the same way the dataset does and assert a round trip, with
+a deliberately varying tile, because a flat one passes under the wrong stride.
+
+**Off by default** (`BUILDING_HEIGHT=1`), like `geocode_online`. What leaves the
+machine is a coordinate pair and a byte range — no owner name, no khasra
+number, no document text. Every failure path returns `None` and the caller
+keeps its declared geometry, so enabling it can add evidence and cannot remove
+any. Attribution is a licence condition, so it is returned with every reading
+and rendered beside every height.
+
 ### API
 
 | | |
@@ -474,6 +547,11 @@ being claimed twice.
   footprint is then in map pixels. Overlap detection stays valid, because it is
   geometric and unit-free; floor area in square metres does not, and the API
   labels the coordinate space rather than letting the number be read as metres.
+- **It does not measure a unit.** A satellite envelope bounds the building; it
+  cannot see a floor slab or a party wall. Floor counts are still declared, and
+  the measurement only contradicts them when the gap is large.
+- **It is blind after 2023.** Open Buildings v1 ends there, so a building
+  finished later is simply absent. The year travels with every reading.
 - **It is not stored in PostGIS yet.** Footprints are JSON, for the same reason
   the rest of the system stores geometry that way — SQLite has no geometry type
   and the system must run without a database server. PostGIS adds indexed

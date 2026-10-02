@@ -144,6 +144,19 @@ def report() -> int:
     print("                          modelled on ISO 19152 (LADM) LA_Level;")
     print("                          conformance not tested")
 
+    import building_height
+    bhd = building_height.describe()
+    if bhd["enabled"]:
+        print(f"  Measured heights      : ON - {bhd['dataset']} {bhd['year']}, "
+              f"{bhd['resolution_m']} m")
+        print("                          remotely sensed envelope, NOT a survey;")
+        print(f"                          {bhd['licence']} - attribution required")
+    else:
+        print("  Measured heights      : off (BUILDING_HEIGHT != 1). Vertical")
+        print("                          volumes stay declared from a nominal")
+        print("                          storey height. Set it to check a floor")
+        print("                          count against Open Buildings 2.5D.")
+
     import sam_fallback
     sam = sam_fallback.status()
     if sam["enabled"]:

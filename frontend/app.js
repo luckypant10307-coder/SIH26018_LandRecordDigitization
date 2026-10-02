@@ -639,6 +639,19 @@ function renderVertical(data, doc) {
   findings.filter((f) => f.rule === "LEVEL_NOT_PARTITIONED")
           .forEach((f) => { gapFor[f.level_code] = f; });
 
+  // Findings about the building as a whole, rather than one level. These are
+  // shown above the stack because they question the stack itself: a floor
+  // count the measured height contradicts, or a volume with no height at all.
+  const whole = findings.filter((f) => f.rule !== "LEVEL_NOT_PARTITIONED");
+  const fh = $("#vertFindings");
+  fh.hidden = whole.length === 0;
+  fh.innerHTML = whole.map((f) => `
+    <div class="vf vf-${esc(f.severity || "info")}">
+      <span class="vf-rule">${esc(f.rule)}</span>
+      <p>${esc(f.message)}</p>
+      ${f.suggestion ? `<p class="vf-fix">${esc(f.suggestion)}</p>` : ""}
+    </div>`).join("");
+
   $("#verticalSource").textContent =
     `${parcels.length} declared volume${parcels.length === 1 ? "" : "s"}`;
 
@@ -661,6 +674,28 @@ function renderVertical(data, doc) {
 
   const ground = codes.indexOf("G00") !== -1 ? "G00" : codes[codes.length - 1];
   selectLevel(ground, levels, gapFor);
+
+  // A measured envelope height, when the footprint had real coordinates.
+  // Labelled "measured" and never "surveyed": it is a satellite-derived
+  // envelope at 4 m, which can contradict a floor count and cannot register
+  // anyone's flat. The attribution is a licence condition, not a courtesy.
+  const m = data.measured_height;
+  const mh = $("#vertMeasured");
+  if (m) {
+    mh.hidden = false;
+    mh.innerHTML = `
+      <div class="vm-head">Measured building height
+        <span class="vm-tag">remotely sensed, not surveyed</span></div>
+      <dl class="kv">
+        <dt>Representative (95th pct)</dt><dd>${m.p95_m} m</dd>
+        <dt>Tallest in footprint</dt><dd>${m.max_m} m</dd>
+        <dt>Footprint built up</dt><dd>${Math.round(m.built_fraction * 100)}%</dd>
+        <dt>Samples</dt><dd>${m.samples.toLocaleString()} at ${m.resolution_m} m</dd>
+      </dl>
+      <p class="vm-cite">${esc(m.attribution)}</p>`;
+  } else {
+    mh.hidden = true;
+  }
 
   const notes = [];
   if (parcels.some((p) => !p.surveyed)) {

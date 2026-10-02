@@ -109,6 +109,7 @@ them is evidence neither can give alone.
 | **Self-generated training data** | Sarvam labels a corpus for LayoutXLM | The system produces its own ground truth instead of waiting for annotators |
 | **Satellite basemap** | Parcels drawn over Esri imagery | A traced boundary becomes checkable against the actual fields |
 | **3D ULPIN** | Every floor, basement and air-rights envelope gets a derived identifier | PS 26011. A 2D register cannot name the third floor at all |
+| **Measured building height** | Open Buildings 2.5D contradicts a wrong floor count | Turns a typed claim into a checkable one, 80 KB per parcel |
 | **Vertical conflict check** | Two owners sold the same cubic metres | Needs footprint AND height overlap - the pair of them is what makes it real |
 
 ---
@@ -307,10 +308,31 @@ We take the third. The distinction cannot come from the geometry — two flats o
 an undivided level are geometrically identical to two owners sold the same flat
 — so it is a declared fact stored with the volume, not an inference.
 
-**Honest about the geometry.** No LiDAR, no drone imagery, no floor plans, so
-volumes are DECLARED from the footprint plus a nominal storey height and every
-one carries `surveyed=False` in its own serialised form. The caveat travels
-with the data rather than living in a document nobody opens.
+**Honest about the geometry - and no longer only declared.** No LiDAR, no drone
+imagery, no floor plans. So volumes are DECLARED from the footprint plus a
+nominal storey height, and every one carries `surveyed=False` in its own
+serialised form.
+
+But a declared stack with nothing to check it against is weak, so we added the
+missing evidence: **Google Open Buildings 2.5D Temporal** gives building height
+from Sentinel-2 at 4 m, 2016-2023, all of India, CC-BY. Crucially it is height
+**relative to the terrain** - the same datum our volumes already use.
+
+| | Height from | What it can settle |
+| --- | --- | --- |
+| `declared` | typed floors x nominal storey | nothing; it IS the claim |
+| `remote_sensed` | satellite envelope, 4 m | can **contradict** a floor count |
+| `surveyed` | real measurement | still absent, still flagged |
+
+Demo line: *twelve floors typed onto a 9 m building gets a warning that names
+both numbers.* The check fires in **one direction only** - a building taller
+than its declared floors is an ordinary record.
+
+**The engineering worth a sentence.** Source tiles are 270 MB each. We read one
+parcel's height in **~80 KB** using HTTP range requests against the internally
+tiled, Deflate-compressed GeoTIFF, taking only the height band because the file
+is band-separated. No GDAL, no Earth Engine, no account - stdlib `zlib` and
+`struct`. 0.9 s warm.
 
 ---
 
@@ -333,6 +355,14 @@ Put these on a slide. Judges trust a team that names them first.
   from ArcGIS's own `portals/self` check, so whether it reaches Indian
   villages where OpenStreetMap does not is still an open question, not a
   claim in either direction.
+- **Measured height needs a georeferenced parcel.** Sampling the raster needs
+  lon/lat. Most of our footprints are in map pixels, and `(246, 20)` is a valid
+  coordinate in the Atlantic - so the module refuses any ring that is not
+  plausibly degrees. Until a sheet gets control points or the state shapefile
+  arrives, this layer contributes nothing, and says so rather than guessing.
+- **The satellite cannot see a floor slab.** It bounds the building envelope. It
+  does not know storeys or unit boundaries, and Open Buildings v1 stops at 2023,
+  so a newer building is absent.
 - **Vertical geometry is declared, not surveyed.** Floor heights come from a
   nominal storey height the operator can change, not from measurement, and
   floors are not subdivided into units because no floor plan exists. The
@@ -356,8 +386,8 @@ Put these on a slide. Judges trust a team that names them first.
 
 | | |
 | --- | --- |
-| Backend modules | 31 |
-| Tests | 779 (802 with a live PostGIS) |
+| Backend modules | 32 |
+| Tests | 815 (838 with a live PostGIS) |
 | Validation rules | 68 |
 | Fields / label aliases | 17 / 226 |
 | Document types | 6 |
@@ -387,6 +417,9 @@ Put these on a slide. Judges trust a team that names them first.
   qgis or osgeo. QGIS is how a PERSON produced the world file that
   georeferences the demo sheet - a preparation step, not a component. Say
   "prepared in QGIS", never "powered by".
+- Not "we survey buildings in 3D" and not "surveyed heights." The height is
+  **remotely sensed** from Sentinel-2 at 4 m. Say "measured envelope", never
+  "survey", and show the CC-BY attribution - it is a licence condition.
 - Not "LADM compliant" or "ISO 19152 certified." We are **modelled on** LADM's
   level and spatial-unit concepts; conformance against the schema has not been
   tested, and the code list and class structure are not ISO's.

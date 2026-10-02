@@ -107,6 +107,13 @@ DEFAULT_STOREY_M = 3.0
 # becomes an elevation that nothing can collide with.
 MAX_STOREY_M = 50.0
 
+# How far a declared stack may stand above a remotely sensed envelope before
+# it is reported. This is the measurement's own effective resolution; the
+# caller adds one storey on top. Tightening it would flag honest records over
+# a metre of satellite noise, which is how a check earns a reputation for
+# crying wolf and then gets ignored on the day it is right.
+MEASURED_TOLERANCE_M = 4.0
+
 # Ground is the datum: its base is 0.0 and levels count outward from it.
 GROUND_LEVEL_CODE = "G00"
 
@@ -526,6 +533,82 @@ def find_conflicts(parcels: Sequence[VerticalParcel]) -> List[dict]:
                                "check the floor levels on both records."),
             })
     return out
+
+
+def floors_from_height(height_m: float, storey_m: float = DEFAULT_STOREY_M) -> int:
+    """
+    How many storeys a measured envelope height could hold.
+
+    Deliberately a floor division, so 8.9 m at 3 m a storey is two floors and
+    not three. A measured envelope is an upper bound on the building, and
+    rounding up would turn evidence that CONSTRAINS a claim into evidence that
+    invents a storey.
+    """
+    storey_m = _checked_storey(storey_m)
+    if height_m is None or height_m < 0:
+        raise VerticalError("A measured height cannot be negative.")
+    return int(height_m // storey_m)
+
+
+def check_against_measured(parcels: Sequence[VerticalParcel],
+                           measured_height_m: Optional[float],
+                           storey_m: float = DEFAULT_STOREY_M) -> List[dict]:
+    """
+    Compare a DECLARED stack against a REMOTELY SENSED envelope height.
+
+    This is the only check in the module backed by an outside measurement, and
+    its whole value depends on not overstating what that measurement is. A
+    satellite-derived envelope knows how tall the building is, to about 4 m
+    resolution. It does not know storeys, it does not know unit boundaries,
+    and it is not a survey - so it can contradict a claim of twelve floors on
+    a 6 m building and it can never confirm that anyone owns flat 3B.
+
+    Hence one finding, in one direction: the declared stack reaches
+    MATERIALLY above what was measured. The reverse - a building taller than
+    the floors declared on it - is not reported, because declaring two floors
+    of a six-storey block is a perfectly ordinary record. Only one of those is
+    evidence of an error.
+    """
+    if measured_height_m is None or not parcels:
+        return []
+
+    storey_m = _checked_storey(storey_m)
+    above = [p for p in parcels if p.level_code[0] in ("G", "F")
+             and p.has_valid_range]
+    if not above:
+        return []
+
+    declared_top = max(p.top_m for p in above)
+    if declared_top <= 0:
+        return []
+
+    # The tolerance is the dataset's own effective resolution plus one storey.
+    # Smaller would flag honest records over a metre of satellite noise, which
+    # is how a check earns a reputation for crying wolf.
+    tolerance = MEASURED_TOLERANCE_M + storey_m
+    if declared_top <= measured_height_m + tolerance:
+        return []
+
+    could_hold = floors_from_height(measured_height_m, storey_m)
+    declared_floors = len({p.level_code for p in above})
+    return [{
+        "rule": "HEIGHT_CONTRADICTS_FLOORS", "severity": "warning",
+        "parcel_ulpin": above[0].parcel_ulpin,
+        "declared_top_m": round(declared_top, 2),
+        "measured_height_m": round(measured_height_m, 2),
+        "measured_could_hold_floors": could_hold,
+        "declared_levels_above_ground": declared_floors,
+        "message": (f"The declared stack reaches {declared_top:.1f} m above "
+                    f"ground, but the building measured on this footprint is "
+                    f"about {measured_height_m:.1f} m - roughly "
+                    f"{could_hold} level(s) at {storey_m:.1f} m each, against "
+                    f"{declared_floors} declared."),
+        "suggestion": ("Check the floor count on the record. The measurement "
+                       "is a satellite-derived envelope at 4 m resolution, "
+                       "not a survey, so it bounds the building rather than "
+                       "settling it - but a gap this large usually means the "
+                       "declared count is wrong."),
+    }]
 
 
 def describe() -> dict:

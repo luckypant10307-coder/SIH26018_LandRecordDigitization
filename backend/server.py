@@ -54,6 +54,7 @@ import shapefile_import
 import table_structure
 import topology
 import validator as validator_mod
+import building_height
 import vertical
 from db import Database
 from field_extractor import (
@@ -2189,15 +2190,35 @@ class Handler(BaseHTTPRequestHandler):
             footprint_is_parcel=r.get("footprint_is_parcel", False))
             for r in existing]
 
+        # Measured evidence, when the footprint is in real coordinates. A
+        # pixel ring returns None from sample_footprint by design, so this
+        # silently adds nothing rather than reading a height off the Atlantic.
+        measured = building_height.sample_footprint(
+            [tuple(p) for p in footprint]) if crs != "map-pixels" else None
+        height_m = building_height.representative_height(measured)
+
+        findings = vertical.find_conflicts(all_volumes)
+        findings += vertical.check_against_measured(
+            stack, height_m,
+            storey_m=float(body.get("storey_m") or vertical.DEFAULT_STOREY_M))
+
+        notes = []
+        if crs == "map-pixels":
+            notes.append(
+                "Footprint is in pixels of the parcel map, because this sheet "
+                "carried no control points. Overlap detection is valid; any "
+                "area figure derived from it is not in square metres - and no "
+                "building height can be measured without real coordinates.")
+        if measured:
+            notes.append(measured["attribution"])
+
         self._json({
             "generated": written,
             "coordinate_space": crs,
             "parcels": [v.to_dict() for v in stack],
-            "conflicts": vertical.find_conflicts(all_volumes),
-            "notes": ([] if crs != "map-pixels" else [
-                "Footprint is in pixels of the parcel map, because this sheet "
-                "carried no control points. Overlap detection is valid; any "
-                "area figure derived from it is not in square metres."]),
+            "conflicts": findings,
+            "measured_height": measured,
+            "notes": notes,
         })
 
     def api_auth_status(self, query: dict) -> None:
