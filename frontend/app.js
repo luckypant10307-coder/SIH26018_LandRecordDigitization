@@ -272,6 +272,19 @@ function showTab(name) {
   $$(".panel-view").forEach((v) => v.classList.toggle("active", v.id === "view-" + name));
   if (name === "queue") loadDocuments();
   if (name === "cadastral") loadCadastralMap();
+  if (name === "volumetric") {
+    loadVolumetric();
+    // A map built inside a display:none panel measures its container as zero
+    // and renders a sliver. Leaflet needs invalidateSize() for this and
+    // MapLibre needs resize(); either way it has to happen AFTER the panel is
+    // visible, which is why this sits here and not in the loader.
+    requestAnimationFrame(() => {
+      if (typeof volState !== "undefined" && volState.map) {
+        volState.map.resize();
+        volFit();
+      }
+    });
+  }
   if (name === "dashboard") loadDashboard();
   if (name === "learning") loadLearning();
   if (name === "audit") loadAudit();

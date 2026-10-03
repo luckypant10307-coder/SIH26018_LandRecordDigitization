@@ -427,6 +427,11 @@ class VerticalParcel:
             "level_number": int(self.level_code[1:]),
             "unit": self.unit,
             "building": self.building,
+            # The footprint travels with the volume because a consumer cannot
+            # draw, measure or re-check one without it - the 3D view renders
+            # each level as an extruded ring, and base_m/top_m alone describe
+            # a height with no ground under it.
+            "footprint": [list(point) for point in self.footprint],
             "base_m": self.base_m,
             "top_m": self.top_m,
             "height_m": self.height_m,

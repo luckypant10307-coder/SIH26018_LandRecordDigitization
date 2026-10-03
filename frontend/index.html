@@ -9,10 +9,12 @@
      other way round, every dark-theme override in styles.css lost silently -
      which is what made the map a grey rectangle with a white popup. -->
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+<link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css" />
 <link rel="stylesheet" href="styles.css" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="vendor/leaflet/leaflet.js"></script>
+<script src="vendor/maplibre/maplibre-gl.js"></script>
 </head>
 <body>
 
@@ -38,6 +40,7 @@
   <button class="tab" data-tab="queue" role="tab">Verification Queue <span class="tab-count" id="queueCount">0</span></button>
   <button class="tab" data-tab="workspace" role="tab">Verification Workspace</button>
   <button class="tab" data-tab="cadastral" role="tab">Cadastral Map</button>
+  <button class="tab" data-tab="volumetric" role="tab">3D Property View</button>
   <button class="tab" data-tab="dashboard" role="tab">Dashboard</button>
   <button class="tab" data-tab="learning" role="tab">Learning</button>
   <button class="tab" data-tab="audit" role="tab">Audit Trail</button>
@@ -231,6 +234,54 @@
 </section>
 
 <!-- ================= CADASTRAL MAP ================= -->
+<!-- ================= 3D PROPERTY VIEW (PS 26011) =================
+     Renders each declared volume as an extruded slab over satellite imagery.
+     The data needs no transformation: a VerticalParcel already carries a
+     footprint plus base_m and top_m, which is exactly what a fill-extrusion
+     layer takes. -->
+<section class="panel-view" id="view-volumetric">
+  <div class="vol-head card">
+    <div>
+      <h2>3D Property View</h2>
+      <p class="muted small">Every separately-owned volume on a parcel, stacked
+        as it stands. Heights are declared from a nominal storey unless a
+        record says otherwise.</p>
+    </div>
+    <div class="vol-actions">
+      <label class="vol-pick">
+        <span class="muted small">Parcel</span>
+        <select id="volParcel"></select>
+      </label>
+      <button class="btn tiny" id="volReload">Reload</button>
+    </div>
+  </div>
+
+  <div class="vol-stage">
+    <div id="volMap" class="vol-map"></div>
+
+    <!-- level selector, bottom-to-top like the building -->
+    <div class="vol-levels" id="volLevels" hidden>
+      <div class="vl-title">Levels</div>
+      <div class="vl-list" id="volLevelList"></div>
+      <button class="btn tiny" id="volShowAll">Show all</button>
+    </div>
+
+    <div class="vol-legend" id="volLegend" hidden></div>
+    <div class="vol-empty" id="volEmpty">
+      <p>No volume on this parcel can be placed on the earth yet.</p>
+      <p class="muted small">A stack is drawn here only when its footprint is
+        in real coordinates. Footprints read from a parcel map are in pixels of
+        that image, which locate nothing on the ground.</p>
+    </div>
+  </div>
+
+  <div class="card" id="volDetailCard" hidden>
+    <div class="card-head"><h3 id="volDetailTitle">Level</h3>
+      <span class="muted small" id="volDetailNote"></span></div>
+    <div class="table-wrap"><table class="data-table" id="volDetailTable"></table></div>
+  </div>
+</section>
+
 <section class="panel-view" id="view-cadastral">
   <div class="card">
     <div class="card-head">
@@ -357,5 +408,6 @@
 </div>
 
 <script src="app.js"></script>
+<script src="volumetric.js"></script>
 </body>
 </html>
