@@ -25,7 +25,7 @@ Every figure here was measured on the running system, not estimated.
 | Fields extracted | 17 |
 | Validation rules | 68 |
 | Upload formats accepted | 20 |
-| 3D conflict checks | 5 (overlap · duplicate id · unpartitioned level · inverted height · height vs floors) |
+| 3D conflict checks | 6 (overlap · duplicate id · unpartitioned level · unlocated buildings · inverted height · height vs floors) |
 
 ---
 
@@ -339,13 +339,50 @@ ULPIN identifies the parcel, not any of them.
 ### The identifier
 
 ```
-UP091223700412-F03-012
-└────────────┘ └─┘ └─┘
- parent ULPIN   |   unit on that level, 001-999
- 14 chars,      |
- DILRMP 3.0     level: B.. basement · G00 ground · F.. floor
-                       A.. air rights · S.. subsurface utility
+UP091223700412 [-02] -F03 -012 [-D]
+└────────────┘  └─┘   └─┘  └─┘  └┘
+ parent ULPIN    |     |    |    check character (optional)
+ 14 chars,       |     |    unit on that level, 001-999
+ DILRMP 3.0      |     level: B.. basement · G00 ground · F.. floor
+                 |            A.. air rights · S.. subsurface utility
+                 building 01-99 (optional)
 ```
+
+**22 characters** in the common form, `UP091223700412-F03-012`. Both middle
+segments are optional and each omission is a statement rather than a missing
+value.
+
+**The building segment.** A plot can carry more than one structure, and
+without this the format simply could not say so. It is **optional**, because
+omitting it means "the only building on this parcel" — which is most rural
+parcels, and which keeps every identifier minted before the segment existed
+valid *and unchanged in meaning*. This is an extension, not a migration.
+
+It is **numeric** rather than lettered because the level alphabet is
+B/G/F/A/S and a lettered building segment would collide with it. One of the
+other PS 26011 projects uses `B01`–`B99` for the building *and* `B01`–`B99`
+for basements, so `B02` means two different things depending on position.
+Digits cannot be confused with level letters, even quoted out of context.
+
+**The check character.** ISO 7064 **Mod 37,2**, optional, appended last. It
+exists for one specific failure: an identifier copied by hand off a document,
+where a transposition yields another *well-formed* ULPIN pointing at a
+different unit — `-012-` read as `-021-` is valid, and nothing else would
+notice.
+
+Mod **37,2**, not the commonly quoted Mod 11,2, and the difference was
+measured rather than assumed. Mod 11,2 is defined over *digits* with X as the
+check character; a parcel ULPIN contains letters, and feeding them in as
+values 10–35 pushes past the radix and silently forfeits the standard's
+guarantee. On this format, before the correction:
+
+| | Mod 11,2 (wrong variant) | Mod 37,2 |
+| --- | --- | --- |
+| Single-character errors caught | 181 / 183 | **700 / 700** |
+| Adjacent transpositions caught | 15 / 15 | **15 / 15** |
+
+Verified when present and never demanded, so identifiers without one still
+parse.
 
 Four properties, each chosen against a specific failure:
 
@@ -427,6 +464,15 @@ with anything. It is now refused at generation (`_checked_storey`, the single
 chokepoint every elevation flows through) and reported as `INVALID_Z_RANGE`
 when it is already in the database, because a validation system must report
 bad stored data rather than refuse to load it.
+
+**Two towers on one plot are the same problem one level up.** Both inherit
+the whole parcel as their footprint, because nothing in the record says where
+either stands, so their matching storeys share ground and height range on
+paper while occupying different ground in reality. Flagging that would mark
+every multi-tower complex in India as a conflict. It is reported instead as
+`BUILDINGS_NOT_LOCATED`, kept separate from the per-level finding because the
+remedy differs: a floor plan divides a storey, a **site plan** places a
+building.
 
 There is a third case, and it is the one worth defending in a review. Several
 units on one level, each inheriting the whole parcel as its footprint because

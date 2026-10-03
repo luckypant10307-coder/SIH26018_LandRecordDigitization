@@ -180,6 +180,7 @@ CREATE TABLE IF NOT EXISTS vertical_parcel (
     top_m           REAL NOT NULL,
     surveyed        INTEGER NOT NULL DEFAULT 0,
     footprint_is_parcel INTEGER NOT NULL DEFAULT 0,
+    building        INTEGER,
     footprint_json  TEXT NOT NULL,
     owner_name      TEXT,
     document_id     INTEGER REFERENCES documents(id) ON DELETE CASCADE,
@@ -337,6 +338,9 @@ class Database:
         # a pair rather than stay quiet about it.
         self._add_column_if_missing("vertical_parcel", "footprint_is_parcel",
                                     "INTEGER NOT NULL DEFAULT 0")
+        # Nullable on purpose: NULL means "the only building on this parcel",
+        # which is what every row written before the segment existed meant.
+        self._add_column_if_missing("vertical_parcel", "building", "INTEGER")
 
     def _add_column_if_missing(self, table: str, column: str, ddl: str) -> None:
         with _LOCK:
@@ -584,19 +588,21 @@ class Database:
                        float(d["base_m"]), float(d["top_m"]),
                        1 if d.get("surveyed") else 0,
                        1 if d.get("footprint_is_parcel") else 0,
+                       d.get("building"),
                        _json.dumps(getattr(p, "footprint", []), ensure_ascii=False),
                        d.get("owner_name"), document_id)
             if existing:
                 self.run("UPDATE vertical_parcel SET parcel_ulpin=?, level_code=?, "
                          "unit=?, base_m=?, top_m=?, surveyed=?, "
-                         "footprint_is_parcel=?, footprint_json=?, "
+                         "footprint_is_parcel=?, building=?, footprint_json=?, "
                          "owner_name=?, document_id=? WHERE ulpin_3d=?",
                          payload + (d["ulpin_3d"],))
             else:
                 self.run("INSERT INTO vertical_parcel (parcel_ulpin, level_code, "
                          "unit, base_m, top_m, surveyed, footprint_is_parcel, "
-                         "footprint_json, owner_name, document_id, ulpin_3d, "
-                         "created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                         "building, footprint_json, owner_name, document_id, "
+                         "ulpin_3d, created_at) "
+                         "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                          payload + (d["ulpin_3d"], _now()))
             written += 1
         return written

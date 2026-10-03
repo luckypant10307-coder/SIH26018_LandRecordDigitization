@@ -122,6 +122,179 @@ class TestUlpinFormat(unittest.TestCase):
                 v.parse_3d_ulpin(bad)
 
 
+class TestBuildingSegment(unittest.TestCase):
+    """
+    A parcel can carry more than one structure, and the first version of this
+    format could not say so at all.
+    """
+
+    def test_a_building_can_be_named(self):
+        self.assertEqual(v.make_3d_ulpin(PARCEL, "F03", 12, building=2),
+                         "UP091223700412-02-F03-012")
+
+    def test_omitting_it_stays_valid_and_keeps_its_meaning(self):
+        """
+        BACKWARD COMPATIBILITY IS THE POINT. Every identifier minted before the
+        segment existed must still parse, and must still mean what it meant:
+        the only building on the parcel. Otherwise this is a migration.
+        """
+        parsed = v.parse_3d_ulpin("UP091223700412-F03-012")
+        self.assertIsNone(parsed["building"])
+        self.assertEqual(parsed["level_code"], "F03")
+        self.assertEqual(parsed["unit"], 12)
+
+    def test_it_round_trips(self):
+        parsed = v.parse_3d_ulpin(v.make_3d_ulpin(PARCEL, "B01", 7, building=11))
+        self.assertEqual(parsed["building"], 11)
+        self.assertEqual(parsed["level_code"], "B01")
+
+    def test_digits_not_letters_so_it_cannot_be_read_as_a_level(self):
+        """
+        The level alphabet is B/G/F/A/S. A lettered building segment would make
+        `B02` mean either basement 2 or building 2 depending on its position -
+        another PS 26011 project has exactly that ambiguity. Digits cannot
+        collide.
+        """
+        full = v.make_3d_ulpin(PARCEL, "B02", 1, building=2)
+        self.assertIn("-02-B02-", full)
+        parsed = v.parse_3d_ulpin(full)
+        self.assertEqual(parsed["building"], 2)
+        self.assertEqual(parsed["level_code"], "B02")       # still a basement
+
+    def test_out_of_range_buildings_are_refused(self):
+        for bad in (0, 100, -1):
+            with self.assertRaises(v.VerticalError):
+                v.make_3d_ulpin(PARCEL, "F01", 1, building=bad)
+
+    def test_a_stack_carries_its_building_through(self):
+        parcels = v.stack(PARCEL, SQUARE, floors_above=2, building=3)
+        self.assertTrue(all(p.building == 3 for p in parcels))
+        self.assertTrue(all("-03-" in p.ulpin_3d for p in parcels))
+
+    def test_two_towers_on_one_plot_are_not_overlaps(self):
+        """
+        REGRESSION. Both towers inherit the whole parcel footprint, because
+        nothing says where either stands, so their matching storeys share
+        ground and height range on paper. Calling that an overlap would flag
+        every multi-tower complex in India.
+        """
+        a = v.stack(PARCEL, SQUARE, floors_above=2, building=1)
+        b = v.stack(PARCEL, SQUARE, floors_above=2, building=2)
+        overlaps = [c for c in v.find_conflicts(a + b)
+                    if c["rule"] == "VERTICAL_OVERLAP"]
+        self.assertEqual(overlaps, [])
+
+    def test_but_unlocated_buildings_are_reported(self):
+        """
+        And not silently passed either. The gap is that the BUILDINGS are not
+        placed, which a floor plan does not fix - so it is its own finding with
+        its own remedy.
+        """
+        a = v.stack(PARCEL, SQUARE, floors_above=1, building=1)
+        b = v.stack(PARCEL, SQUARE, floors_above=1, building=2)
+        gaps = [c for c in v.find_conflicts(a + b)
+                if c["rule"] == "BUILDINGS_NOT_LOCATED"]
+        self.assertEqual(len(gaps), 1)
+        self.assertEqual(gaps[0]["buildings"], [1, 2])
+        self.assertIn("site plan", gaps[0]["suggestion"])
+
+    def test_one_building_is_not_an_unlocated_finding(self):
+        parcels = v.stack(PARCEL, SQUARE, floors_above=3, building=1)
+        self.assertEqual([c for c in v.find_conflicts(parcels)
+                          if c["rule"] == "BUILDINGS_NOT_LOCATED"], [])
+
+    def test_the_level_finding_names_the_building(self):
+        parcels = v.stack(PARCEL, SQUARE, floors_above=0, units_per_level=3,
+                          building=7)
+        gap = [c for c in v.find_conflicts(parcels)
+               if c["rule"] == "LEVEL_NOT_PARTITIONED"][0]
+        self.assertEqual(gap["building"], 7)
+        self.assertIn("building 07", gap["message"])
+
+
+class TestCheckCharacter(unittest.TestCase):
+    """
+    ISO 7064 Mod 37,2. The guarantee is the whole reason it exists, so it is
+    asserted exhaustively rather than spot-checked.
+    """
+
+    ALPHA = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+    def body_and_tail(self, **kw):
+        full = v.make_3d_ulpin(PARCEL, "F03", 12, with_check=True, **kw)
+        cut = full.rindex("-")
+        return full[:cut], full[cut:]
+
+    def test_it_is_appended_only_when_asked(self):
+        self.assertEqual(v.make_3d_ulpin(PARCEL, "F03", 12),
+                         "UP091223700412-F03-012")
+        self.assertTrue(
+            v.make_3d_ulpin(PARCEL, "F03", 12, with_check=True)
+            .startswith("UP091223700412-F03-012-"))
+
+    def test_it_is_deterministic(self):
+        a = v.make_3d_ulpin(PARCEL, "F03", 12, with_check=True)
+        b = v.make_3d_ulpin(PARCEL, "F03", 12, with_check=True)
+        self.assertEqual(a, b)
+
+    def test_every_single_character_error_is_caught(self):
+        """Mod 37,2's first guarantee, over the full alphanumeric alphabet."""
+        body, tail = self.body_and_tail()
+        checked = missed = 0
+        for i, ch in enumerate(body):
+            if ch == "-":
+                continue
+            for repl in self.ALPHA:
+                if repl == ch:
+                    continue
+                checked += 1
+                try:
+                    v.parse_3d_ulpin(body[:i] + repl + body[i + 1:] + tail)
+                    missed += 1
+                except v.VerticalError:
+                    pass
+        self.assertGreater(checked, 500)
+        self.assertEqual(missed, 0, f"{missed} of {checked} slipped through")
+
+    def test_every_adjacent_transposition_is_caught(self):
+        """
+        Mod 37,2's second guarantee, and the failure that actually matters: a
+        transposed ULPIN is usually still WELL-FORMED and points at a
+        different unit, so nothing else would notice.
+        """
+        body, tail = self.body_and_tail()
+        for i in range(len(body) - 1):
+            a, b = body[i], body[i + 1]
+            if a == b or "-" in (a, b):
+                continue
+            with self.assertRaises(v.VerticalError):
+                v.parse_3d_ulpin(body[:i] + b + a + body[i + 2:] + tail)
+
+    def test_the_realistic_miscopy(self):
+        """Unit 012 read as 021 off a document."""
+        good = v.make_3d_ulpin(PARCEL, "F03", 12, with_check=True)
+        with self.assertRaises(v.VerticalError):
+            v.parse_3d_ulpin(good.replace("-012-", "-021-"))
+
+    def test_an_identifier_without_one_is_still_accepted(self):
+        """It is opt-in, so demanding it would invalidate existing rows."""
+        parsed = v.parse_3d_ulpin("UP091223700412-F03-012")
+        self.assertIsNone(parsed["check_character"])
+
+    def test_it_works_with_a_building_segment(self):
+        full = v.make_3d_ulpin(PARCEL, "F03", 12, building=2, with_check=True)
+        parsed = v.parse_3d_ulpin(full)
+        self.assertEqual(parsed["building"], 2)
+        self.assertIsNotNone(parsed["check_character"])
+
+    def test_the_character_stays_in_the_iso_alphabet(self):
+        seen = set()
+        for unit in range(1, 60):
+            full = v.make_3d_ulpin(PARCEL, "F03", unit, with_check=True)
+            seen.add(full[-1])
+        self.assertTrue(seen <= set("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ*"))
+
+
 class TestElevation(unittest.TestCase):
 
     def test_ground_is_the_datum(self):

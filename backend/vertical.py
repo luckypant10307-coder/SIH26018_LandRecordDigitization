@@ -117,7 +117,36 @@ MEASURED_TOLERANCE_M = 4.0
 # Ground is the datum: its base is 0.0 and levels count outward from it.
 GROUND_LEVEL_CODE = "G00"
 
-_3D_ULPIN_PATTERN = re.compile(r"^([A-Z0-9]{14})-([BGFAS]\d{2})-(\d{3})$")
+# The building segment is OPTIONAL and numeric, and both facts are deliberate.
+#
+# Optional, because omitting it has an exact meaning - "the only building on
+# this parcel" - which is the overwhelmingly common rural case, and because
+# every identifier minted before the segment existed stays valid and keeps its
+# meaning. A format change that invalidated stored identifiers would be a
+# migration; this one is not.
+#
+# Numeric rather than lettered, because a letter would collide with the level
+# alphabet. One of the other PS 26011 projects uses B01-B99 for the building
+# AND B01-B99 for basements, so `B02` means two different things depending on
+# where it sits. Digits cannot be confused with B/G/F/A/S, so the two segments
+# stay unambiguous even quoted out of context.
+_3D_ULPIN_PATTERN = re.compile(
+    r"^([A-Z0-9]{14})(?:-(\d{2}))?-([BGFAS]\d{2})-(\d{3})(?:-([0-9A-Z*]))?$")
+
+# ISO 7064 Mod 37,2 produces one check character for an ALPHANUMERIC body. It
+# is opt-in, appended as a final segment, for the case it actually protects
+# against: an identifier copied by hand off a document, where a transposition
+# would otherwise yield another VALID identifier pointing at a different unit.
+#
+# Mod 37,2 and not Mod 11,2, which is the variant these schemes are usually
+# quoted as. Mod 11,2 is defined over DIGITS with X as the check character,
+# and a parcel ULPIN contains letters: feeding them in as values 10-35 pushes
+# them past the radix and silently costs the standard's guarantee. Measured on
+# this format before the fix, 2 of 183 single-character errors slipped through
+# - the ones where a letter's value and a digit's were congruent mod 11. Mod
+# 37,2 is the variant ISO specifies for an alphanumeric string, and it detects
+# ALL single-character errors and ALL adjacent transpositions.
+_CHECK_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ*"
 
 
 class VerticalError(ValueError):
@@ -146,7 +175,40 @@ def level_code(kind: str, number: int = 0) -> str:
     return f"{kind}{int(number):02d}"
 
 
-def make_3d_ulpin(parcel_ulpin: str, level: str, unit: int) -> str:
+def check_character(payload: str) -> str:
+    """
+    The ISO 7064 Mod 37,2 check character for an identifier body.
+
+    Catches every single-character error and every transposition of adjacent
+    characters - which is the failure that matters here, because a transposed
+    3D ULPIN is usually still a WELL-FORMED one pointing at a different unit.
+    Without a check character there is nothing to notice that.
+
+    Separators are skipped so the character covers the information and not the
+    punctuation: adding or dropping the optional building segment must not
+    change the check for the parts that remain.
+    """
+    p = 0
+    for ch in payload:
+        if ch == "-":
+            continue
+        p = ((p + _value_of(ch)) * 2) % 37
+    return _CHECK_ALPHABET[(38 - p) % 37]
+
+
+def _value_of(ch: str) -> int:
+    """Digits by value, letters as 10-35, which is Mod 37,2's own alphabet."""
+    if ch.isdigit():
+        return int(ch)
+    value = ord(ch) - ord("A") + 10
+    if not 10 <= value <= 35:
+        raise VerticalError(f"Character {ch!r} is not alphanumeric.")
+    return value
+
+
+def make_3d_ulpin(parcel_ulpin: str, level: str, unit: int,
+                  building: Optional[int] = None,
+                  with_check: bool = False) -> str:
     """
     The 3D ULPIN for one unit. Deterministic: same inputs, same output.
 
@@ -154,6 +216,11 @@ def make_3d_ulpin(parcel_ulpin: str, level: str, unit: int) -> str:
     the extractor and the gazetteer already validate the 14-character ULPIN,
     and silently normalising one at this point would hide a reading error
     inside an identifier that then looks authoritative.
+
+    `building` is omitted for a parcel carrying one structure, which is most
+    of them, and that omission is meaningful rather than merely shorter: it
+    says "the only building here". Passing building=1 is therefore NOT the
+    same statement, and the two forms are kept distinct instead of collapsed.
     """
     parcel = (parcel_ulpin or "").strip().upper()
     if not PARCEL_ULPIN_PATTERN.match(parcel):
@@ -165,7 +232,18 @@ def make_3d_ulpin(parcel_ulpin: str, level: str, unit: int) -> str:
         raise VerticalError(f"Level code {level!r} is malformed; expected e.g. F03.")
     if not 1 <= int(unit) <= 999:
         raise VerticalError(f"Unit {unit} out of range 1-999.")
-    return f"{parcel}-{code}-{int(unit):03d}"
+
+    if building is None:
+        body = f"{parcel}-{code}-{int(unit):03d}"
+    else:
+        if not 1 <= int(building) <= 99:
+            raise VerticalError(
+                f"Building {building} out of range 1-99. A parcel carrying "
+                f"more than 99 separate structures needs a survey, not a "
+                f"wider field.")
+        body = f"{parcel}-{int(building):02d}-{code}-{int(unit):03d}"
+
+    return f"{body}-{check_character(body)}" if with_check else body
 
 
 def parse_3d_ulpin(value: str) -> Dict[str, object]:
@@ -176,18 +254,37 @@ def parse_3d_ulpin(value: str) -> Dict[str, object]:
     disputed identifier has to be able to say which parcel, which level and
     which unit it refers to without a lookup table.
     """
-    match = _3D_ULPIN_PATTERN.match((value or "").strip().upper())
+    text = (value or "").strip().upper()
+    match = _3D_ULPIN_PATTERN.match(text)
     if not match:
         raise VerticalError(
-            f"{value!r} is not a 3D ULPIN. Expected 14 characters, a level "
-            f"code and a unit, e.g. UP091223700412-F03-012.")
-    parcel, code, unit = match.groups()
+            f"{value!r} is not a 3D ULPIN. Expected 14 characters, an optional "
+            f"two-digit building, a level code and a unit, e.g. "
+            f"UP091223700412-F03-012 or UP091223700412-02-F03-012.")
+    parcel, building, code, unit, check = match.groups()
+
+    # A check character is verified when present and never demanded, because
+    # identifiers minted before the scheme existed do not carry one. Present
+    # and wrong is a hard failure: that is precisely the mis-transcription the
+    # character exists to catch, and accepting it would make it decoration.
+    if check:
+        body = text[:text.rindex("-")]
+        expected = check_character(body)
+        if check != expected:
+            raise VerticalError(
+                f"{value!r} fails its check character: expected {expected}, "
+                f"found {check}. The identifier was most likely mis-copied - "
+                f"a transposition usually still looks like a valid ULPIN, "
+                f"which is what this character is here to detect.")
+
     return {
         "parcel_ulpin": parcel,
+        "building": int(building) if building else None,
         "level_code": code,
         "level_kind": LEVEL_KINDS[code[0]],
         "level_number": int(code[1:]),
         "unit": int(unit),
+        "check_character": check,
     }
 
 
@@ -288,6 +385,11 @@ class VerticalParcel:
     base_m: float
     top_m: float
     surveyed: bool = False                     # True only with real measurement
+    building: Optional[int] = None
+    # None means "the only building on this parcel", which is a statement and
+    # not a missing value. Two volumes on one parcel both with building=None
+    # are in the same structure; 1 and 2 are in different ones. It sits among
+    # the defaulted fields because `footprint` above it has no default.
     footprint_is_parcel: bool = False
     # True when this unit's footprint is simply the WHOLE parcel, inherited
     # because no floor plan exists to say how the level is divided. It is not
@@ -324,6 +426,7 @@ class VerticalParcel:
             "level_kind": LEVEL_KINDS.get(self.level_code[0], "unknown"),
             "level_number": int(self.level_code[1:]),
             "unit": self.unit,
+            "building": self.building,
             "base_m": self.base_m,
             "top_m": self.top_m,
             "height_m": self.height_m,
@@ -347,7 +450,8 @@ def stack(parcel_ulpin: str,
           basements: int = 0,
           units_per_level: int = 1,
           storey_m: float = DEFAULT_STOREY_M,
-          include_ground: bool = True) -> List[VerticalParcel]:
+          include_ground: bool = True,
+          building: Optional[int] = None) -> List[VerticalParcel]:
     """
     Build the declared vertical parcels for one surface parcel.
 
@@ -374,9 +478,10 @@ def stack(parcel_ulpin: str,
         base, top = level_elevation(code, storey_m)
         for unit in range(1, max(1, int(units_per_level)) + 1):
             out.append(VerticalParcel(
-                ulpin_3d=make_3d_ulpin(parcel_ulpin, code, unit),
+                ulpin_3d=make_3d_ulpin(parcel_ulpin, code, unit,
+                                       building=building),
                 parcel_ulpin=parcel_ulpin.strip().upper(),
-                level_code=code, unit=unit,
+                level_code=code, unit=unit, building=building,
                 footprint=list(ring), base_m=base, top_m=top,
                 surveyed=False, footprint_is_parcel=True))
     return out
@@ -426,7 +531,16 @@ def z_overlap(a: VerticalParcel, b: VerticalParcel) -> float:
 
 
 def _share_an_undivided_level(a: VerticalParcel, b: VerticalParcel) -> bool:
-    """Two units on one level of one parcel, neither with a real unit boundary."""
+    """
+    Two units on one level of one parcel, neither with a real unit boundary.
+
+    Building-aware, and the cross-building case is the interesting one. Two
+    towers on one plot both inherit the WHOLE parcel as their footprint,
+    because nothing in the record says where either stands. Their third floors
+    therefore share ground and height range on paper while occupying different
+    ground in reality - the same unknowability as two flats on a landing, one
+    level up. Both are suppressed here and reported by the grouping below.
+    """
     return (a.parcel_ulpin == b.parcel_ulpin
             and a.level_code == b.level_code
             and a.footprint_is_parcel and b.footprint_is_parcel)
@@ -440,28 +554,73 @@ def _unpartitioned_levels(parcels: Sequence[VerticalParcel]) -> List[dict]:
     make 45 pairs, and 45 copies of the same sentence is how a reviewer learns
     to scroll past findings.
     """
-    groups: Dict[Tuple[str, str], List[VerticalParcel]] = {}
+    groups: Dict[Tuple[str, Optional[int], str], List[VerticalParcel]] = {}
     for p in parcels:
         if p.footprint_is_parcel:
-            groups.setdefault((p.parcel_ulpin, p.level_code), []).append(p)
+            groups.setdefault(
+                (p.parcel_ulpin, p.building, p.level_code), []).append(p)
 
     out: List[dict] = []
-    for (parcel_ulpin, code), members in sorted(groups.items()):
+    for key in sorted(groups, key=lambda k: (k[0], -1 if k[1] is None else k[1], k[2])):
+        parcel_ulpin, building, code = key
+        members = groups[key]
         if len(members) < 2:
             continue                 # one unit holding the whole level is fine
+        where = (f"Level {code} of {parcel_ulpin}" if building is None
+                 else f"Level {code} of building {building:02d} on {parcel_ulpin}")
         out.append({
             "rule": "LEVEL_NOT_PARTITIONED", "severity": "info",
-            "parcel_ulpin": parcel_ulpin, "level_code": code,
+            "parcel_ulpin": parcel_ulpin, "building": building,
+            "level_code": code,
             "ulpins": sorted(m.ulpin_3d for m in members),
-            "message": (f"Level {code} of {parcel_ulpin} holds "
-                        f"{len(members)} units, each recorded with the whole "
-                        f"parcel as its footprint because the document carries "
-                        f"no floor plan. Whether they overlap cannot be "
-                        f"determined from this record."),
+            "message": (f"{where} holds {len(members)} units, each recorded "
+                        f"with the whole parcel as its footprint because the "
+                        f"document carries no floor plan. Whether they overlap "
+                        f"cannot be determined from this record."),
             "suggestion": ("Attach a floor plan or unit measurements to make "
                            "overlap on this level checkable. Until then the "
                            "units are neither confirmed separate nor "
                            "conflicting."),
+        })
+
+    out += _unlocated_buildings(parcels)
+    return out
+
+
+def _unlocated_buildings(parcels: Sequence[VerticalParcel]) -> List[dict]:
+    """
+    One finding per parcel carrying several buildings none of which is placed.
+
+    Separate from the level finding because it is a different gap with a
+    different remedy. A floor plan divides a level; it does not say where a
+    tower stands on the plot. When two structures both inherit the entire
+    parcel footprint, their matching storeys look co-located and are not - so
+    the thing to report is that the BUILDINGS are unlocated, and the fix is a
+    site plan rather than a floor plan.
+    """
+    by_parcel: Dict[str, set] = {}
+    for p in parcels:
+        if p.footprint_is_parcel and p.building is not None:
+            by_parcel.setdefault(p.parcel_ulpin, set()).add(p.building)
+
+    out: List[dict] = []
+    for parcel_ulpin, buildings in sorted(by_parcel.items()):
+        if len(buildings) < 2:
+            continue
+        listed = ", ".join(f"{b:02d}" for b in sorted(buildings))
+        out.append({
+            "rule": "BUILDINGS_NOT_LOCATED", "severity": "info",
+            "parcel_ulpin": parcel_ulpin,
+            "buildings": sorted(buildings),
+            "message": (f"{parcel_ulpin} carries {len(buildings)} separate "
+                        f"buildings ({listed}), each recorded with the whole "
+                        f"parcel as its footprint because the record does not "
+                        f"say where any of them stands. Storeys at the same "
+                        f"height in different buildings therefore cannot be "
+                        f"compared for overlap."),
+            "suggestion": ("Attach a site plan giving each building's own "
+                           "footprint. A floor plan does not answer this - it "
+                           "divides a storey, not the plot."),
         })
     return out
 
@@ -614,7 +773,18 @@ def check_against_measured(parcels: Sequence[VerticalParcel],
 def describe() -> dict:
     """Capability line for run.py --check."""
     return {
-        "format": "<14-char parcel ULPIN>-<level>-<unit>, 21 characters",
+        "format": ("<14-char parcel ULPIN>[-<building>]-<level>-<unit>"
+                   "[-<check>], 22 characters without the optional segments"),
+        "example": "UP091223700412-F03-012",
+        "example_multi_building": "UP091223700412-02-F03-012",
+        "example_with_check": make_3d_ulpin("UP091223700412", "F03", 12,
+                                           with_check=True),
+        "check_scheme": ("ISO 7064 Mod 37,2, optional. Mod 37,2 and not the "
+                         "commonly quoted Mod 11,2, because the parent ULPIN "
+                         "contains letters and Mod 11,2 is defined over "
+                         "digits - measured, 2 of 183 single-character errors "
+                         "slipped past it before the switch; Mod 37,2 catches "
+                         "all of them and all adjacent transpositions."),
         "levels": dict(LEVEL_KINDS),
         "default_storey_m": DEFAULT_STOREY_M,
         "standard": ("DILRMP 3.0 defines the 14-character parcel ULPIN. The "

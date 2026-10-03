@@ -254,13 +254,21 @@ down, or the air above the road — and in a vertical city those are most of
 the disputes.
 
 ```
-UP091223700412-F03-012
-└────────────┘ └─┘ └─┘
- parent ULPIN   |   unit on that level
- 14 chars,      |
- DILRMP 3.0     B.. basement · G00 ground · F.. floor
-                A.. air rights · S.. subsurface utility
+UP091223700412 [-02] -F03 -012 [-D]
+└────────────┘  └─┘   └─┘  └─┘  └┘
+ parent ULPIN    |     |    |    ISO 7064 Mod 37,2 check (optional)
+ 14 chars,       |     |    unit on that level
+ DILRMP 3.0      |     B.. basement · G00 ground · F.. floor
+                 |     A.. air rights · S.. subsurface utility
+                 building 01-99 (optional)
 ```
+
+**Both middle segments are optional, and each omission means something.** No
+building segment = "the only building on this parcel", so every identifier
+minted before the segment existed stays valid and keeps its meaning. It is
+numeric because the level alphabet is B/G/F/A/S - a lettered building field
+would make `B02` mean either basement 2 or building 2 depending on position,
+which is an ambiguity another PS 26011 project actually has.
 
 Derived, deterministic, reversible, collision-free within its parcel. No
 allocator, no counter, no clock — the same unit yields the same identifier in
@@ -287,6 +295,18 @@ of colliding with anything. Now refused at generation and reported as
 `INVALID_Z_RANGE` when already stored. A judge who has built anything will
 recognise that class of bug, and that we went looking for it.
 
+**A check character, and the variant matters.** ISO 7064 **Mod 37,2** - not
+the commonly quoted Mod 11,2, which is defined over digits while a parcel
+ULPIN contains letters. We measured the difference rather than assuming it:
+
+| | Mod 11,2 | Mod 37,2 |
+| --- | --- | --- |
+| Single-character errors caught | 181 / 183 | **700 / 700** |
+| Adjacent transpositions | 15 / 15 | **15 / 15** |
+
+Why it earns its place: `-012-` miscopied as `-021-` is a perfectly valid
+ULPIN pointing at a different flat. Nothing else in the system would notice.
+
 **The detail that shows the detector is real.** A conflict needs BOTH a shared
 footprint and a shared height range. Either alone is an ordinary building: a
 flat's ceiling *is* the next flat's floor, so `top == base` on every storey ever
@@ -303,6 +323,11 @@ a conflict nor cleared:
 | an overlap | flagged every block of flats in India |
 | clean | asserted a separation nobody verified |
 | `LEVEL_NOT_PARTITIONED` | stated the gap, once per level, severity *info* |
+
+And the same question one level up: **two towers on one plot** both inherit
+the whole parcel footprint, so their matching storeys look co-located.
+Reported as `BUILDINGS_NOT_LOCATED` - separate finding, because the fix is a
+**site plan**, not a floor plan.
 
 We take the third. The distinction cannot come from the geometry — two flats on
 an undivided level are geometrically identical to two owners sold the same flat
