@@ -227,6 +227,19 @@ FOOTER_STD = [
 # The corpus. Each entry plants a specific validation scenario.
 # ---------------------------------------------------------------------------
 
+# NOTE ON THE ULPIN VALUES BELOW: they are FABRICATED.
+#
+# A real ULPIN is allocated by the state and is derived from the parcel's own
+# latitude and longitude via a georeferenced cadastral survey - so one cannot
+# be computed here, and the values below are plausible-looking inventions for
+# a synthetic corpus. They exercise the extractor and nothing more.
+#
+# This matters because no document in the REAL corpus prints a ULPIN at all,
+# which makes these the only ones in the system. If one of them is ever shown
+# in a demo, it is an example of the FORMAT and must never be described as an
+# allocated identifier. The real one for a parcel comes from the state portal:
+# on UP Bhulekh, the unique-code lookup takes district, tehsil, village and
+# khasra and returns it.
 SAMPLES = [
     # 1. Clean, fully valid, bilingual -> should sail through to auto-approved
     dict(

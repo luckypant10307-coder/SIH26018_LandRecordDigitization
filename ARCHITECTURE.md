@@ -348,6 +348,10 @@ UP091223700412 [-02] -F03 -012 [-D]
                  building 01-99 (optional)
 ```
 
+`UP091223700412` throughout this section is an **illustrative** parent, taken
+from the synthetic corpus. It is not an allocated identifier, and no document
+in the real corpus carries one — see "Where a real ULPIN comes from" below.
+
 **22 characters** in the common form, `UP091223700412-F03-012`. Both middle
 segments are optional and each omission is a statement rather than a missing
 value.
@@ -406,6 +410,40 @@ yet specify a vertical extension. The parent comes from the official spec and
 only the suffix is ours, separated by a hyphen so the official part stays
 extractable. Presenting an invented scheme as a government one would be the
 same overclaim this project refuses everywhere else.
+
+### Where a real ULPIN comes from
+
+The 3D identifier descends from the parcel ULPIN, so the parent has to be
+real. Three facts, measured on this corpus:
+
+| | |
+| --- | --- |
+| Real documents carrying a ULPIN | **0 of 20** |
+| Documents in the register with the field populated | 4 — **all synthetic samples** |
+| Where that value is defined | `tools/make_samples.py`, hard-coded and fabricated |
+
+**ULPIN is derived from the parcel's own coordinates.** DILRMP generates the
+14-digit alphanumeric code from the parcel's latitude and longitude via a
+georeferenced cadastral survey, embedding the LGD state, district,
+sub-district and village codes plus a plot identifier.
+
+That single fact collapses two of this project's open items into one. "No real
+ULPIN" and "no parcel-grade coordinates" are not two blockers — they are the
+same blocker seen from either end, because the registry that allocates the
+identifier is the registry that holds the geometry. It also explains why these
+documents carry none: they are Bhu-Naksha plot reports from outside the ULPIN
+rollout.
+
+**So the system refuses to compose one**, and that refusal is load-bearing
+rather than fussy. A fabricated 14-character code embeds real-looking LGD
+codes and is indistinguishable from an allocated one once it is written down.
+
+**The lookup that resolves it.** UP Bhulekh exposes a unique-code search
+taking district, tehsil, village and khasra — all four of which this system
+already extracts. For the demo parcel that is Jaunpur / बदलापुर /
+अमारी / khasra 89, and the khasra is the corpus's most trustworthy field:
+read independently from the document text and from the polygon on its own
+embedded map, and cross-confirmed between them.
 
 ### Where an international standard does apply
 
