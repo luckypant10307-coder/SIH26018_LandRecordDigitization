@@ -25,6 +25,7 @@ const volState = {
   current: null,      // selected parcel ULPIN
   level: null,        // selected level code, or null for the whole stack
   shift: 0,           // metres added so basements stay above zero
+  imagery: [],        // locally-held drone orthomosaics, with their corners
 };
 
 const VOL_COLOURS = {
@@ -103,6 +104,62 @@ function volFit() {
     { padding: 150, pitch: 55, bearing: -20, duration: 700, maxZoom: 19 });
 }
 
+async function volAddLocalImagery() {
+  /*
+   * Lay any locally-held drone orthomosaic over the satellite basemap.
+   *
+   * This is the answer to a blurry close-up rather than a decoration. Esri's
+   * imagery runs out at zoom 18 over rural India, so a 23 m building is a
+   * handful of stretched pixels. The drone survey of that same ground is
+   * 2.2 cm - around five hundred times finer - and it is the imagery these
+   * parcels were digitised from, so the boundaries line up with what is
+   * underneath them instead of merely being near it.
+   *
+   * A MapLibre `image` source takes four corner coordinates, which the
+   * GeoTIFF already gives exactly, so nothing is being positioned by hand.
+   * Missing entirely when the imagery has not been fetched - the satellite
+   * basemap is always underneath, so this only ever adds.
+   */
+  let index;
+  try {
+    const response = await fetch("imagery/index.json");
+    if (!response.ok) return;
+    index = await response.json();
+  } catch (e) {
+    return;                       // no local imagery; the basemap stands alone
+  }
+
+  Object.keys(index).forEach((name) => {
+    const scene = index[name];
+    const id = "drone-" + name;
+    if (volState.map.getSource(id)) return;
+    volState.map.addSource(id, {
+      type: "image",
+      url: scene.url,
+      coordinates: scene.coordinates,
+    });
+    volState.map.addLayer({
+      id: id, type: "raster", source: id,
+      paint: { "raster-opacity": 1, "raster-fade-duration": 200 },
+    });
+    volState.imagery.push({ id: id, coordinates: scene.coordinates,
+                            gsd_cm: scene.gsd_cm });
+  });
+}
+
+function volImageryUnder(ring) {
+  /* Which local orthomosaic, if any, covers this parcel. */
+  if (!ring || !ring.length) return null;
+  const lon = ring.reduce((a, p) => a + p[0], 0) / ring.length;
+  const lat = ring.reduce((a, p) => a + p[1], 0) / ring.length;
+  return volState.imagery.find((scene) => {
+    const lons = scene.coordinates.map((p) => p[0]);
+    const lats = scene.coordinates.map((p) => p[1]);
+    return lon >= Math.min.apply(null, lons) && lon <= Math.max.apply(null, lons)
+        && lat >= Math.min.apply(null, lats) && lat <= Math.max.apply(null, lats);
+  }) || null;
+}
+
 function volEnsureMap() {
   if (volState.map) return volState.map;
 
@@ -119,6 +176,27 @@ function volEnsureMap() {
           tiles: ["https://services.arcgisonline.com/ArcGIS/rest/services/"
                   + "World_Imagery/MapServer/tile/{z}/{y}/{x}"],
           tileSize: 256,
+          // Without this, MapLibre keeps requesting deeper tiles and Esri
+          // answers with its "Map data not yet available" placeholder, so
+          // zooming in on a building made the ground vanish. Declaring the
+          // source's real limit makes MapLibre stretch the last good tile
+          // instead: blurry and correct beats blank.
+          //
+          // 18 rather than the 19 the 2D map uses, because coverage is not
+          // uniform and this project's subjects are rural. Measured by
+          // fetching tiles and comparing them against Esri's placeholder
+          // (2,521 bytes, one identical md5 at every depth):
+          //
+          //     Vansar, the drone site     real imagery to z18
+          //     Jaunpur, our own parcels   real imagery to z18
+          //     Hinjewadi, Pune            real imagery to z19
+          //     Lucknow centre             real imagery to z19
+          //
+          // At 19 the cities stay sharp and the villages go blank, which is
+          // exactly backwards for a rural land-records system. The cost of 18
+          // is a softer city view; the cost of 19 is no ground at all over the
+          // places this project is actually about.
+          maxzoom: 18,
           attribution: "Imagery &copy; Esri",
         },
       },
@@ -134,6 +212,7 @@ function volEnsureMap() {
     new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
 
   volState.map.on("load", () => {
+    volAddLocalImagery();
     volState.map.addSource(VOL_SOURCE, { type: "geojson", data: volFeatures() });
     volState.map.addLayer({
       id: VOL_LAYER,
@@ -222,6 +301,15 @@ function volRenderLevels() {
   list.forEach((p) => {
     if (kinds.indexOf(p.level_code[0]) === -1) kinds.push(p.level_code[0]);
   });
+  const scene = volImageryUnder((list[0] || {}).footprint);
+  const ground = $("#volGround");
+  if (ground) {
+    ground.hidden = false;
+    ground.textContent = scene
+      ? "ground: drone orthomosaic, " + scene.gsd_cm + " cm/px"
+      : "ground: Esri satellite, sharp to zoom 18 here";
+  }
+
   $("#volLegend").hidden = kinds.length === 0;
   $("#volLegend").innerHTML = kinds.map((k) =>
     '<span class="vlg"><i style="background:' + volColour(k + "00") + '"></i>'
