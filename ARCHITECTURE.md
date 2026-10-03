@@ -673,6 +673,18 @@ being claimed twice.
   footprint is then in map pixels. Overlap detection stays valid, because it is
   geometric and unit-free; floor area in square metres does not, and the API
   labels the coordinate space rather than letting the number be read as metres.
+- **It is not accurate enough to be a boundary, which was measured rather
+  than assumed.** Against a 2.2 cm drone survey of two warehouses in Vansar,
+  Open Buildings found both and sized them plausibly — 534 m² hand-digitised
+  against 841 m² detected, and 723 m² against 806 m² — but their centroids
+  sat **18.2 m and 9.8 m away**. The displacement is not a consistent shift,
+  so it is not a co-registration offset that could be corrected: it is
+  detection shape error plus a different georeferencing. On a building 23 m
+  across that puts the outline almost entirely off its own plot. The outline
+  is therefore attached as **evidence that a building exists and roughly how
+  large it is**, and is used as geometry only when a caller explicitly asks
+  (`use_building_outline`). A cadastre answers boundary questions in
+  centimetres.
 - **It does not measure a unit.** A satellite envelope bounds the building; it
   cannot see a floor slab or a party wall. Floor counts are still declared, and
   the measurement only contradicts them when the gap is large.

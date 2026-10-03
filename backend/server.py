@@ -2176,17 +2176,31 @@ class Handler(BaseHTTPRequestHandler):
             footprint = reading.get("subject_polygon")
             crs = "map-pixels"
 
-        # If a real building outline is known for this ground, stand the stack
-        # on THAT rather than on the whole plot. This is the difference between
-        # "somewhere on this parcel" and "this building", and it is what lets
-        # footprint_is_parcel become False - which in turn stops every
-        # multi-unit level reporting LEVEL_NOT_PARTITIONED.
+        # A known building outline is attached as EVIDENCE and does not become
+        # the geometry, which is a reversal of how this was first written.
+        #
+        # Measured against a 2.2 cm drone survey of the same two warehouses:
+        #
+        #     hand-digitised 534 m2   detected 841 m2 (conf 0.84)   18.2 m apart
+        #     hand-digitised 723 m2   detected 806 m2 (conf 0.85)    9.8 m apart
+        #
+        # Open Buildings found both structures and sized them plausibly, so it
+        # is good evidence that a building EXISTS and roughly how large it is.
+        # But the displacement is 10-18 m and not a consistent shift, so it is
+        # not a co-registration offset that could be corrected - it is
+        # detection shape error plus a different georeferencing. On a building
+        # 23 m across, 18 m of error puts the footprint almost entirely off its
+        # own plot, and a cadastre answers boundary questions in centimetres.
+        #
+        # So it is opt-in: a caller who knows their outline is co-registered
+        # can ask for it with use_building_outline, and nobody gets a parcel
+        # silently relocated by 18 m.
         outline = None
         footprint_is_parcel = True
         if crs != "map-pixels":
             outline = open_buildings.buildings_in_parcel(
                 [tuple(p) for p in (footprint or [])])
-            if outline and not body.get("footprint_is_parcel"):
+            if outline and body.get("use_building_outline"):
                 footprint = outline["largest"]["footprint"]
                 footprint_is_parcel = False
                 crs = "building-outline"
@@ -2270,10 +2284,13 @@ class Handler(BaseHTTPRequestHandler):
         if outline:
             notes.append(outline["attribution"])
             notes.append(
-                f"{outline['count']} building outline(s) known on this parcel, "
-                f"{outline['total_area_m2']} m2 in total. The stack stands on "
-                f"the largest ({outline['largest']['area_m2']} m2, confidence "
-                f"{outline['largest']['confidence']}).")
+                f"{outline['count']} building outline(s) detected on this "
+                f"parcel, {outline['total_area_m2']} m2 in total, largest "
+                f"{outline['largest']['area_m2']} m2 at confidence "
+                f"{outline['largest']['confidence']}. Evidence that a building "
+                f"is here and roughly how big - NOT used as the footprint, "
+                f"because these were measured 10-18 m from the same buildings "
+                f"in a 2.2 cm drone survey.")
 
         self._json({
             "generated": written,

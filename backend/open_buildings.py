@@ -39,8 +39,22 @@ WHAT IT IS NOT
 
 A building outline is a ROOF seen from above. It does not know storeys, it
 does not know where one flat ends and the next begins, and it is not a survey.
-It locates a building on a parcel and measures its ground area - which is
-exactly the gap above, and nothing more.
+
+AND IT IS NOT ACCURATE ENOUGH TO BE A BOUNDARY. Measured against a 2.2 cm
+drone survey of two warehouses in Vansar:
+
+    hand-digitised 534 m2    detected 841 m2 (conf 0.84)    18.2 m apart
+    hand-digitised 723 m2    detected 806 m2 (conf 0.85)     9.8 m apart
+
+Both structures were found, and sized plausibly - so this is good evidence
+that a building EXISTS and roughly how large it is. The displacement is 10-18
+m and NOT a consistent shift, so it is not a co-registration offset that could
+be corrected away; it is detection shape error plus a different
+georeferencing. On a building 23 m across that puts the outline almost
+entirely off its own plot, and a cadastre answers boundary questions in
+centimetres.
+
+Use it to know a building is there. Do not use it to draw a boundary.
 
 The data is CC-BY 4.0 / ODbL 1.0, and `ATTRIBUTION` must be shown wherever a
 footprint from here is displayed.
