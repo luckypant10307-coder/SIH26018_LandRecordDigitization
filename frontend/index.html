@@ -246,6 +246,32 @@
     <p class="muted">Parcel boundaries traced from the village cadastral sheet and
       placed on the earth from surveyed control points. Select a parcel for its
       record. Works without an internet connection.</p>
+    <div class="row gap cadastral-cityjson-tools">
+      <form id="cadastralCityJsonForm" class="row gap">
+        <label>
+          <span class="muted small">Village</span>
+          <input id="cadastralCityJsonVillage" class="input" required
+                 maxlength="120" placeholder="Village name">
+        </label>
+        <label>
+          <span class="muted small">District (optional)</span>
+          <input id="cadastralCityJsonDistrict" class="input"
+                 maxlength="120" placeholder="District">
+        </label>
+        <label>
+          <span class="muted small">CityJSON parcel layer</span>
+          <input id="cadastralCityJsonFile" class="input" type="file"
+                 accept=".city.json,.json,application/json" required>
+        </label>
+        <button id="cadastralCityJsonImport" class="btn" type="submit">
+          Import CityJSON
+        </button>
+      </form>
+      <button id="cadastralCityJsonExport" class="btn" type="button">
+        Export selected map as CityJSON
+      </button>
+    </div>
+    <p id="cadastralCityJsonStatus" class="status-note" role="status" hidden></p>
     <div id="cadastralDisclaimer" class="callout" hidden></div>
     <div id="cadastralMap" class="cadastral-map"></div>
     <div id="cadastralLegend" class="map-legend" hidden></div>

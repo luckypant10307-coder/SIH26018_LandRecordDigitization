@@ -156,6 +156,7 @@ corroboration is worse than an absent one.
 | `backend/validator.py` | Business rules, master-data cross-check, trust score |
 | `backend/fact_checker.py` | ML (TF-IDF + cosine similarity) fact-check against an external registry |
 | `backend/cadastral.py` | Cadastral map vectorization and georeferencing (S12a) |
+| `backend/cityjson.py` | CityJSON parcel import/export without optional GIS dependencies |
 | `backend/document_authenticity.py` | Signature/seal/stamp-paper presence detection (S12b) |
 | `backend/anomaly_detector.py` | ML (IsolationForest) one-class anomaly baseline (S12c) |
 | `backend/table_structure.py` | Table/layout structure recognition via PaddleOCR PP-StructureV3, optional (S12d) |
@@ -167,6 +168,18 @@ corroboration is worse than an absent one.
 | `backend/data/registry_master.json` | Bundled parcel-level registry extract for fact-checking |
 | `frontend/` | Ingest, queue, verification workspace, dashboard, learning, audit |
 | `tools/make_samples.py` | Generates the sample corpus with planted edge cases |
+
+### CityJSON parcel layers
+
+The Cadastral Map tab can import CityJSON 1.0, 1.1, and 2.0 parcel geometry
+and export the selected map as CityJSON 2.0. Import requires a declared
+EPSG:4326 or EPSG:4979 coordinate reference system and a village name; only
+geographic parcel surfaces are accepted. The current map model uses parcel
+footprints, so when a CityObject contains multiple polygon surfaces only its
+largest footprint is used. CityJSON export retains available heights; for
+2D source maps it writes height `0` and marks `z_is_placeholder` on the
+CityObject rather than presenting that value as a surveyed elevation.
+Import/export uses the Python standard library and requires no extra package.
 
 ### S4-formats. What you can upload, and why not Docling
 
@@ -1885,6 +1898,7 @@ python3 tests/test_topology.py -v             # gaps, overlaps, containment, sna
 python3 tests/test_georeference.py -v         # world files, GeoTIFF, .aux.xml
 python3 tests/test_geocode.py -v              # place-name geotag, precision honesty
 python3 tests/test_shapefile_import.py -v     # .shp/.dbf/.prj, winding, tombstones
+python3 tests/test_cityjson.py -v             # CityJSON import/export and CRS validation
 python3 tests/test_boundary_net.py -v         # U-Net contract + dataset ground truth
 python3 tests/test_cnn_denoiser.py -v         # conv primitives, tiled inference
 python3 tests/test_fact_checker.py -v         # ML fact-check pipeline

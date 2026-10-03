@@ -112,9 +112,16 @@ function Legend({ entries }) {
 }
 
 function CadastralView() {
-  const { username } = useApp();
+  const { username, can, toast } = useApp();
   const [mapId, setMapId] = useState(null);
   const [legend, setLegend] = useState(STATUS_LEGEND);
+  const [mapRefresh, setMapRefresh] = useState(0);
+  const [village, setVillage] = useState("");
+  const [district, setDistrict] = useState("");
+  const [cityjsonFile, setCityjsonFile] = useState(null);
+  const [importBusy, setImportBusy] = useState(false);
+  const [exportBusy, setExportBusy] = useState(false);
+  const cityjsonInputRef = useRef(null);
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const layersRef = useRef(null);
@@ -123,7 +130,7 @@ function CadastralView() {
   const maps = useAsync(
     () => apiCall("/api/cadastral/maps", {}, username).then((o) => o.maps || [])
             .catch(() => []),
-    [username]);
+    [username, mapRefresh]);
 
   // Default to the first map once the list arrives, without clobbering a
   // choice the viewer has already made.
@@ -136,6 +143,56 @@ function CadastralView() {
     () => apiCall("/api/cadastral/parcels"
       + (mapId ? "?map=" + encodeURIComponent(mapId) : ""), {}, username),
     [mapId, username], true);
+
+  async function importCityJSON(event) {
+    event.preventDefault();
+    if (!cityjsonFile || !can("retrain")) return;
+    const form = new FormData();
+    form.append("village", village.trim());
+    form.append("district", district.trim());
+    form.append("cityjson", cityjsonFile, cityjsonFile.name);
+    setImportBusy(true);
+    try {
+      const result = await apiCall(
+        "/api/cadastral/cityjson", { method: "POST", body: form }, username);
+      setMapId(result.id);
+      setMapRefresh((value) => value + 1);
+      setVillage("");
+      setDistrict("");
+      setCityjsonFile(null);
+      if (cityjsonInputRef.current) cityjsonInputRef.current.value = "";
+      toast(`Imported ${result.parcels} CityJSON parcel(s)`,
+            result.warnings && result.warnings.length ? "warn" : "ok");
+    } catch (error) {
+      toast(error.message, "err");
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
+  async function exportCityJSON() {
+    if (!mapId || !can("export")) return;
+    setExportBusy(true);
+    try {
+      const response = await fetch(
+        "/api/cadastral/cityjson?map=" + encodeURIComponent(mapId),
+        { headers: username ? { "X-User": username } : {} });
+      if (!response.ok) {
+        const payload = await response.json();
+        throw new Error(payload.error || `Request failed (${response.status})`);
+      }
+      const blob = await response.blob();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `cityjson_${mapId}.city.json`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      toast(error.message, "err");
+    } finally {
+      setExportBusy(false);
+    }
+  }
 
   // Build the Leaflet layers. Depends on the geojson only; the container is
   // rendered unconditionally below so the ref is always attached by the time
@@ -294,6 +351,41 @@ function CadastralView() {
                 + (m.bundled ? " (demo)" : ""))))
           : null,
         h("span", { className: "muted small" }, meta))),
+
+    h("form", { className: "row gap cadastral-cityjson-tools",
+      onSubmit: importCityJSON },
+      h("label", null,
+        h("span", { className: "muted small" }, "Village"),
+        h("input", {
+          className: "input", required: true, maxLength: 120,
+          placeholder: "Village name", value: village,
+          onChange: (event) => setVillage(event.target.value),
+        })),
+      h("label", null,
+        h("span", { className: "muted small" }, "District (optional)"),
+        h("input", {
+          className: "input", maxLength: 120, placeholder: "District",
+          value: district, onChange: (event) => setDistrict(event.target.value),
+        })),
+      h("label", null,
+        h("span", { className: "muted small" }, "CityJSON parcel layer"),
+        h("input", {
+          className: "input", type: "file", required: true,
+          ref: cityjsonInputRef,
+          accept: ".city.json,.json,application/json",
+          onChange: (event) => setCityjsonFile(event.target.files[0] || null),
+        })),
+      h("button", {
+        className: "btn",
+        type: "submit",
+        disabled: !can("retrain") || !cityjsonFile || importBusy,
+      }, importBusy ? "Importing…" : "Import CityJSON"),
+      h("button", {
+        className: "btn",
+        type: "button",
+        disabled: !can("export") || !mapId || exportBusy,
+        onClick: exportCityJSON,
+      }, exportBusy ? "Exporting…" : "Export selected map as CityJSON")),
 
     geojson && geojson._error
       ? h("p", { className: "status-note" }, geojson._error)

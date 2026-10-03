@@ -325,6 +325,8 @@ function applyRights() {
   $("#seedBtn").disabled = !can("upload");
   $("#retrainBtn").disabled = !can("retrain");
   $("#exportCsvBtn").disabled = !can("export");
+  $("#cadastralCityJsonImport").disabled = !can("retrain");
+  $("#cadastralCityJsonExport").disabled = !can("export") || !cadastralSelectedMap;
   $("#approveBtn").disabled = !can("approve");
   $("#rejectBtn").disabled = !can("reject");
   // Declaring a building writes to the register, so it needs the same right
@@ -1172,6 +1174,7 @@ async function refreshCadastralMapList() {
   }
   if (cadastralSelectedMap) sel.value = cadastralSelectedMap;
   sel.parentElement.hidden = maps.length < 2;   // pointless chooser for one map
+  $("#cadastralCityJsonExport").disabled = !can("export") || !cadastralSelectedMap;
   return maps;
 }
 
@@ -1391,6 +1394,59 @@ async function loadCadastralMap() {
 $("#cadastralMapSelect").addEventListener("change", (e) => {
   cadastralSelectedMap = e.target.value;
   loadCadastralMap();     // fitBounds re-centres, so switching village moves the view
+});
+
+$("#cadastralCityJsonForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const file = $("#cadastralCityJsonFile").files[0];
+  if (!file) return;
+  const form = event.currentTarget;
+  const formData = new FormData();
+  formData.append("village", $("#cadastralCityJsonVillage").value.trim());
+  formData.append("district", $("#cadastralCityJsonDistrict").value.trim());
+  formData.append("cityjson", file, file.name);
+  const status = $("#cadastralCityJsonStatus");
+  status.hidden = false;
+  status.textContent = "Importing and validating CityJSON…";
+  try {
+    const result = await api("/api/cadastral/cityjson", {
+      method: "POST", body: formData,
+    });
+    cadastralSelectedMap = result.id;
+    form.reset();
+    status.textContent = `Imported ${result.parcels} parcel(s).`;
+    if (result.warnings && result.warnings.length) {
+      toast(`Imported with ${result.warnings.length} geometry warning(s).`, "warn");
+    } else {
+      toast(`Imported ${result.parcels} parcel(s) from CityJSON.`, "ok");
+    }
+    await loadCadastralMap();
+  } catch (error) {
+    status.textContent = error.message;
+    toast(error.message, "err");
+  }
+});
+
+$("#cadastralCityJsonExport").addEventListener("click", async () => {
+  if (!cadastralSelectedMap) return;
+  const query = `?map=${encodeURIComponent(cadastralSelectedMap)}`;
+  try {
+    const response = await fetch("/api/cadastral/cityjson" + query, {
+      headers: await authHeaders(),
+    });
+    if (!response.ok) {
+      const payload = await response.json();
+      throw new Error(payload.error || `Request failed (${response.status})`);
+    }
+    const blob = await response.blob();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `cityjson_${cadastralSelectedMap}.city.json`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  } catch (error) {
+    toast(error.message, "err");
+  }
 });
 
 async function loadDashboard() {

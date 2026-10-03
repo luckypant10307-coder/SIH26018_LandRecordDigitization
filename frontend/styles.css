@@ -374,6 +374,15 @@ main { padding: 24px 32px 64px; max-width: 1400px; margin: 0 auto; }
 .input:focus { outline: 2px solid var(--blue-soft); border-color: var(--blue); }
 select.input, input[type="search"].input { width: auto; min-width: 180px; }
 
+.cadastral-cityjson-tools { margin-top: 12px; align-items: flex-end; }
+.cadastral-cityjson-tools label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: min(220px, 100%);
+}
+.cadastral-cityjson-tools input[type="file"] { max-width: 320px; }
+
 /* ---------------- Dropzone ---------------- */
 
 .dropzone {

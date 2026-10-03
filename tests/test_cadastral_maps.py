@@ -121,6 +121,45 @@ class MapRegistryTests(unittest.TestCase):
             json.dump({"village": "X", "control_points": []}, fh)
         self.assertNotIn("noimage", [m["id"] for m in server.list_cadastral_maps()])
 
+    def test_cityjson_only_map_is_listed_and_served_without_opencv(self):
+        d = os.path.join(self.tmp, "cityjson-village")
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, "control_points.json"), "w", encoding="utf-8") as fh:
+            json.dump({"village": "CityJSON Village"}, fh)
+        with open(os.path.join(d, "parcels.city.json"), "w", encoding="utf-8") as fh:
+            json.dump({
+                "type": "CityJSON",
+                "version": "2.0",
+                "metadata": {
+                    "referenceSystem": "https://www.opengis.net/def/crs/EPSG/0/4979",
+                },
+                "CityObjects": {
+                    "parcel-1": {
+                        "type": "LandUse",
+                        "attributes": {"khasra_number": "15"},
+                        "geometry": [{
+                            "type": "MultiSurface",
+                            "lod": "0",
+                            "boundaries": [[[0, 1, 2, 3, 0]]],
+                        }],
+                    },
+                },
+                "vertices": [
+                    [80.9, 26.8, 100], [80.901, 26.8, 100],
+                    [80.901, 26.801, 100], [80.9, 26.801, 100],
+                ],
+            }, fh)
+        original = server.cadastral.CV_AVAILABLE
+        server.cadastral.CV_AVAILABLE = False
+        try:
+            self.assertIn("cityjson-village",
+                          [m["id"] for m in server.list_cadastral_maps()])
+            result = server._cadastral_geojson("cityjson-village")
+            self.assertEqual(result["features"][0]["properties"]["khasra_number"], "15")
+            self.assertNotIn("_error", result)
+        finally:
+            server.cadastral.CV_AVAILABLE = original
+
     def test_aliases_are_casefolded_for_matching(self):
         self._add_map("barkhedi", "बरखेडी", ["बरखेडी", "Barkhedi"])
         entry = [m for m in server.list_cadastral_maps() if m["id"] == "barkhedi"][0]

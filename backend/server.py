@@ -38,6 +38,7 @@ import anomaly_detector
 import auth
 import bhashini
 import cadastral
+import cityjson
 import document_authenticity
 import doc_type as doc_type_mod
 import fact_checker
@@ -1370,11 +1371,11 @@ def list_cadastral_maps() -> List[dict]:
         images = [f for f in sorted(os.listdir(folder))
                   if os.path.splitext(f)[1].lower() in MAP_IMAGE_EXT]
         # A digitized parcel layer needs no raster and no georeferencing, so a
-        # folder holding only a .shp set is a complete map on its own. The
-        # metadata JSON is still required, because a shapefile carries
-        # geometry but not the village name records are matched on.
+        # folder holding only a .shp or CityJSON file is a complete map on its
+        # own. The metadata JSON is still required to name the village.
         shapefile = shapefile_import.find_shapefile(folder)
-        if not os.path.exists(cp) or not (images or shapefile):
+        cityjson_path = find_cityjson(folder)
+        if not os.path.exists(cp) or not (images or shapefile or cityjson_path):
             continue
         # A raster map also needs USABLE control points, not merely a file
         # containing some. tools/map_from_document.py writes the pixel
@@ -1386,7 +1387,7 @@ def list_cadastral_maps() -> List[dict]:
         # than an explanation.
         #
         # A shapefile carries its own coordinates, so it needs none of this.
-        if not shapefile and not _has_usable_control_points(cp):
+        if not shapefile and not cityjson_path and not _has_usable_control_points(cp):
             continue
         meta = _read_map_metadata(cp)
         maps.append({
@@ -1396,10 +1397,19 @@ def list_cadastral_maps() -> List[dict]:
             "aliases": _village_aliases(meta),
             "map_path": os.path.join(folder, images[0]) if images else None,
             "shapefile_path": shapefile,
+            "cityjson_path": cityjson_path,
             "control_points_path": cp,
             "bundled": False,
         })
     return maps
+
+
+def find_cityjson(folder: str) -> Optional[str]:
+    """Find a CityJSON file in a cadastral-map directory."""
+    if not os.path.isdir(folder):
+        return None
+    found = sorted(f for f in os.listdir(folder) if f.lower().endswith(".city.json"))
+    return os.path.join(folder, found[0]) if found else None
 
 
 def _find_map(map_id: Optional[str]) -> Optional[dict]:
@@ -1427,11 +1437,6 @@ def _cadastral_geojson(map_id: Optional[str] = None) -> dict:
     if key in _CADASTRAL_CACHE:
         return _CADASTRAL_CACHE[key]
 
-    if not cadastral.CV_AVAILABLE:
-        result = {"type": "FeatureCollection", "features": [],
-                  "_error": "OpenCV/numpy not installed; cadastral vectorization was skipped."}
-        _CADASTRAL_CACHE[key] = result
-        return result
     if target is None:
         result = {"type": "FeatureCollection", "features": [],
                   "_error": (f"No cadastral map named '{map_id}'." if map_id else
@@ -1459,6 +1464,21 @@ def _cadastral_geojson(map_id: Optional[str] = None) -> dict:
                                "bundled": target["bundled"]}
             _CADASTRAL_CACHE[key] = geojson
             return geojson
+        if target.get("cityjson_path"):
+            with open(target["cityjson_path"], "rb") as fh:
+                geojson = cityjson.to_geojson(
+                    fh.read(), source_file=os.path.basename(target["cityjson_path"]))
+            geojson["_control_points"] = []
+            geojson["_map"] = {"id": target["id"], "village": target["village"],
+                               "district": target["district"],
+                               "bundled": target["bundled"]}
+            _CADASTRAL_CACHE[key] = geojson
+            return geojson
+        if not cadastral.CV_AVAILABLE:
+            result = {"type": "FeatureCollection", "features": [],
+                      "_error": "OpenCV/numpy not installed; cadastral vectorization was skipped."}
+            _CADASTRAL_CACHE[key] = result
+            return result
 
         # A georeferencing produced by ArcGIS or QGIS wins over control points
         # picked here. It was established against a real basemap, usually with
@@ -2035,6 +2055,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.api_cadastral_parcels
             if path == "/api/cadastral/maps":
                 return self.api_cadastral_maps
+            if path == "/api/cadastral/cityjson":
+                return self.api_cadastral_cityjson_export
             if doc_match:
                 return lambda q: self.api_get_document(int(doc_match.group(1)), q)
             if sub_match and sub_match.group(2) == "preview":
@@ -2055,6 +2077,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.api_reset
             if path == "/api/cadastral/maps":
                 return self.api_cadastral_upload
+            if path == "/api/cadastral/cityjson":
+                return self.api_cadastral_cityjson_upload
             if sub_match:
                 doc_id, action = int(sub_match.group(1)), sub_match.group(2)
                 if action == "fields":
@@ -2509,9 +2533,87 @@ class Handler(BaseHTTPRequestHandler):
         self._json({"maps": [
             {"id": m["id"], "village": m["village"], "district": m["district"],
              "bundled": m["bundled"],
-             "map_file": os.path.basename(m["map_path"])}
+             "map_file": os.path.basename(
+                 m.get("map_path") or m.get("shapefile_path")
+                 or m.get("cityjson_path") or "")}
             for m in list_cadastral_maps()
         ]})
+
+    def api_cadastral_cityjson_upload(self, query: dict) -> None:
+        """Import a CityJSON parcel layer as a village map."""
+        self._require("retrain")
+        ctype = self.headers.get("Content-Type") or ""
+        if "multipart/form-data" not in ctype.lower():
+            raise ApiError(400, "Upload must be multipart/form-data.")
+
+        parts = parse_multipart(self._read_body(), ctype)
+        file_part = next((p for p in parts
+                          if p.get("name") == "cityjson" and p.get("filename")), None)
+        village_part = next((p for p in parts if p.get("name") == "village"), None)
+        district_part = next((p for p in parts if p.get("name") == "district"), None)
+        if not file_part:
+            raise ApiError(400, "Choose a CityJSON file to import.")
+        village = ((village_part or {}).get("data") or b"").decode(
+            "utf-8", "replace").strip()
+        district = ((district_part or {}).get("data") or b"").decode(
+            "utf-8", "replace").strip()
+        if not village:
+            raise ApiError(400, "Enter the village name for this parcel layer.")
+
+        source_name = safe_filename(file_part["filename"])
+        try:
+            imported = cityjson.to_geojson(file_part["data"], source_name)
+        except cityjson.CityJSONError as exc:
+            raise ApiError(400, str(exc))
+
+        slug = re.sub(r"[^a-z0-9]+", "-", village.casefold()).strip("-")[:24]
+        map_id = slug or ("map-" + uuid.uuid4().hex[:8])
+        if os.path.exists(os.path.join(CADASTRAL_STORE, map_id)):
+            map_id = f"{map_id}-{uuid.uuid4().hex[:8]}"
+        folder = os.path.join(CADASTRAL_STORE, map_id)
+        metadata_path = os.path.join(folder, "control_points.json")
+        if os.name == "nt" and len(os.path.abspath(metadata_path)) >= _MAX_WINDOWS_PATH:
+            raise ApiError(500, "Storage path is too long for this operating system. "
+                                "Move this project to a shorter directory.")
+
+        os.makedirs(folder, exist_ok=False)
+        try:
+            with open(os.path.join(folder, "parcels.city.json"), "wb") as fh:
+                fh.write(file_part["data"])
+            with open(metadata_path, "w", encoding="utf-8") as fh:
+                json.dump({"village": village, "district": district or None},
+                          fh, ensure_ascii=False, indent=2)
+        except OSError as exc:
+            shutil.rmtree(folder, ignore_errors=True)
+            raise ApiError(500, f"Could not save the CityJSON parcel layer: {exc}")
+
+        _CADASTRAL_CACHE.clear()
+        DB.audit(self._current_user(), "cityjson_map_added", None,
+                 detail=f"village={village}; parcels={len(imported['features'])}; "
+                        f"source={source_name}")
+        self._json({
+            "id": map_id,
+            "village": village,
+            "parcels": len(imported["features"]),
+            "warnings": imported.get("_warnings", []),
+        })
+
+    def api_cadastral_cityjson_export(self, query: dict) -> None:
+        """Download the selected village's parcel layer as CityJSON."""
+        self._require("export")
+        map_id = (query.get("map") or [None])[0]
+        geojson = _cadastral_geojson(map_id)
+        if geojson.get("_error"):
+            raise ApiError(404, geojson["_error"])
+        try:
+            payload = cityjson.to_cityjson(geojson)
+        except cityjson.CityJSONError as exc:
+            raise ApiError(422, str(exc))
+        filename = safe_filename(
+            f"cityjson_{map_id or 'parcels'}.city.json")
+        body = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+        self._send(200, body, "application/json; charset=utf-8",
+                   {"Content-Disposition": f'attachment; filename="{filename}"'})
 
     def api_cadastral_upload(self, query: dict) -> None:
         """
