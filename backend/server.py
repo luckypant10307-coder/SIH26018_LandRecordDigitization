@@ -2238,7 +2238,22 @@ class Handler(BaseHTTPRequestHandler):
             [tuple(p) for p in footprint]) if crs != "map-pixels" else None
         height_m = building_height.representative_height(measured)
 
-        findings = vertical.find_conflicts(all_volumes)
+        # Conflicts are computed across EVERY stored volume, because an
+        # overlap only exists relative to its neighbours - but the answer to
+        # "what did I just create" must not include problems belonging to
+        # somebody else's parcel. Measured: a 4-volume stack came back
+        # reporting 13 findings, all of them about a different building.
+        #
+        # A cross-parcel conflict still surfaces, because this stack is one of
+        # its two sides.
+        mine = {v.ulpin_3d for v in stack}
+        def involves_this_stack(finding: dict) -> bool:
+            if finding.get("parcel_ulpin") == parcel_ulpin:
+                return True
+            return bool(mine.intersection(finding.get("ulpins") or []))
+
+        findings = [f for f in vertical.find_conflicts(all_volumes)
+                    if involves_this_stack(f)]
         findings += vertical.check_against_measured(
             stack, height_m,
             storey_m=float(body.get("storey_m") or vertical.DEFAULT_STOREY_M))
