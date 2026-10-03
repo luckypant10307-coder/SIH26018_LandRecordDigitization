@@ -456,7 +456,8 @@ def stack(parcel_ulpin: str,
           units_per_level: int = 1,
           storey_m: float = DEFAULT_STOREY_M,
           include_ground: bool = True,
-          building: Optional[int] = None) -> List[VerticalParcel]:
+          building: Optional[int] = None,
+          footprint_is_parcel: bool = True) -> List[VerticalParcel]:
     """
     Build the declared vertical parcels for one surface parcel.
 
@@ -488,7 +489,7 @@ def stack(parcel_ulpin: str,
                 parcel_ulpin=parcel_ulpin.strip().upper(),
                 level_code=code, unit=unit, building=building,
                 footprint=list(ring), base_m=base, top_m=top,
-                surveyed=False, footprint_is_parcel=True))
+                surveyed=False, footprint_is_parcel=footprint_is_parcel))
     return out
 
 

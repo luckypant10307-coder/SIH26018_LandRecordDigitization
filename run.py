@@ -157,6 +157,21 @@ def report() -> int:
         print("                          storey height. Set it to check a floor")
         print("                          count against Open Buildings 2.5D.")
 
+    import open_buildings
+    obd = open_buildings.describe()
+    cells = obd["cells_cached"]
+    if cells:
+        print(f"  Building outlines     : {cells} region(s) imported - Open "
+              f"Buildings v3, CC-BY")
+        print("                          a roof seen from above: locates a")
+        print("                          building and measures its ground")
+        print("                          area; knows no storeys or units")
+    else:
+        print("  Building outlines     : none imported. Volumes stand on the")
+        print("                          WHOLE PARCEL, which is why multi-unit")
+        print("                          levels report LEVEL_NOT_PARTITIONED.")
+        print("                          Import one: tools/import_buildings.py")
+
     import sam_fallback
     sam = sam_fallback.status()
     if sam["enabled"]:

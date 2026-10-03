@@ -56,6 +56,7 @@ import table_structure
 import topology
 import validator as validator_mod
 import building_height
+import open_buildings
 import vertical
 from db import Database
 from field_extractor import (
@@ -2174,6 +2175,21 @@ class Handler(BaseHTTPRequestHandler):
             reading = (doc.get("parcel_map") or {})
             footprint = reading.get("subject_polygon")
             crs = "map-pixels"
+
+        # If a real building outline is known for this ground, stand the stack
+        # on THAT rather than on the whole plot. This is the difference between
+        # "somewhere on this parcel" and "this building", and it is what lets
+        # footprint_is_parcel become False - which in turn stops every
+        # multi-unit level reporting LEVEL_NOT_PARTITIONED.
+        outline = None
+        footprint_is_parcel = True
+        if crs != "map-pixels":
+            outline = open_buildings.buildings_in_parcel(
+                [tuple(p) for p in (footprint or [])])
+            if outline and not body.get("footprint_is_parcel"):
+                footprint = outline["largest"]["footprint"]
+                footprint_is_parcel = False
+                crs = "building-outline"
         if not footprint or len(footprint) < 3:
             raise ApiError(
                 400, "No footprint available. A vertical parcel needs the ground "
@@ -2190,7 +2206,8 @@ class Handler(BaseHTTPRequestHandler):
                 floors_above=int(body.get("floors_above") or 0),
                 basements=int(body.get("basements") or 0),
                 units_per_level=int(body.get("units_per_level") or 1),
-                storey_m=float(body.get("storey_m") or vertical.DEFAULT_STOREY_M))
+                storey_m=float(body.get("storey_m") or vertical.DEFAULT_STOREY_M),
+                footprint_is_parcel=footprint_is_parcel)
         except vertical.VerticalError as exc:
             raise ApiError(400, str(exc))
         except (ValueError, TypeError) as exc:
@@ -2235,6 +2252,13 @@ class Handler(BaseHTTPRequestHandler):
                 "building height can be measured without real coordinates.")
         if measured:
             notes.append(measured["attribution"])
+        if outline:
+            notes.append(outline["attribution"])
+            notes.append(
+                f"{outline['count']} building outline(s) known on this parcel, "
+                f"{outline['total_area_m2']} m2 in total. The stack stands on "
+                f"the largest ({outline['largest']['area_m2']} m2, confidence "
+                f"{outline['largest']['confidence']}).")
 
         self._json({
             "generated": written,
@@ -2242,6 +2266,7 @@ class Handler(BaseHTTPRequestHandler):
             "parcels": [v.to_dict() for v in stack],
             "conflicts": findings,
             "measured_height": measured,
+            "building_outline": outline,
             "notes": notes,
         })
 
