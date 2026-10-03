@@ -938,6 +938,52 @@ def _canonical_place(master, kind: str, value: str,
     return None
 
 
+def _derive_state(fields) -> Optional[dict]:
+    """
+    Set the state from the district when the document did not print one.
+
+    Returns what was derived, or None. The value is marked `derived=True` and
+    carries the district it came from, because a reviewer looking at a state
+    they cannot find anywhere on the page needs to know why it is there - and
+    because a wrong district silently produces a wrong state, so the chain has
+    to stay visible.
+
+    Confidence is deliberately capped below a read value: this is an
+    inference from a closed table, which is strong, but it is still not
+    something anybody wrote on the document.
+    """
+    by_key = {f.key: f for f in fields}
+    state_field = by_key.get("state")
+    district_field = by_key.get("district")
+    if state_field is None or district_field is None:
+        return None
+    if (state_field.value or "").strip():
+        return None                      # the document said so; it wins
+    district = (district_field.value or "").strip()
+    if not district:
+        return None
+
+    resolved = validator_mod._MASTER.state_of_district(district)
+    if not resolved:
+        return None
+
+    state_field.value = resolved["state"]
+    state_field.status = "extracted"
+    state_field.confidence = min(0.80, district_field.confidence or 0.80)
+    state_field.notes = list(state_field.notes) + [
+        f"Derived from district {district} via the LGD administrative master. "
+        f"Not printed on the document."]
+    state_field.extra = dict(state_field.extra)
+    state_field.extra.update({
+        "derived": True,
+        "derived_from": "district",
+        "derived_from_value": district,
+        "state_lgd": resolved.get("state_lgd"),
+        "district_lgd": resolved.get("district_lgd"),
+    })
+    return resolved
+
+
 def _normalise_place_scripts(fields) -> List[dict]:
     """
     Rewrite Indic-script administrative names to the master's own spelling.
@@ -1067,6 +1113,19 @@ def process_document(stored_path: str, original_name: str, user: dict) -> dict:
     # alias gets first refusal on a value, and before validation so the rules
     # see the corrected text rather than the raw misreading.
     vocab = gazetteer.apply_to_fields(fields)
+
+    # Fill the state from the district, which a land record almost never
+    # prints - it is obvious to everyone in the room and so goes unwritten.
+    # Measured on the real corpus: district reaches 5 of 20 documents and
+    # state 0, yet every one of those districts determines its state exactly.
+    #
+    # It runs AFTER the gazetteer so the district has already been corrected
+    # against LGD: inferring from a misread district would propagate the
+    # error upward into the administrative hierarchy instead of leaving a
+    # blank. And it only ever fills an EMPTY state - a document that prints
+    # one is the authority, and a disagreement between the two is for the
+    # hierarchy rule to report, not for this to overwrite.
+    derived_state = _derive_state(fields)
 
     values = {}
     for f in fields:

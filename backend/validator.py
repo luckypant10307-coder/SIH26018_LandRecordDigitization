@@ -90,6 +90,37 @@ class AdminMaster:
         """Returns the state name if the district is known."""
         return self._all_districts().get(self._norm(district))
 
+    def state_of_district(self, district: str) -> Optional[dict]:
+        """
+        The state a district belongs to, with both LGD codes.
+
+        A land record almost never prints its state - it is obvious to
+        everyone in the room and so goes unwritten - but the state is the
+        first component of a ULPIN and the top of the administrative
+        hierarchy, so an empty field there costs more than it looks.
+
+        It is DERIVED, never read, and the caller must label it so. The
+        district it comes from was read; the state is an inference from the
+        LGD master, and a wrong district silently produces a wrong state.
+        """
+        state = self.district_exists(district)
+        if not state:
+            return None
+        info = self.states.get(state) or {}
+        district_info = (info.get("districts") or {}).get(district) or {}
+        # Fall back to a case-insensitive hit, since district_exists
+        # normalises but the districts dict is keyed by display spelling.
+        if not district_info:
+            for name, value in (info.get("districts") or {}).items():
+                if self._norm(name) == self._norm(district):
+                    district_info = value
+                    break
+        return {
+            "state": state,
+            "state_lgd": info.get("lgd_code"),
+            "district_lgd": district_info.get("lgd_code"),
+        }
+
     def tehsil_in_district(self, tehsil: str, district: str) -> Optional[bool]:
         """True/False if the district is known, None if we cannot tell."""
         for meta in self.states.values():
